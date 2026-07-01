@@ -13,7 +13,7 @@ from app.core.router_class import OperationLogRoute
 from .schema import MenuCreateSchema, MenuOutSchema, MenuQueryParam, MenuUpdateSchema
 from .service import MenuService
 
-MenuRouter = APIRouter(route_class=OperationLogRoute, prefix="/menu", tags=["平台管理", "菜单管理"])
+MenuRouter = APIRouter(route_class=OperationLogRoute, prefix="/menu", tags=["菜单管理"])
 
 _MENU_NS = "menu"
 
@@ -96,7 +96,7 @@ async def delete_obj_controller(
 )
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改菜单状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await MenuService(auth).set_available(data=data)
     await FastAPICache.clear(namespace=_MENU_NS)

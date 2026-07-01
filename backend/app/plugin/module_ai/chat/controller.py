@@ -22,7 +22,7 @@ from .schema import (
 )
 from .service import AiModelConfigService, ChatService
 
-ChatRouter = APIRouter(route_class=OperationLogRoute, prefix="/chat", tags=["AI管理", "AI对话"])
+ChatRouter = APIRouter(route_class=OperationLogRoute, prefix="/chat", tags=["AI管理"])
 
 
 @ChatRouter.get(
@@ -125,9 +125,6 @@ async def ai_chat_controller(
         ),
         msg="对话成功",
     )
-
-
-# ============ AI 模型配置 ============ #
 
 
 @ChatRouter.get(

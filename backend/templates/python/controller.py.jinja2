@@ -2,7 +2,7 @@
 import urllib.parse
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Path, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
@@ -47,8 +47,8 @@ async def get_obj_detail_controller(
     response_model=ResponseSchema[PageResultSchema[{{ class_name }}OutSchema]],
 )
 async def get_obj_list_controller(
-    page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[{{ class_name }}QueryParam, Depends()],
+    page: Annotated[PaginationQueryParam, Query(description="分页查询参数")],
+    search: Annotated[{{ class_name }}QueryParam, Query(description="查询参数")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:query"]))],
 ) -> JSONResponse:
     """
@@ -78,7 +78,7 @@ async def get_obj_list_controller(
     response_model=ResponseSchema[{{ class_name }}OutSchema],
 )
 async def create_obj_controller(
-    data: {{ class_name }}CreateSchema,
+    data: Annotated[{{ class_name }}CreateSchema, Body(description="创建参数")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:create"]))],
 ) -> JSONResponse:
     """
@@ -101,7 +101,7 @@ async def create_obj_controller(
     response_model=ResponseSchema[{{ class_name }}OutSchema],
 )
 async def update_obj_controller(
-    data: {{ class_name }}UpdateSchema,
+    data: Annotated[{{ class_name }}UpdateSchema, Body(description="更新参数")],
     id: Annotated[int, Path(description="{{ function_name }}ID")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:update"]))],
 ) -> JSONResponse:
@@ -149,7 +149,7 @@ async def delete_obj_controller(
     response_model=ResponseSchema[None],
 )
 async def batch_set_available_obj_controller(
-    data: BatchSetAvailable,
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:patch"]))],
 ) -> JSONResponse:
     """
@@ -171,7 +171,7 @@ async def batch_set_available_obj_controller(
     summary="导出{{ function_name }}",
 )
 async def export_obj_list_controller(
-    search: Annotated[{{ class_name }}QueryParam, Depends()],
+    search: Annotated[{{ class_name }}QueryParam, Query(description="查询参数")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:export"]))],
 ) -> StreamingResponse:
     """
@@ -200,7 +200,7 @@ async def export_obj_list_controller(
     response_model=ResponseSchema[str],
 )
 async def import_obj_list_controller(
-    file: UploadFile,
+    file: Annotated[UploadFile, File(description="导入的Excel文件")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:import"]))],
 ) -> JSONResponse:
     """

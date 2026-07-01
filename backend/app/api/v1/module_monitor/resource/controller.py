@@ -22,7 +22,7 @@ from .schema import (
 )
 from .service import ResourceService
 
-ResourceRouter = APIRouter(route_class=OperationLogRoute, prefix="/resource", tags=["系统监控", "资源管理"])
+ResourceRouter = APIRouter(route_class=OperationLogRoute, prefix="/resource", tags=["资源管理"])
 
 
 @ResourceRouter.get(
@@ -139,10 +139,10 @@ async def rename_file_controller(
 
 
 @ResourceRouter.post(
-    "/create-dir",
+    "/mkdir",
     summary="创建目录",
     response_model=ResponseSchema[None],
-    dependencies=[Depends(AuthPermission(["module_monitor:resource:create_dir"]))],
+    dependencies=[Depends(AuthPermission(["module_monitor:resource:mkdir"]))],
 )
 async def create_directory_controller(
     data: Annotated[ResourceCreateDirSchema, Body(description="创建目录参数")],

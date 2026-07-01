@@ -13,7 +13,7 @@ from app.core.router_class import OperationLogRoute
 from .schema import DeptCreateSchema, DeptOutSchema, DeptQueryParam, DeptUpdateSchema
 from .service import DeptService
 
-DeptRouter = APIRouter(route_class=OperationLogRoute, prefix="/dept", tags=["系统管理", "部门管理"])
+DeptRouter = APIRouter(route_class=OperationLogRoute, prefix="/dept", tags=["部门管理"])
 
 _DEPT_NS = "dept"
 
@@ -90,7 +90,7 @@ async def delete_obj_controller(
 )
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改部门状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await DeptService(auth).batch_set_available(data=data)
     await FastAPICache.clear(namespace=_DEPT_NS)

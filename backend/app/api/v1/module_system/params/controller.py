@@ -6,7 +6,7 @@ from redis.asyncio.client import Redis
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
 from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.dependencies import AuthPermission, redis_getter
 from app.core.router_class import OperationLogRoute
 from app.utils.common_util import bytes2file_response
@@ -14,7 +14,7 @@ from app.utils.common_util import bytes2file_response
 from .schema import ParamsCreateSchema, ParamsOutSchema, ParamsQueryParam, ParamsUpdateSchema
 from .service import ParamsService
 
-ParamsRouter = APIRouter(route_class=OperationLogRoute, prefix="/param", tags=["系统管理", "参数管理"])
+ParamsRouter = APIRouter(route_class=OperationLogRoute, prefix="/param", tags=["参数管理"])
 
 @ParamsRouter.get(
     "/detail/{id}",
@@ -117,10 +117,9 @@ async def delete_param_controller(
 )
 async def batch_set_status_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:patch"]))],
-    ids: Annotated[list[int], Body(description="参数ID列表")],
-    status: Annotated[int, Body(description="状态值")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
-    await ParamsService(auth).batch_set_status(ids=ids, status=status)
+    await ParamsService(auth).batch_set_status(ids=data.ids, status=data.status)
     return SuccessResponse(msg="批量设置参数状态成功")
 
 @ParamsRouter.get(

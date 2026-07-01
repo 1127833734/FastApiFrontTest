@@ -21,7 +21,7 @@ from .schema import (
 )
 from .service import GenTableService
 
-GenRouter = APIRouter(route_class=OperationLogRoute, prefix="/gencode", tags=["开发工具", "代码生成"])
+GenRouter = APIRouter(route_class=OperationLogRoute, prefix="/gencode", tags=["代码生成"])
 
 
 @GenRouter.get(

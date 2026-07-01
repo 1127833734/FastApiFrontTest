@@ -28,8 +28,8 @@
         <template #left>
           <FaTableHeaderLeft
             :remove-ids="selectedIds"
-            :perm-create="['module_task:workflow:definition:create']"
-            :perm-delete="['module_task:workflow:definition:delete']"
+            :perm-create="['module_task:workflow:flow:create']"
+            :perm-delete="['module_task:workflow:flow:delete']"
             :delete-loading="batchDeleting"
             :create-loading="createLoading"
             @add="handleAdd"
@@ -66,7 +66,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-import WorkflowDefinitionAPI, { type WorkflowTable } from "@/api/module_task/workflow/definition";
+import WorkflowDefinitionAPI, { type WorkflowTable } from "@/api/module_task/workflow/flow";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaWorkflowDesignDrawer from "./components/FaWorkflowDesignDrawer.vue";
@@ -194,7 +194,7 @@ function buildWorkflowRowActions(row: WorkflowTable): TableOperationAction[] {
       key: "publish",
       label: "发布",
       artType: "add",
-      perm: "module_task:workflow:definition:update",
+      perm: "module_task:workflow:flow:update",
       run: () => handlePublish(row),
     });
   }
@@ -203,7 +203,7 @@ function buildWorkflowRowActions(row: WorkflowTable): TableOperationAction[] {
       key: "execute",
       label: "执行",
       artType: "view",
-      perm: "module_task:workflow:definition:execute",
+      perm: "module_task:workflow:flow:execute",
       run: () => handleExecute("execute", row),
     });
   }
@@ -212,14 +212,14 @@ function buildWorkflowRowActions(row: WorkflowTable): TableOperationAction[] {
       key: "edit",
       label: "编辑",
       artType: "edit",
-      perm: "module_task:workflow:definition:update",
+      perm: "module_task:workflow:flow:update",
       run: () => handleEdit(row),
     },
     {
       key: "delete",
       label: "删除",
       artType: "delete",
-      perm: "module_task:workflow:definition:delete",
+      perm: "module_task:workflow:flow:delete",
       run: () => deleteWorkflowRow(row.id),
     }
   );

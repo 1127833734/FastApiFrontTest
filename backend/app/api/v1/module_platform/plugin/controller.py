@@ -20,7 +20,7 @@ from .schema import (
 )
 from .service import PluginService
 
-PluginRouter = APIRouter(route_class=OperationLogRoute, prefix="/plugin", tags=["平台管理", "插件管理"])
+PluginRouter = APIRouter(route_class=OperationLogRoute, prefix="/plugin", tags=["插件管理"])
 
 _PLUGIN_NS = "plugin"
 

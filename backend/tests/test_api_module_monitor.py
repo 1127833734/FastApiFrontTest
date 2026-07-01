@@ -29,7 +29,7 @@ class TestCache:
         assert_route(test_client, "DELETE", "/monitor/cache/delete/key/test", auth=auth_headers)
 
     def test_cache_clear_all(self, test_client: TestClient, auth_headers: dict) -> None:
-        assert_route(test_client, "DELETE", "/monitor/cache/delete/all", auth=auth_headers)
+        assert_route(test_client, "DELETE", "/monitor/cache/clear", auth=auth_headers)
 
 
 class TestServer:
@@ -81,7 +81,7 @@ class TestResource:
 
     def test_resource_create_dir(self, test_client: TestClient, auth_headers: dict) -> None:
         assert_route(
-            test_client, "POST", "/monitor/resource/create-dir", auth=auth_headers,
+            test_client, "POST", "/monitor/resource/mkdir", auth=auth_headers,
             json={"name": "test_dir", "parent_path": "/"},
         )
 

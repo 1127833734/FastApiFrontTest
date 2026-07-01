@@ -186,9 +186,9 @@ class PluginService:
 
     @staticmethod
     def reload() -> str:
-        from app.core.discover import reload_dynamic_router
+        from app.core.discover import dynamic_router
 
-        router = reload_dynamic_router()
+        router = dynamic_router.reload()
         route_count = len(router.routes) if router and hasattr(router, "routes") else 0
         logger.info(f"插件热重载完成，动态路由共 {route_count} 条")
         return f"插件路由热重载完成，共注册 {route_count} 条路由"

@@ -22,7 +22,7 @@ from app.utils.upload_util import UploadUtil
 
 from .service import FileService
 
-FileRouter = APIRouter(route_class=OperationLogRoute, prefix="/file", tags=["公共模块", "文件管理"])
+FileRouter = APIRouter(route_class=OperationLogRoute, prefix="/file", tags=["文件管理"])
 
 @FileRouter.post(
     "/upload",

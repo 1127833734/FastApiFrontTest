@@ -14,7 +14,7 @@ from app.utils.common_util import bytes2file_response
 from .schema import DemoCreateSchema, DemoOutSchema, DemoQueryParam, DemoUpdateSchema
 from .service import DemoService
 
-DemoRouter = APIRouter(route_class=OperationLogRoute, prefix="/demo", tags=["开发工具", "示例"])
+DemoRouter = APIRouter(route_class=OperationLogRoute, prefix="/demo", tags=["示例管理"])
 
 
 @DemoRouter.get(
@@ -100,8 +100,8 @@ async def delete_obj_controller(
     response_model=ResponseSchema[None],
 )
 async def batch_set_available_obj_controller(
-    data: BatchSetAvailable,
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_example:demo:patch"]))],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     service = DemoService(auth)
     await service.set_available(data=data)

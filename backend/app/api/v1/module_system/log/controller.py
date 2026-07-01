@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
 from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, BatchDelete, PageResultSchema
+from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.dependencies import AuthPermission, get_current_user
 from app.core.router_class import OperationLogRoute
 
@@ -21,7 +21,7 @@ from .schema import (
 )
 from .service import LoginLogService, OperationLogService
 
-LogRouter = APIRouter(route_class=OperationLogRoute, prefix="/log", tags=["系统管理", "日志管理"])
+LogRouter = APIRouter(route_class=OperationLogRoute, prefix="/log", tags=["日志管理"])
 
 
 @LogRouter.get(
@@ -137,7 +137,7 @@ async def create_operation_log_controller(
 )
 async def delete(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
-    data: Annotated[BatchDelete, Body(description="ID列表")],
+    ids: Annotated[list[int], Body(description="ID列表")],
 ):
-    await OperationLogService(auth).delete(ids=data.ids)
+    await OperationLogService(auth).delete(ids=ids)
     return SuccessResponse(msg="删除操作日志成功")

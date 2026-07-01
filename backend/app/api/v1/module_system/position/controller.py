@@ -20,7 +20,7 @@ from .schema import (
 )
 from .service import PositionService
 
-PositionRouter = APIRouter(route_class=OperationLogRoute, prefix="/position", tags=["系统管理", "岗位管理"])
+PositionRouter = APIRouter(route_class=OperationLogRoute, prefix="/position", tags=["岗位管理"])
 
 _POS_NS = "position"
 
@@ -105,7 +105,7 @@ async def delete_obj_controller(
 )
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改岗位状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await PositionService(auth).set_available(data=data)
     await FastAPICache.clear(namespace=_POS_NS)

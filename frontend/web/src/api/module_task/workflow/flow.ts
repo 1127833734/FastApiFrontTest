@@ -1,7 +1,7 @@
 import { request } from "@utils";
 
-/** 对应后端 `plugin.module_task.workflow.definition` */
-const API_PATH = "/task/workflow/definition";
+/** 对应后端 `plugin.module_task.workflow.flow` */
+const API_PATH = "/task/workflow/flow";
 
 const WorkflowDefinitionAPI = {
   getWorkflowList(query: WorkflowPageQuery) {

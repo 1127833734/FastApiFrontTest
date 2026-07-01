@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
 from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
@@ -18,7 +18,7 @@ from .schema import (
 )
 from .service import NodeService
 
-NodeRouter = APIRouter(route_class=OperationLogRoute, prefix="/cronjob/node", tags=["任务调度", "节点管理"])
+NodeRouter = APIRouter(route_class=OperationLogRoute, prefix="/cronjob/node", tags=["定时任务节点管理"])
 
 
 @NodeRouter.get(
@@ -146,9 +146,8 @@ async def execute_job_controller(
 )
 async def batch_set_status_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:cronjob:node:update"]))],
-    ids: Annotated[list[int], Body(description="节点ID列表")],
-    status: Annotated[int, Body(description="状态值")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     service = NodeService(auth)
-    await service.batch_set_status(ids=ids, status=status)
+    await service.batch_set_status(ids=data.ids, status=data.status)
     return SuccessResponse(msg="批量设置节点状态成功")

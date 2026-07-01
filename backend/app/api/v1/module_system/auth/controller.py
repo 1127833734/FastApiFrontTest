@@ -51,7 +51,7 @@ from .service import (
     TenantRegisterService,
 )
 
-AuthRouter = APIRouter(route_class=OperationLogRoute, prefix="/auth", tags=["系统管理", "认证授权"])
+AuthRouter = APIRouter(route_class=OperationLogRoute, prefix="/auth", tags=["认证授权"])
 
 _AUTH_TENANTS_NS = "auth_tenants"
 

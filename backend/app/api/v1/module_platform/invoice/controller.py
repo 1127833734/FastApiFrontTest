@@ -18,10 +18,10 @@ from .schema import (
 )
 from .service import InvoicePlatformService, InvoiceTenantService
 
-TenantInvoiceRouter = APIRouter(prefix="/tenant/invoice", route_class=OperationLogRoute, tags=["平台管理", "发票管理"])
+InvoiceRouter = APIRouter(prefix="/invoice", route_class=OperationLogRoute, tags=["发票管理"])
 
 
-@TenantInvoiceRouter.post("/apply", summary="申请开票", response_model=ResponseSchema[InvoiceOutSchema])
+@InvoiceRouter.post("/apply", summary="申请开票", response_model=ResponseSchema[InvoiceOutSchema])
 async def invoice_apply_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     data: Annotated[InvoiceApplySchema, Body(description="发票申请参数")],
@@ -30,7 +30,7 @@ async def invoice_apply_controller(
     return SuccessResponse(data=result, msg="发票申请成功")
 
 
-@TenantInvoiceRouter.get("/list", summary="我的发票列表", response_model=ResponseSchema[PageResultSchema[InvoiceOutSchema]])
+@InvoiceRouter.get("/mine/list", summary="我的发票列表", response_model=ResponseSchema[PageResultSchema[InvoiceOutSchema]])
 async def invoice_list_my_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -47,7 +47,7 @@ async def invoice_list_my_controller(
     return SuccessResponse(data=result, msg="查询成功")
 
 
-@TenantInvoiceRouter.get("/{id}/download", summary="下载发票PDF与授权函", response_model=ResponseSchema[dict])
+@InvoiceRouter.get("/{id}/download", summary="下载发票PDF与授权函", response_model=ResponseSchema[dict])
 async def invoice_download_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     id: Annotated[int, Path(description="发票ID", ge=1)],
@@ -60,7 +60,7 @@ async def invoice_download_controller(
     )
 
 
-@TenantInvoiceRouter.get("/{id}/license/download", summary="下载开源授权函PDF", response_model=ResponseSchema[dict])
+@InvoiceRouter.get("/{id}/license/download", summary="下载开源授权函PDF", response_model=ResponseSchema[dict])
 async def invoice_license_download_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     id: Annotated[int, Path(description="发票ID", ge=1)],
@@ -69,10 +69,7 @@ async def invoice_license_download_controller(
     return SuccessResponse(msg="授权函下载地址", data={"oss_license_pdf_url": oss_license_pdf_url})
 
 
-PlatformInvoiceRouter = APIRouter(prefix="/invoice", route_class=OperationLogRoute, tags=["平台管理", "发票管理"])
-
-
-@PlatformInvoiceRouter.get("/list", summary="全部发票列表", response_model=ResponseSchema[PageResultSchema[InvoiceOutSchema]])
+@InvoiceRouter.get("/list", summary="全部发票列表", response_model=ResponseSchema[PageResultSchema[InvoiceOutSchema]])
 async def invoice_list_all_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -88,7 +85,7 @@ async def invoice_list_all_controller(
     return SuccessResponse(data=result, msg="查询成功")
 
 
-@PlatformInvoiceRouter.put("/issue/{id}", summary="开具发票", response_model=ResponseSchema[InvoiceOutSchema])
+@InvoiceRouter.put("/issue/{id}", summary="开具发票", response_model=ResponseSchema[InvoiceOutSchema])
 async def invoice_issue_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     id: Annotated[int, Path(description="发票ID", ge=1)],
@@ -104,7 +101,7 @@ async def invoice_issue_controller(
     return SuccessResponse(data=result, msg="发票开具成功")
 
 
-@PlatformInvoiceRouter.put("/void/{id}", summary="作废发票", response_model=ResponseSchema[InvoiceOutSchema])
+@InvoiceRouter.put("/void/{id}", summary="作废发票", response_model=ResponseSchema[InvoiceOutSchema])
 async def invoice_void_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["*:*:*"]))],
     id: Annotated[int, Path(description="发票ID", ge=1)],

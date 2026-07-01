@@ -13,7 +13,7 @@ from app.core.router_class import OperationLogRoute
 from .schema import JobOutSchema, JobQueryParam
 from .service import JobService
 
-JobRouter = APIRouter(route_class=OperationLogRoute, prefix="/cronjob/job", tags=["任务调度", "调度器监控"])
+JobRouter = APIRouter(route_class=OperationLogRoute, prefix="/cronjob/job", tags=["定时任务管理"])
 
 
 @JobRouter.get(

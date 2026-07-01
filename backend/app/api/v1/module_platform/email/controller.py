@@ -24,7 +24,7 @@ from .schema import (
 )
 from .service import EmailConfigService, EmailLogService, EmailSendService, EmailTemplateService
 
-EmailRouter = APIRouter(route_class=OperationLogRoute, prefix="/email", tags=["平台管理", "邮件服务"])
+EmailRouter = APIRouter(route_class=OperationLogRoute, prefix="/email", tags=["邮件服务"])
 
 @EmailRouter.get("/config/list", summary="SMTP 配置列表", response_model=ResponseSchema[PageResultSchema[EmailConfigOutSchema]])
 async def email_config_list_controller(

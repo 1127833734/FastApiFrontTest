@@ -11,7 +11,7 @@ from app.core.router_class import OperationLogRoute
 
 from .service import CacheService
 
-CacheRouter = APIRouter(route_class=OperationLogRoute, prefix="/cache", tags=["系统监控", "缓存监控"])
+CacheRouter = APIRouter(route_class=OperationLogRoute, prefix="/cache", tags=["缓存监控"])
 
 
 @CacheRouter.get(
@@ -96,7 +96,7 @@ async def clear_monitor_cache_key_controller(
 
 
 @CacheRouter.delete(
-    "/delete/all",
+    "/clear",
     dependencies=[Depends(AuthPermission(["module_monitor:cache:delete"]))],
     summary="清除所有缓存",
     response_model=ResponseSchema[None],

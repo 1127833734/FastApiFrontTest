@@ -21,7 +21,7 @@ from .schema import (
 )
 from .service import PackageService
 
-PackageRouter = APIRouter(route_class=OperationLogRoute, prefix="/package", tags=["平台管理", "套餐管理"])
+PackageRouter = APIRouter(route_class=OperationLogRoute, prefix="/package", tags=["套餐管理"])
 
 _PKG_NS = "package"
 

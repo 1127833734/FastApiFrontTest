@@ -203,8 +203,8 @@ import type FaForm from "@/components/forms/fa-form/index.vue";
 import WorkflowDefinitionAPI, {
   type WorkflowTable,
   type WorkflowForm,
-} from "@/api/module_task/workflow/definition";
-import WorkflowNodeTypeAPI from "@/api/module_task/workflow/node-type";
+} from "@/api/module_task/workflow/flow";
+import WorkflowNodeTypeAPI from "@/api/module_task/workflow/nodes";
 import FaNodeConfigPanel from "./FaNodeConfigPanel.vue";
 import FaEdgeConfigPanel from "./FaEdgeConfigPanel.vue";
 

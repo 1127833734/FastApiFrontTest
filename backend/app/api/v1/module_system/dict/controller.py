@@ -25,7 +25,7 @@ from .schema import (
 )
 from .service import DictDataService, DictTypeService
 
-DictRouter = APIRouter(route_class=OperationLogRoute, prefix="/dict", tags=["系统管理", "字典管理"])
+DictRouter = APIRouter(route_class=OperationLogRoute, prefix="/dict", tags=["字典管理"])
 
 _DICT_TYPE_NS = "dict_type"
 
@@ -121,7 +121,7 @@ async def delete_type_controller(
 )
 async def batch_set_available_dict_type_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dict_type:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改字典类型状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await DictTypeService(auth).set_available(data=data)
     await FastAPICache.clear(namespace=_DICT_TYPE_NS)
@@ -227,7 +227,7 @@ async def delete_data_controller(
 )
 async def batch_set_available_dict_data_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dict_data:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改字典数据状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await DictDataService(auth).set_available(data=data)
     return SuccessResponse(msg="批量修改字典数据状态成功")

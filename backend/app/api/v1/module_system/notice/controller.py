@@ -22,7 +22,7 @@ from .schema import (
 )
 from .service import NoticeService
 
-NoticeRouter = APIRouter(route_class=OperationLogRoute, prefix="/notice", tags=["系统管理", "公告通知"])
+NoticeRouter = APIRouter(route_class=OperationLogRoute, prefix="/notice", tags=["公告通知"])
 
 _NOTICE_NS = "notice"
 
@@ -103,7 +103,7 @@ async def delete_notice_controller(
 )
 async def batch_set_available_notice_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:notice:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改公告状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await NoticeService(auth).set_available(data=data)
     await FastAPICache.clear(namespace=_NOTICE_NS)

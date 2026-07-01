@@ -13,7 +13,7 @@ from app.core.router_class import OperationLogRoute
 from .schema import OnlineOutSchema, OnlineQueryParam
 from .service import OnlineService
 
-OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=["系统监控", "在线用户"])
+OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=["在线用户"])
 
 
 @OnlineRouter.get(
@@ -24,14 +24,14 @@ OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=[
 )
 async def get_online_list_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
-    paging_query: Annotated[PaginationQueryParam, Query()],
+    page: Annotated[PaginationQueryParam, Query()],
     search: Annotated[OnlineQueryParam, Query()],
 ) -> JSONResponse:
     result_dict_list = await OnlineService.get_online_list(redis=redis, search=search)
     result_dict = await PaginationService.paginate(
         data_list=result_dict_list,
-        page_no=paging_query.page_no,
-        page_size=paging_query.page_size,
+        page_no=page.page_no,
+        page_size=page.page_size,
     )
     return SuccessResponse(data=result_dict, msg="获取成功")
 

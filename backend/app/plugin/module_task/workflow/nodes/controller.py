@@ -17,47 +17,43 @@ from .schema import (
 )
 from .service import WorkflowNodeTypeService
 
-WorkflowNodeTypeRouter = APIRouter(
-    route_class=OperationLogRoute,
-    prefix="/workflow/node-type",
-    tags=["工作流节点类型"],
-)
+WorkflowNodesRouter = APIRouter(route_class=OperationLogRoute, prefix="/workflow/nodes", tags=["工作流节点"])
 
 
-@WorkflowNodeTypeRouter.get(
+@WorkflowNodesRouter.get(
     "/options",
-    summary="节点类型选项",
+    summary="节点选项",
     response_model=ResponseSchema[list[dict]],
 )
 async def get_workflow_node_type_options_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:query"]))],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:query"]))],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     result = await service.get_options()
-    return SuccessResponse(data=result, msg="获取节点类型选项成功")
+    return SuccessResponse(data=result, msg="获取节点选项成功")
 
 
-@WorkflowNodeTypeRouter.get(
+@WorkflowNodesRouter.get(
     "/detail/{id}",
-    summary="节点类型详情",
+    summary="节点详情",
     response_model=ResponseSchema[WorkflowNodeTypeOutSchema],
 )
 async def get_workflow_node_type_detail_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:query"]))],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:query"]))],
     id: Annotated[int, Path(description="ID")],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     result_dict = await service.get_detail(id=id)
-    return SuccessResponse(data=result_dict, msg="获取节点类型详情成功")
+    return SuccessResponse(data=result_dict, msg="获取节点详情成功")
 
 
-@WorkflowNodeTypeRouter.get(
+@WorkflowNodesRouter.get(
     "/list",
-    summary="节点类型列表",
+    summary="节点列表",
     response_model=ResponseSchema[PageResultSchema[WorkflowNodeTypeOutSchema]],
 )
 async def get_workflow_node_type_list_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:query"]))],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[WorkflowNodeTypeQueryParam, Query(description="查询参数")],
 ) -> JSONResponse:
@@ -71,60 +67,60 @@ async def get_workflow_node_type_list_controller(
         search=search,
         order_by=order_by,
     )
-    return SuccessResponse(data=result_dict, msg="查询节点类型列表成功")
+    return SuccessResponse(data=result_dict, msg="查询节点列表成功")
 
 
-@WorkflowNodeTypeRouter.post(
+@WorkflowNodesRouter.post(
     "/create",
-    summary="创建节点类型",
+    summary="创建节点",
     response_model=ResponseSchema[WorkflowNodeTypeOutSchema],
 )
 async def create_workflow_node_type_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:create"]))],
-    data: Annotated[WorkflowNodeTypeCreateSchema, Body(description="创建节点类型参数")],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:create"]))],
+    data: Annotated[WorkflowNodeTypeCreateSchema, Body(description="创建节点参数")],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     result_dict = await service.create(data=data)
-    return SuccessResponse(data=result_dict, msg="创建节点类型成功")
+    return SuccessResponse(data=result_dict, msg="创建节点成功")
 
 
-@WorkflowNodeTypeRouter.put(
+@WorkflowNodesRouter.put(
     "/update/{id}",
-    summary="更新节点类型",
+    summary="更新节点",
     response_model=ResponseSchema[WorkflowNodeTypeOutSchema],
 )
 async def update_workflow_node_type_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:update"]))],
-    id: Annotated[int, Path(description="节点类型ID")],
-    data: Annotated[WorkflowNodeTypeUpdateSchema, Body(description="更新节点类型参数")],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:update"]))],
+    id: Annotated[int, Path(description="节点ID")],
+    data: Annotated[WorkflowNodeTypeUpdateSchema, Body(description="更新节点参数")],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     result_dict = await service.update(id=id, data=data)
-    return SuccessResponse(data=result_dict, msg="更新节点类型成功")
+    return SuccessResponse(data=result_dict, msg="更新节点成功")
 
 
-@WorkflowNodeTypeRouter.delete(
+@WorkflowNodesRouter.delete(
     "/delete",
-    summary="删除节点类型",
+    summary="删除节点",
     response_model=ResponseSchema[None],
 )
 async def delete_workflow_node_type_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:delete"]))],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     await service.delete(ids=ids)
-    return SuccessResponse(msg="删除节点类型成功")
+    return SuccessResponse(msg="删除节点成功")
 
 
-@WorkflowNodeTypeRouter.get(
+@WorkflowNodesRouter.get(
     "/select",
-    summary="节点类型选择列表",
+    summary="节点选择列表",
     response_model=ResponseSchema[list[dict]],
 )
 async def get_workflow_node_type_select_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:node-type:query"]))],
+    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:nodes:query"]))],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth)
     result = await service.get_select()
-    return SuccessResponse(data=result, msg="获取节点类型选择列表成功")
+    return SuccessResponse(data=result, msg="获取节点选择列表成功")

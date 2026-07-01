@@ -97,9 +97,8 @@ def register_routers(app: FastAPI) -> None:
     from app.plugin.module_ai.chat.ws import WS_AI
     app.include_router(router=WS_AI, dependencies=[Depends(WebSocketRateLimiter(max_calls=200, period=10))])
 
-    from app.core.discover import get_dynamic_router, set_app_ref
-    app.include_router(router=get_dynamic_router())
-    set_app_ref(app)
+    from app.core.discover import dynamic_router
+    dynamic_router.init_app(app)
 
 
 def register_static(app: FastAPI) -> None:

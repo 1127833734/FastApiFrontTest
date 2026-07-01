@@ -1,13 +1,12 @@
 import { request } from "@utils";
 
-const PLATFORM_API = "/platform/invoice";
-const TENANT_API = "/platform/tenant/invoice";
+const API_PATH = "/invoice";
 
 const InvoiceAPI = {
   // ─── 平台端 ───
   listInvoices(query?: InvoicePageQuery) {
     return request<ApiResponse<{ list: InvoiceTable[]; total: number }>>({
-      url: `${PLATFORM_API}/list`,
+      url: `${API_PATH}/list`,
       method: "get",
       params: query,
     });
@@ -15,7 +14,7 @@ const InvoiceAPI = {
 
   issueInvoice(invoiceId: number, body: { pdf_url?: string; api_response?: string }) {
     return request<ApiResponse>({
-      url: `${PLATFORM_API}/issue/${invoiceId}`,
+      url: `${API_PATH}/issue/${invoiceId}`,
       method: "put",
       data: body,
     });
@@ -23,7 +22,7 @@ const InvoiceAPI = {
 
   voidInvoice(invoiceId: number, reason?: string) {
     return request<ApiResponse>({
-      url: `${PLATFORM_API}/void/${invoiceId}`,
+      url: `${API_PATH}/void/${invoiceId}`,
       method: "put",
       data: { description: reason },
     });
@@ -32,7 +31,7 @@ const InvoiceAPI = {
   // ─── 租户端 ───
   tenantListInvoices(query?: InvoicePageQuery) {
     return request<ApiResponse<{ list: InvoiceTable[]; total: number }>>({
-      url: `${TENANT_API}/list`,
+      url: `${API_PATH}/mine/list`,
       method: "get",
       params: query,
     });
@@ -40,7 +39,7 @@ const InvoiceAPI = {
 
   applyInvoice(body: InvoiceApplyForm) {
     return request<ApiResponse>({
-      url: `${TENANT_API}/apply`,
+      url: `${API_PATH}/apply`,
       method: "post",
       data: body,
     });
@@ -48,7 +47,7 @@ const InvoiceAPI = {
 
   downloadInvoice(invoiceId: number) {
     return request<Blob>({
-      url: `${TENANT_API}/${invoiceId}/download`,
+      url: `${API_PATH}/${invoiceId}/download`,
       method: "get",
       responseType: "blob",
     });

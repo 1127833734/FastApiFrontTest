@@ -26,7 +26,7 @@ from .schema import (
 )
 from .service import UserService
 
-UserRouter = APIRouter(route_class=OperationLogRoute, prefix="/user", tags=["系统管理", "用户管理"])
+UserRouter = APIRouter(route_class=OperationLogRoute, prefix="/user", tags=["用户管理"])
 
 @UserRouter.get(
     "/current/info",
@@ -179,7 +179,7 @@ async def delete_user_controller(
 )
 async def batch_set_available_user_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:user:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改用户状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await UserService(auth).set_available(data=data)
     return SuccessResponse(msg="批量修改用户状态成功")

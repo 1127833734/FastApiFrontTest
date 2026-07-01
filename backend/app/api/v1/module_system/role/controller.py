@@ -21,7 +21,7 @@ from .schema import (
 )
 from .service import RoleService
 
-RoleRouter = APIRouter(route_class=OperationLogRoute, prefix="/role", tags=["系统管理", "角色管理"])
+RoleRouter = APIRouter(route_class=OperationLogRoute, prefix="/role", tags=["角色管理"])
 
 _ROLE_NS = "role"
 
@@ -106,7 +106,7 @@ async def delete_role_controller(
 )
 async def batch_set_available_role_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:role:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="批量修改角色状态参数")],
+    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await RoleService(auth).set_available(data=data)
     await FastAPICache.clear(namespace=_ROLE_NS)

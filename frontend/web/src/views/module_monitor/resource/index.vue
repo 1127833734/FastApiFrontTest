@@ -61,7 +61,7 @@
               上传文件
             </ElButton>
             <ElButton
-              v-hasPerm="['module_monitor:resource:create_dir']"
+              v-hasPerm="['module_monitor:resource:mkdir']"
               type="primary"
               plain
               :icon="FolderAdd"
@@ -158,7 +158,7 @@
       <template #footer>
         <ElButton @click="createDirDialogVisible = false">取消</ElButton>
         <ElButton
-          v-hasPerm="['module_monitor:resource:create_dir']"
+          v-hasPerm="['module_monitor:resource:mkdir']"
           type="primary"
           @click="handleCreateDirConfirm"
         >

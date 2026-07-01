@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.validator import DateTimeStr
 
 if TYPE_CHECKING:
-    # 仅供 IDE 类型推断，运行时不会触发导入，避免 app.core ↔ app.api.v1 循环依赖
     from app.api.v1.module_system.user.model import UserModel
 
 UserT = TypeVar("UserT")
@@ -82,12 +81,6 @@ class DownloadFileSchema(BaseModel):
     file_name: str = Field(..., description="新文件名称")
 
 
-class BatchDelete(BaseModel):
-    """批量删除请求模型"""
-
-    ids: list[int] = Field(..., min_length=1, description="ID列表")
-
-
 class AuthSchema(BaseModel):
     """权限认证模型
 
@@ -97,7 +90,7 @@ class AuthSchema(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    user: Any = Field(default=None, description="用户信息（UserModel 实例）", exclude=True)
+    user: UserT | None = Field(default=None, description="用户信息（UserModel 实例）", exclude=True)
     check_data_scope: bool = Field(default=True, description="是否检查数据权限")
     db: AsyncSession | None = Field(default=None, description="数据库会话", exclude=True)
     tenant_id: int | None = Field(default=None, description="租户ID,用于用户认证前查询")

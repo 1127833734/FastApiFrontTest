@@ -28,8 +28,8 @@
         <template #left>
           <FaTableHeaderLeft
             :remove-ids="selectedIds"
-            :perm-create="['module_task:workflow:node-type:create']"
-            :perm-delete="['module_task:workflow:node-type:delete']"
+            :perm-create="['module_task:workflow:nodes:create']"
+            :perm-delete="['module_task:workflow:nodes:delete']"
             :delete-loading="batchDeleting"
             :create-loading="createLoading"
             @add="handleAdd"
@@ -154,7 +154,7 @@ defineOptions({
 import WorkflowNodeTypeAPI, {
   type WorkflowNodeTypeForm,
   type WorkflowNodeTypeTable,
-} from "@/api/module_task/workflow/node-type";
+} from "@/api/module_task/workflow/nodes";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -313,7 +313,7 @@ function buildNodeTypeRowActions(row: WorkflowNodeTypeTable): TableOperationActi
       label: "编辑",
       artType: "edit",
       icon: "ri:edit-2-line",
-      perm: "module_task:workflow:node-type:update",
+      perm: "module_task:workflow:nodes:update",
       run: () => void openDialog(row.id),
     },
     {
@@ -321,7 +321,7 @@ function buildNodeTypeRowActions(row: WorkflowNodeTypeTable): TableOperationActi
       label: "删除",
       artType: "delete",
       icon: "ri:delete-bin-4-line",
-      perm: "module_task:workflow:node-type:delete",
+      perm: "module_task:workflow:nodes:delete",
       run: () => void deleteNodeTypeRow(row),
     },
   ];

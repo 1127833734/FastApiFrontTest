@@ -18,7 +18,7 @@ from .schema import (
 )
 from .service import TicketService
 
-TicketRouter = APIRouter(route_class=OperationLogRoute, prefix="/ticket", tags=["系统管理", "工单管理"])
+TicketRouter = APIRouter(route_class=OperationLogRoute, prefix="/ticket", tags=["工单管理"])
 
 @TicketRouter.get("/list", summary="工单列表", response_model=ResponseSchema[PageResultSchema[TicketOutSchema]])
 async def ticket_list_controller(

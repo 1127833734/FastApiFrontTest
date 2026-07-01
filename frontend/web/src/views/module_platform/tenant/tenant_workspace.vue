@@ -253,7 +253,7 @@
           <span class="text-warning">影响角色：</span>
           <span
             v-for="r in preview.affected_roles"
-            :key="r"
+            :key="String(r)"
             style="margin-left: 4px; color: #e6a23c"
             >{{ r }}</span
           >
@@ -282,17 +282,17 @@ import FaStatsCard from "@/components/cards/fa-stats-card/index.vue";
 import FaProgressCard from "@/components/cards/fa-progress-card/index.vue";
 import FaTimelineListCard from "@/components/cards/fa-timeline-list-card/index.vue";
 import FaBasicBanner from "@/components/banners/fa-basic-banner/index.vue";
-import SelfServiceAPI from "@/api/module_platform/self_service";
+import TenantAPI from "@/api/module_platform/tenant";
 import type {
   AvailablePackage,
   PackageChangePreview,
   SelfServiceOrderItem,
   WorkspaceData,
-} from "@/api/module_platform/self_service";
+} from "@/api/module_platform/tenant";
 import { resolveStatusColumns } from "@utils";
 import type { DescriptionsItem } from "@/components/others/fa-descriptions/index.vue";
 
-defineOptions({ name: "SelfService" });
+defineOptions({ name: "TenantWorkspace" });
 
 const router = useRouter();
 const activeTab = ref("workspace");
@@ -323,7 +323,7 @@ const recentOrderTimeline = computed(() => {
 async function loadWorkspace() {
   workspaceLoading.value = true;
   try {
-    const { data: res } = await SelfServiceAPI.getWorkspace();
+    const { data: res } = await TenantAPI.getWorkspace();
     workspace.value = (res?.data as WorkspaceData) || null;
   } catch {
     // ignore
@@ -348,7 +348,7 @@ const {
   handleCurrentChange: handleOrderCurrentChange,
 } = useTable({
   core: {
-    apiFn: SelfServiceAPI.listMyOrders,
+    apiFn: TenantAPI.listMyOrders,
     apiParams: {
       page_no: 1,
       page_size: 20,
@@ -439,7 +439,7 @@ function actionTypeTag(
 async function loadPackages() {
   packagesLoading.value = true;
   try {
-    const { data: res } = await SelfServiceAPI.getAvailablePackages();
+    const { data: res } = await TenantAPI.getAvailablePackages();
     const payload = res?.data as unknown as { packages?: AvailablePackage[] } | undefined;
     packages.value = payload?.packages || [];
   } catch {
@@ -465,7 +465,7 @@ async function handleAction(action: string, pkg: AvailablePackage) {
   actionDialogVisible.value = true;
 
   try {
-    const { data: res } = await SelfServiceAPI.previewPackageChange(pkg.id);
+    const { data: res } = await TenantAPI.previewPackageChange(pkg.id);
     preview.value = (res?.data as PackageChangePreview) || null;
   } catch {
     actionDialogVisible.value = false;
@@ -478,7 +478,7 @@ async function confirmAction() {
   if (!currentPackage.value) return;
   actionSubmitting.value = true;
   try {
-    const { data: res } = await SelfServiceAPI.createOrder({
+    const { data: res } = await TenantAPI.createOrder({
       package_id: currentPackage.value.id,
       order_type: currentAction.value as "buy" | "renew" | "upgrade" | "downgrade",
     });
