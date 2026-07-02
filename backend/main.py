@@ -23,7 +23,15 @@ def create_app() -> FastAPI:
     返回:
     - FastAPI: 已配置生命周期的应用对象。
     """
-    from app.init_app import lifespan, register_docs, register_exceptions, register_middlewares, register_routers, register_static
+    from app.init_app import (
+        lifespan,
+        register_docs,
+        register_exceptions,
+        register_middlewares,
+        register_routers,
+        register_static,
+        register_frontend
+    )
     # 创建FastAPI应用
     app = FastAPI(**settings.FASTAPI_CONFIG, lifespan=lifespan)
     # 注册异常处理器
@@ -36,6 +44,8 @@ def create_app() -> FastAPI:
     register_static(app)
     # 注册API文档（豁免限流）
     register_docs(app)
+    # 注册前端
+    register_frontend(app)
     return app
 
 
