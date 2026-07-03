@@ -17,11 +17,7 @@ DeptRouter = APIRouter(route_class=OperationLogRoute, prefix="/dept", tags=["部
 
 _DEPT_NS = "dept"
 
-@DeptRouter.get(
-    "/tree",
-    summary="查询部门树",
-    response_model=ResponseSchema[list[DeptOutSchema]],
-)
+@DeptRouter.get("/tree", summary="查询部门树", response_model=ResponseSchema[list[DeptOutSchema]])
 @cache(expire=300, namespace=_DEPT_NS)
 async def get_dept_tree_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:query"]))],
@@ -31,11 +27,7 @@ async def get_dept_tree_controller(
     result_dict_tree = await DeptService(auth).tree(search=search, order_by=order_by)
     return SuccessResponse(data=result_dict_tree, msg="查询部门树成功")
 
-@DeptRouter.get(
-    "/detail/{id}",
-    summary="查询部门详情",
-    response_model=ResponseSchema[DeptOutSchema],
-)
+@DeptRouter.get("/detail/{id}", summary="查询部门详情", response_model=ResponseSchema[DeptOutSchema])
 async def get_obj_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:detail"]))],
     id: Annotated[int, Path(description="部门ID")],
@@ -43,11 +35,7 @@ async def get_obj_detail_controller(
     result_dict = await DeptService(auth).detail(id=id)
     return SuccessResponse(data=result_dict, msg="查询部门详情成功")
 
-@DeptRouter.post(
-    "/create",
-    summary="创建部门",
-    response_model=ResponseSchema[DeptOutSchema],
-)
+@DeptRouter.post("/create", summary="创建部门", response_model=ResponseSchema[DeptOutSchema])
 async def create_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:create"]))],
     data: Annotated[DeptCreateSchema, Body(description="部门创建参数")],
@@ -56,11 +44,7 @@ async def create_obj_controller(
     await FastAPICache.clear(namespace=_DEPT_NS)
     return SuccessResponse(data=result_dict, msg="创建部门成功")
 
-@DeptRouter.put(
-    "/update/{id}",
-    summary="修改部门",
-    response_model=ResponseSchema[DeptOutSchema],
-)
+@DeptRouter.put("/update/{id}", summary="修改部门", response_model=ResponseSchema[DeptOutSchema])
 async def update_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:update"]))],
     id: Annotated[int, Path(description="部门ID")],
@@ -70,11 +54,7 @@ async def update_obj_controller(
     await FastAPICache.clear(namespace=_DEPT_NS)
     return SuccessResponse(data=result_dict, msg="修改部门成功")
 
-@DeptRouter.delete(
-    "/delete",
-    summary="删除部门",
-    response_model=ResponseSchema[None],
-)
+@DeptRouter.delete("/delete", summary="删除部门", response_model=ResponseSchema[None])
 async def delete_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
@@ -83,11 +63,7 @@ async def delete_obj_controller(
     await FastAPICache.clear(namespace=_DEPT_NS)
     return SuccessResponse(msg="删除部门成功")
 
-@DeptRouter.patch(
-    "/status/batch",
-    summary="批量修改部门状态",
-    response_model=ResponseSchema[None],
-)
+@DeptRouter.patch("/status/batch", summary="批量修改部门状态", response_model=ResponseSchema[None])
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:dept:patch"]))],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],

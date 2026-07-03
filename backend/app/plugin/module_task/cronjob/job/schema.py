@@ -1,16 +1,13 @@
-from dataclasses import dataclass
-
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     field_validator,
+    model_validator,
 )
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
 class JobCreateSchema(BaseModel):
@@ -62,18 +59,19 @@ class JobOutSchema(JobCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
     ...
 
 
-@dataclass
 class JobQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """执行日志查询参数"""
 
-    job_id: str | None = Query(None, description="任务ID")
-    job_name: str | None = Query(None, description="任务名称")
-    trigger_type: str | None = Query(None, description="触发方式")
-    status: int | None = Query(None, ge=0, le=5, description="执行状态(0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消)")
+    job_id: str | None = Field(None, description="任务ID")
+    job_name: str | None = Field(None, description="任务名称")
+    trigger_type: str | None = Field(None, description="触发方式")
+    status: int | None = Field(None, ge=0, le=5, description="执行状态(0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "JobQueryParam":
         self.job_id = (QueueEnum.eq.value, str(self.job_id)) if self.job_id is not None else None
         self.job_name = (QueueEnum.like.value, self.job_name) if self.job_name else None
         self.trigger_type = (QueueEnum.eq.value, self.trigger_type) if self.trigger_type else None
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self

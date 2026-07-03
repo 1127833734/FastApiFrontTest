@@ -1,12 +1,9 @@
 import re
-from dataclasses import dataclass
 
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
 class WorkflowNodeTypeCreateSchema(BaseModel):
@@ -65,20 +62,21 @@ class WorkflowNodeTypeOutSchema(WorkflowNodeTypeCreateSchema, BaseSchema, UserBy
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """查询"""
 
-    name: str | None = Query(None, description="名称")
-    code: str | None = Query(None, description="编码")
-    category: str | None = Query(None, description="分类")
-    is_active: bool | None = Query(None, description="是否启用")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="名称")
+    code: str | None = Field(None, description="编码")
+    category: str | None = Field(None, description="分类")
+    is_active: bool | None = Field(None, description="是否启用")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "WorkflowNodeTypeQueryParam":
         self.name = (QueueEnum.like.value, self.name) if self.name else None
         self.code = (QueueEnum.like.value, self.code) if self.code else None
         self.category = (QueueEnum.eq.value, self.category) if self.category else None
         self.is_active = (QueueEnum.eq.value, self.is_active) if self.is_active is not None else None
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self

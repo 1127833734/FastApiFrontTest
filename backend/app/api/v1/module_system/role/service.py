@@ -1,6 +1,5 @@
 from typing import Any
 
-from app.api.v1.module_platform.tenant.service import TenantService
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.excel_util import ExcelUtil
@@ -84,6 +83,8 @@ class RoleService:
         )
 
     async def create(self, data: RoleCreateSchema) -> RoleOutSchema:
+        from app.api.v1.module_platform.tenant.service import TenantService
+
         """
         创建角色
 

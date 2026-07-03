@@ -1,12 +1,9 @@
 import re
-from dataclasses import dataclass
 
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
 class ParamsCreateSchema(BaseModel):
@@ -53,7 +50,6 @@ class ParamsOutSchema(ParamsCreateSchema, BaseSchema, UserBySchema, TenantBySche
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class ParamsQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """
     参数管理查询参数
@@ -65,12 +61,13 @@ class ParamsQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     - 业务字段：参数名称、参数键名、是否系统内置
     """
 
-    config_name: str | None = Query(None, description="参数名称")
-    config_key: str | None = Query(None, description="参数键名")
-    config_type: bool | None = Query(None, description="是否系统内置(True:是 False:否)")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    config_name: str | None = Field(None, description="参数名称")
+    config_key: str | None = Field(None, description="参数键名")
+    config_type: bool | None = Field(None, description="是否系统内置(True:是 False:否)")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "ParamsQueryParam":
         if self.config_name:
             self.config_name = (QueueEnum.like.value, self.config_name)
         if self.config_key:
@@ -79,3 +76,4 @@ class ParamsQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
             self.config_type = (QueueEnum.eq.value, self.config_type)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self

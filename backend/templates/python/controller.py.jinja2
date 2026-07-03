@@ -6,8 +6,7 @@ from fastapi import APIRouter, Body, Depends, File, Path, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 from app.utils.common_util import bytes2file_response
@@ -47,8 +46,8 @@ async def get_obj_detail_controller(
     response_model=ResponseSchema[PageResultSchema[{{ class_name }}OutSchema]],
 )
 async def get_obj_list_controller(
-    page: Annotated[PaginationQueryParam, Query(description="分页查询参数")],
-    search: Annotated[{{ class_name }}QueryParam, Query(description="查询参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
+    search: Annotated[{{ class_name }}QueryParam, Depends()],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:query"]))],
 ) -> JSONResponse:
     """
@@ -173,7 +172,7 @@ async def batch_set_available_obj_controller(
 async def export_obj_list_controller(
     search: Annotated[{{ class_name }}QueryParam, Query(description="查询参数")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:export"]))],
-) -> StreamingResponse:
+) -> StreamingResponse[bytes]:
     """
     导出{{ function_name }}
 
@@ -224,7 +223,7 @@ async def import_obj_list_controller(
     summary="获取{{ function_name }}导入模板",
     dependencies=[Depends(AuthPermission(["{{ permission_prefix }}:download"]))],
 )
-async def export_obj_template_controller() -> StreamingResponse:
+async def export_obj_template_controller() -> StreamingResponse[bytes]:
     """
     获取{{ function_name }}导入模板
 

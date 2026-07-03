@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -12,8 +9,7 @@ from pydantic import (
 from app.api.v1.module_platform.menu.schema import MenuOutSchema
 from app.api.v1.module_system.dept.schema import DeptOutSchema
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import (
     role_permission_request_validator,
     validate_required_code,
@@ -104,19 +100,21 @@ class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
     depts: list[DeptOutSchema] = Field(default_factory=list, description="角色部门列表")
 
 
-@dataclass
 class RoleQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """
     角色管理查询参数
     """
 
-    name: str | None = Query(None, description="角色名称")
-    code: str | None = Query(None, description="角色编码")
-    status: int | None = Query(None, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="角色名称")
+    code: str | None = Field(None, description="角色编码")
+    status: int | None = Field(None, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
-        self.name = (QueueEnum.like.value, self.name)
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "RoleQueryParam":
+        if self.name:
+            self.name = (QueueEnum.like.value, self.name)
         if self.code:
             self.code = (QueueEnum.like.value, self.code)
         if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
+        return self

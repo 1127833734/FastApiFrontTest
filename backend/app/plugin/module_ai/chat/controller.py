@@ -5,8 +5,7 @@ from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema
+from app.core.base_schema import AuthSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, redis_getter
 from app.core.router_class import OperationLogRoute
 
@@ -25,11 +24,7 @@ from .service import AiModelConfigService, ChatService
 ChatRouter = APIRouter(route_class=OperationLogRoute, prefix="/chat", tags=["AI管理"])
 
 
-@ChatRouter.get(
-    "/detail/{session_id}",
-    summary="获取会话详情",
-    response_model=ResponseSchema[dict[str, Any]],
-)
+@ChatRouter.get("/detail/{session_id}", summary="获取会话详情", response_model=ResponseSchema[dict[str, Any]])
 async def get_session_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:detail"]))],
     session_id: Annotated[str, Path(description="会话ID")],
@@ -39,11 +34,7 @@ async def get_session_detail_controller(
     return SuccessResponse(data=result, msg="获取会话详情成功")
 
 
-@ChatRouter.get(
-    "/list",
-    summary="查询会话列表",
-    response_model=ResponseSchema[dict],
-)
+@ChatRouter.get("/list", summary="查询会话列表", response_model=ResponseSchema[dict])
 async def get_session_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -59,11 +50,7 @@ async def get_session_list_controller(
     return SuccessResponse(data=result_dict, msg="查询会话列表成功")
 
 
-@ChatRouter.post(
-    "/create",
-    summary="创建会话",
-    response_model=ResponseSchema[dict[str, Any]],
-)
+@ChatRouter.post("/create", summary="创建会话", response_model=ResponseSchema[dict[str, Any]])
 async def create_session_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:create"]))],
     data: Annotated[ChatSessionCreateSchema, Body(description="会话创建参数")],
@@ -73,11 +60,7 @@ async def create_session_controller(
     return SuccessResponse(data=result, msg="创建会话成功")
 
 
-@ChatRouter.put(
-    "/update/{session_id}",
-    summary="更新会话",
-    response_model=ResponseSchema[None],
-)
+@ChatRouter.put("/update/{session_id}", summary="更新会话", response_model=ResponseSchema[None])
 async def update_session_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:update"]))],
     session_id: Annotated[str, Path(description="会话ID")],
@@ -88,11 +71,7 @@ async def update_session_controller(
     return SuccessResponse(data=None, msg="更新会话成功")
 
 
-@ChatRouter.delete(
-    "/delete",
-    summary="删除会话",
-    response_model=ResponseSchema[None],
-)
+@ChatRouter.delete("/delete", summary="删除会话", response_model=ResponseSchema[None])
 async def delete_session_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:delete"]))],
     session_ids: Annotated[list[str], Body(description="会话ID列表")],
@@ -102,11 +81,7 @@ async def delete_session_controller(
     return SuccessResponse(data=None, msg="删除会话成功")
 
 
-@ChatRouter.post(
-    "/ai-chat",
-    summary="AI 对话（非流式）",
-    response_model=ResponseSchema[AiChatResponseSchema],
-)
+@ChatRouter.post("/ai-chat", summary="AI 对话（非流式）", response_model=ResponseSchema[AiChatResponseSchema])
 async def ai_chat_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:query"]))],
     data: Annotated[AiChatRequestSchema, Body(description="对话请求")],
@@ -127,11 +102,7 @@ async def ai_chat_controller(
     )
 
 
-@ChatRouter.get(
-    "/model",
-    summary="获取当前用户的 AI 模型配置列表（含当前激活 ID）",
-    response_model=ResponseSchema[AiModelConfigListResponse],
-)
+@ChatRouter.get("/model", summary="获取 AI 模型配置列表", response_model=ResponseSchema[AiModelConfigListResponse])
 async def list_model_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:query"]))],
@@ -141,11 +112,7 @@ async def list_model_config_controller(
     return SuccessResponse(data=result, msg="获取模型配置列表成功")
 
 
-@ChatRouter.post(
-    "/model",
-    summary="新增一个 AI 模型配置",
-    response_model=ResponseSchema[dict[str, Any]],
-)
+@ChatRouter.post("/model", summary="新增一个 AI 模型配置", response_model=ResponseSchema[dict[str, Any]])
 async def create_model_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:update"]))],
@@ -157,11 +124,7 @@ async def create_model_config_controller(
     return SuccessResponse(data=result, msg="模型配置已新增")
 
 
-@ChatRouter.put(
-    "/model/{config_id}",
-    summary="更新指定 ID 的 AI 模型配置",
-    response_model=ResponseSchema[dict[str, Any]],
-)
+@ChatRouter.put("/model/{config_id}", summary="更新指定 ID 的 AI 模型配置", response_model=ResponseSchema[dict[str, Any]])
 async def update_model_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:update"]))],
@@ -174,11 +137,7 @@ async def update_model_config_controller(
     return SuccessResponse(data=result, msg="模型配置已更新")
 
 
-@ChatRouter.delete(
-    "/model/{config_id}",
-    summary="删除指定 ID 的 AI 模型配置",
-    response_model=ResponseSchema[None],
-)
+@ChatRouter.delete("/model/{config_id}", summary="删除指定 ID 的 AI 模型配置", response_model=ResponseSchema[None])
 async def delete_model_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:update"]))],
@@ -189,11 +148,7 @@ async def delete_model_config_controller(
     return SuccessResponse(data=None, msg="模型配置已删除")
 
 
-@ChatRouter.post(
-    "/model/{config_id}/activate",
-    summary="切换当前激活的 AI 模型配置（空 ID 表示使用系统默认）",
-    response_model=ResponseSchema[None],
-)
+@ChatRouter.post("/model/{config_id}/activate", summary="切换激活的 AI 模型配置", response_model=ResponseSchema[None])
 async def activate_model_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_ai:chat:update"]))],

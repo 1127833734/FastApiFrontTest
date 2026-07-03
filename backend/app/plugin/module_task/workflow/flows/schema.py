@@ -1,13 +1,10 @@
 import re
-from dataclasses import dataclass
 from typing import Any
 
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateTimeStr
 
 
@@ -94,16 +91,17 @@ class WorkflowOutSchema(BaseSchema, UserBySchema, TenantBySchema):
         return data
 
 
-@dataclass
 class WorkflowQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """工作流查询"""
 
-    name: str | None = Query(None, description="流程名称")
-    code: str | None = Query(None, description="流程编码")
+    name: str | None = Field(None, description="流程名称")
+    code: str | None = Field(None, description="流程编码")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "WorkflowQueryParam":
         self.name = (QueueEnum.like.value, self.name) if self.name else None
         self.code = (QueueEnum.like.value, self.code) if self.code else None
+        return self
 
 
 class WorkflowExecuteSchema(BaseModel):

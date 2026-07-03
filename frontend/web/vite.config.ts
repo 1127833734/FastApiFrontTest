@@ -68,7 +68,7 @@ function elementPlusStyleIncludes(): string[] {
 export default ({ mode }: { mode: string }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root);
-  const isProduction = mode === "production";
+  const isProduction = mode === "prod";
 
   return defineConfig({
     define: {

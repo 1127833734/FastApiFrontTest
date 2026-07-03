@@ -1,9 +1,11 @@
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enums import QueueEnum
 from app.core.validator import DateTimeStr
 
 if TYPE_CHECKING:
@@ -151,3 +153,78 @@ class PageResultSchema[T](BaseModel):
     total: int = Field(default=0, ge=0, description="总记录数")
     has_next: bool | None = Field(default=False, description="是否有下一页")
     items: list[T] = Field(default_factory=list, description="分页后的数据列表")
+
+
+class PaginationQueryParam(BaseModel):
+    """分页 —— 自动继承 page_no / page_size / order_by，子类无需重复声明"""
+
+    page_no: int = Field(default=1, description="当前页码", ge=1)
+    page_size: int = Field(default=10, description="每页数量", ge=1, le=100)
+    order_by: list = Field(
+        default_factory=lambda: [{"id": "desc"}],
+        description="排序字段,格式:[{'field1': 'asc'}, {'field2': 'desc'}]",
+    )
+
+    @field_validator("order_by", mode="before")
+    @classmethod
+    def parse_order_by(cls, v: object) -> list:
+        if v is None:
+            return [{"id": "desc"}]
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (ValueError, json.JSONDecodeError):
+                return [{"id": "desc"}]
+        return v
+
+
+class BaseQueryParam(BaseModel):
+    """created_time + updated_time —— 子类自动继承"""
+
+    created_time: list[DateTimeStr] | None = Field(
+        None,
+        description="创建时间范围",
+        examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
+    )
+    updated_time: list[DateTimeStr] | None = Field(
+        None,
+        description="更新时间范围",
+        examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
+    )
+
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "BaseQueryParam":
+        ct = self.created_time
+        if isinstance(ct, list) and len(ct) == 2:
+            self.created_time = (QueueEnum.between.value, (ct[0], ct[1]))
+        ut = self.updated_time
+        if isinstance(ut, list) and len(ut) == 2:
+            self.updated_time = (QueueEnum.between.value, (ut[0], ut[1]))
+        return self
+
+
+class UserByQueryParam(BaseModel):
+    """created_id + updated_id —— 子类自动继承"""
+
+    created_id: int | None = Field(None, description="创建人")
+    updated_id: int | None = Field(None, description="更新人")
+
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "UserByQueryParam":
+        if isinstance(self.created_id, int):
+            self.created_id = (QueueEnum.eq.value, self.created_id)
+        if isinstance(self.updated_id, int):
+            self.updated_id = (QueueEnum.eq.value, self.updated_id)
+        return self
+
+
+class TenantByQueryParam(BaseModel):
+    """tenant_id —— 子类自动继承"""
+
+    tenant_id: int | None = Field(None, description="租户ID")
+
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "TenantByQueryParam":
+        if isinstance(self.tenant_id, int):
+            self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
+        return self

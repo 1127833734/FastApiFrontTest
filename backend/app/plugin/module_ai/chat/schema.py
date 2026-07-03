@@ -1,10 +1,9 @@
-from dataclasses import dataclass
 from typing import Any
 
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
+from app.common.enums import QueueEnum
+from app.core.base_schema import BaseQueryParam, TenantByQueryParam, UserByQueryParam
 
 
 class ChatQuerySchema(BaseModel):
@@ -55,11 +54,15 @@ class ChatSessionMessageSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class ChatSessionQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """会话查询参数"""
 
-    title: str | None = Query(None, description="会话标题")
+    title: str | None = Field(None, description="会话标题")
+
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "ChatSessionQueryParam":
+        self.title = (QueueEnum.like.value, self.title)
+        return self
 
 
 class AiChatRequestSchema(BaseModel):

@@ -1,17 +1,10 @@
-"""健康检查端点
-
-提供三级健康检查：
-- /health: 基础健康检查（负载均衡器用）
-- /health/ready: 就绪检查（所有依赖就绪才算 ready）
-- /health/live: 存活检查（进程存活即可）
-"""
-
 import asyncio
 import shutil
 import time
 from datetime import datetime
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.common.constant import RET
@@ -19,10 +12,11 @@ from app.common.response import ErrorResponse, ResponseSchema, SuccessResponse
 from app.config.setting import settings
 from app.core.database import async_db_session
 from app.core.logger import logger
+from app.core.router_class import OperationLogRoute
 
 from .schema import DependencyStatus, HealthOut, ReadinessOut
 
-HealthRouter = APIRouter(prefix="/health", tags=["健康检查"])
+HealthRouter = APIRouter(route_class=OperationLogRoute, prefix="/health", tags=["健康检查"])
 
 
 async def _check_database() -> DependencyStatus:
@@ -73,13 +67,8 @@ def _get_disk_usage() -> float:
 _start_time = datetime.now()
 
 
-@HealthRouter.get(
-    "/check",
-    summary="基础健康检查",
-    description="仅检查进程是否存活，用于负载均衡器探测",
-    response_model=ResponseSchema[HealthOut],
-)
-async def health_check():
+@HealthRouter.get("/check", summary="健康检查", response_model=ResponseSchema[HealthOut])
+async def health_check() -> JSONResponse:
     """
     基础健康检查
 
@@ -101,13 +90,8 @@ async def health_check():
     )
 
 
-@HealthRouter.get(
-    "/live",
-    summary="存活探针",
-    description="进程已启动即可返回 200，供 K8s livenessProbe 使用",
-    response_model=ResponseSchema[HealthOut],
-)
-async def liveness_check():
+@HealthRouter.get("/live", summary="存活探针", response_model=ResponseSchema[HealthOut])
+async def liveness_check() -> JSONResponse:
     """
     存活探针
 
@@ -129,13 +113,8 @@ async def liveness_check():
     )
 
 
-@HealthRouter.get(
-    "/ready",
-    summary="就绪探针",
-    description="探测数据库与 Redis；任一项失败返回 503，供 K8s readinessProbe 使用",
-    response_model=ResponseSchema[ReadinessOut],
-)
-async def readiness_check(request: Request):
+@HealthRouter.get("/ready", summary="就绪探针", response_model=ResponseSchema[ReadinessOut])
+async def readiness_check(request: Request) -> JSONResponse:
     """
     就绪探针
 

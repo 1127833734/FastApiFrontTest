@@ -1,7 +1,5 @@
 import re
-from dataclasses import dataclass
 
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -11,8 +9,7 @@ from pydantic import (
 )
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
 class DictTypeCreateSchema(BaseModel):
@@ -84,21 +81,22 @@ class DictTypeOutSchema(DictTypeCreateSchema, BaseSchema, UserBySchema, TenantBy
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class DictTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典类型查询参数"""
 
-    dict_name: str | None = Query(default=None, description="字典名称", max_length=100)
-    dict_type: str | None = Query(default=None, description="字典类型", max_length=100)
-    status: int | None = Query(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    dict_name: str | None = Field(default=None, description="字典名称", max_length=100)
+    dict_type: str | None = Field(default=None, description="字典类型", max_length=100)
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "DictTypeQueryParam":
         if self.dict_name:
             self.dict_name = (QueueEnum.like.value, self.dict_name)
         if self.dict_type:
             self.dict_type = (QueueEnum.eq.value, self.dict_type)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self
 
 
 class DictDataCreateSchema(BaseModel):
@@ -162,16 +160,16 @@ class DictDataOutSchema(DictDataCreateSchema, BaseSchema, UserBySchema, TenantBy
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class DictDataQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典数据查询参数"""
 
-    dict_label: str | None = Query(default=None, description="字典标签", max_length=100)
-    dict_type: str | None = Query(default=None, description="字典类型", max_length=100)
-    dict_type_id: int | None = Query(default=None, description="字典类型ID")
-    status: int | None = Query(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    dict_label: str | None = Field(default=None, description="字典标签", max_length=100)
+    dict_type: str | None = Field(default=None, description="字典类型", max_length=100)
+    dict_type_id: int | None = Field(default=None, description="字典类型ID")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "DictDataQueryParam":
         if self.dict_label:
             self.dict_label = (QueueEnum.like.value, self.dict_label)
         if self.dict_type:
@@ -180,3 +178,4 @@ class DictDataQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
             self.status = (QueueEnum.eq.value, self.status)
         if self.dict_type_id is not None:
             self.dict_type_id = (QueueEnum.eq.value, self.dict_type_id)
+        return self

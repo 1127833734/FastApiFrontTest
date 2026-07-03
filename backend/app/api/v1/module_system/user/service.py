@@ -2,10 +2,6 @@ from typing import Any
 
 from fastapi import UploadFile
 
-from app.api.v1.module_platform.menu.crud import MenuCRUD
-from app.api.v1.module_platform.menu.schema import MenuOutSchema
-from app.api.v1.module_platform.package.service import PackageService
-from app.api.v1.module_platform.tenant.service import TenantService
 from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.api.v1.module_system.position.crud import PositionCRUD
 from app.api.v1.module_system.role.crud import RoleCRUD
@@ -69,6 +65,8 @@ class UserService:
         )
 
     async def create(self, data: UserCreateSchema) -> UserOutSchema:
+        from app.api.v1.module_platform.tenant.service import TenantService
+
         if not data.username:
             raise CustomException(msg="用户名不能为空")
         if data.is_superuser:
@@ -161,6 +159,10 @@ class UserService:
         await UserCRUD(self.auth).delete(ids=ids)
 
     async def current_info(self) -> UserOutSchema:
+        from app.api.v1.module_platform.menu.crud import MenuCRUD
+        from app.api.v1.module_platform.menu.schema import MenuOutSchema
+        from app.api.v1.module_platform.package.service import PackageService
+
         if not self.auth.user or not self.auth.user.id:
             raise CustomException(msg="该数据不存在")
         user = await UserCRUD(self.auth).get(id=self.auth.user.id)

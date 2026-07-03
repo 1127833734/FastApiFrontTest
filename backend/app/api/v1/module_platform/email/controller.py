@@ -1,10 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
@@ -31,7 +31,7 @@ async def email_config_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[EmailConfigQueryParam, Query(description="SMTP 配置查询参数")],
-):
+) -> JSONResponse:
     result = await EmailConfigService(auth).page(
         page_no=page.page_no,
         page_size=page.page_size,
@@ -44,7 +44,7 @@ async def email_config_list_controller(
 async def email_config_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:query"]))],
     id: Annotated[int, Path(description="SMTP 配置ID")],
-):
+) -> JSONResponse:
     result = await EmailConfigService(auth).detail(id=id)
     return SuccessResponse(data=result, msg="查询成功")
 
@@ -52,7 +52,7 @@ async def email_config_detail_controller(
 async def email_config_create_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     data: Annotated[EmailConfigCreateSchema, Body(description="SMTP 配置创建参数")],
-):
+) -> JSONResponse:
     result = await EmailConfigService(auth).create(data=data)
     return SuccessResponse(data=result, msg="创建成功")
 
@@ -61,7 +61,7 @@ async def email_config_update_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     id: Annotated[int, Path(description="SMTP 配置ID")],
     data: Annotated[EmailConfigUpdateSchema, Body(description="SMTP 配置更新参数")],
-):
+) -> JSONResponse:
     result = await EmailConfigService(auth).update(id=id, data=data)
     return SuccessResponse(data=result, msg="更新成功")
 
@@ -69,7 +69,7 @@ async def email_config_update_controller(
 async def email_config_delete_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     ids: Annotated[list[int], Body(description="要删除的 SMTP 配置ID列表")],
-):
+) -> JSONResponse:
     await EmailConfigService(auth).delete(ids=ids)
     return SuccessResponse(msg="删除成功")
 
@@ -77,7 +77,7 @@ async def email_config_delete_controller(
 async def email_config_test_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     data: Annotated[EmailTestSchema, Body(description="测试参数")],
-):
+) -> JSONResponse:
     result = await EmailConfigService(auth).test(data=data)
     return SuccessResponse(data=result, msg="测试邮件已发送")
 
@@ -86,7 +86,7 @@ async def email_template_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[EmailTemplateQueryParam, Query(description="邮件模板查询参数")],
-):
+) -> JSONResponse:
     result = await EmailTemplateService(auth).page(
         page_no=page.page_no,
         page_size=page.page_size,
@@ -99,7 +99,7 @@ async def email_template_list_controller(
 async def email_template_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:query"]))],
     id: Annotated[int, Path(description="邮件模板ID")],
-):
+) -> JSONResponse:
     result = await EmailTemplateService(auth).detail(id=id)
     return SuccessResponse(data=result, msg="查询成功")
 
@@ -107,7 +107,7 @@ async def email_template_detail_controller(
 async def email_template_create_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     data: Annotated[EmailTemplateCreateSchema, Body(description="邮件模板创建参数")],
-):
+) -> JSONResponse:
     result = await EmailTemplateService(auth).create(data=data)
     return SuccessResponse(data=result, msg="创建成功")
 
@@ -116,7 +116,7 @@ async def email_template_update_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     id: Annotated[int, Path(description="邮件模板ID")],
     data: Annotated[EmailTemplateUpdateSchema, Body(description="邮件模板更新参数")],
-):
+) -> JSONResponse:
     result = await EmailTemplateService(auth).update(id=id, data=data)
     return SuccessResponse(data=result, msg="更新成功")
 
@@ -124,7 +124,7 @@ async def email_template_update_controller(
 async def email_template_delete_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     ids: Annotated[list[int], Body(description="要删除的邮件模板ID列表")],
-):
+) -> JSONResponse:
     await EmailTemplateService(auth).delete(ids=ids)
     return SuccessResponse(msg="删除成功")
 
@@ -132,7 +132,7 @@ async def email_template_delete_controller(
 async def email_send_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:update"]))],
     data: Annotated[EmailSendSchema, Body(description="发送参数")],
-):
+) -> JSONResponse:
     result = await EmailSendService(auth).manual_send(data=data)
     return SuccessResponse(data=result, msg="发送成功")
 
@@ -141,7 +141,7 @@ async def email_log_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:email:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[EmailLogQueryParam, Query(description="邮件发送日志查询参数")],
-):
+) -> JSONResponse:
     result = await EmailLogService(auth).page(
         page_no=page.page_no,
         page_size=page.page_size,

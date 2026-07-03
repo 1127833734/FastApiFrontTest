@@ -1,12 +1,9 @@
-from dataclasses import dataclass, field
 from typing import Literal
 
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam
-from app.core.base_schema import BaseSchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import menu_request_validator
 
 
@@ -203,28 +200,28 @@ class MenuTreeOutSchema(MenuOutSchema):
     children: list["MenuTreeOutSchema"] | None = Field(default=None, description="子菜单列表")
 
 
-@dataclass
 class MenuQueryParam(BaseQueryParam):
     """菜单管理查询参数（菜单为平台级资源，无用户归属）"""
 
-    name: str | None = Query(None, description="菜单名称")
-    route_path: str | None = Query(None, description="路由地址")
-    component_path: str | None = Query(None, description="组件路径")
-    type: Literal[1, 2, 3, 4] | None = Query(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)")
-    permission: str | None = Query(None, description="权限标识")
-    description: str | None = Query(None, description="描述")
-    status: int | None = Query(None, description="是否启用")
-    menu_client: Literal["pc", "app"] | None = Query(
+    name: str | None = Field(None, description="菜单名称")
+    route_path: str | None = Field(None, description="路由地址")
+    component_path: str | None = Field(None, description="组件路径")
+    type: Literal[1, 2, 3, 4] | None = Field(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)")
+    permission: str | None = Field(None, description="权限标识")
+    description: str | None = Field(None, description="描述")
+    status: int | None = Field(None, description="是否启用")
+    menu_client: Literal["pc", "app"] | None = Field(
         None,
         description="管理端 Tab：pc=桌面端菜单 app=移动端菜单；不传则不过滤终端",
     )
-    scope: Literal["tenant"] | None = Query(
+    scope: Literal["tenant"] | None = Field(
         None,
         description="菜单范围过滤：tenant=仅租户可用菜单",
     )
-    client: str | None = field(init=False, default=None)
+    client: str | None = Field(init=False, default=None)
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "MenuQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.route_path:
@@ -235,10 +232,11 @@ class MenuQueryParam(BaseQueryParam):
             self.permission = (QueueEnum.like.value, self.permission)
         if self.description:
             self.description = (QueueEnum.like.value, self.description)
-        if self.status:
+        if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
         if self.menu_client in ("pc", "app"):
             self.client = (QueueEnum.eq.value, self.menu_client)
         del self.menu_client
         if self.scope == "tenant":
             self.scope = (QueueEnum.eq.value, "tenant")
+        return self

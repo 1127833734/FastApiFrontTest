@@ -464,7 +464,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
       {
         path: "workspace",
         name: "TenantWorkspace",
-        component: () => import("@views/module_platform/self_service/index.vue"),
+        component: () => import("@views/module_platform/tenant/tenant_workspace.vue"),
         meta: {
           title: "工作台",
           hidden: true,

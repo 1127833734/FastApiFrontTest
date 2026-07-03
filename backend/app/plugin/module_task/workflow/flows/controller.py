@@ -4,29 +4,17 @@ from fastapi import APIRouter, Body, Depends, Path, Query
 from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
-from .schema import (
-    WorkflowCreateSchema,
-    WorkflowExecuteResultSchema,
-    WorkflowExecuteSchema,
-    WorkflowOutSchema,
-    WorkflowQueryParam,
-    WorkflowUpdateSchema,
-)
+from .schema import WorkflowCreateSchema, WorkflowExecuteResultSchema, WorkflowExecuteSchema, WorkflowOutSchema, WorkflowQueryParam, WorkflowUpdateSchema
 from .service import WorkflowService
 
 WorkflowRouter = APIRouter(route_class=OperationLogRoute, prefix="/workflow/flow", tags=["流程编排"])
 
 
-@WorkflowRouter.get(
-    "/detail/{id}",
-    summary="工作流详情",
-    response_model=ResponseSchema[WorkflowOutSchema],
-)
+@WorkflowRouter.get("/detail/{id}", summary="工作流详情", response_model=ResponseSchema[WorkflowOutSchema])
 async def get_workflow_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:detail"]))],
     id: Annotated[int, Path(description="工作流ID")],
@@ -35,11 +23,7 @@ async def get_workflow_detail_controller(
     return SuccessResponse(data=result_dict, msg="获取工作流详情成功")
 
 
-@WorkflowRouter.get(
-    "/list",
-    summary="工作流列表",
-    response_model=ResponseSchema[PageResultSchema[WorkflowOutSchema]],
-)
+@WorkflowRouter.get("/list", summary="工作流列表", response_model=ResponseSchema[PageResultSchema[WorkflowOutSchema]])
 async def get_workflow_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -54,11 +38,7 @@ async def get_workflow_list_controller(
     return SuccessResponse(data=result_dict, msg="查询工作流列表成功")
 
 
-@WorkflowRouter.post(
-    "/create",
-    summary="创建工作流",
-    response_model=ResponseSchema[WorkflowOutSchema],
-)
+@WorkflowRouter.post("/create", summary="创建工作流", response_model=ResponseSchema[WorkflowOutSchema])
 async def create_workflow_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:create"]))],
     data: Annotated[WorkflowCreateSchema, Body(description="创建工作流参数")],
@@ -67,11 +47,7 @@ async def create_workflow_controller(
     return SuccessResponse(data=result_dict, msg="创建工作流成功")
 
 
-@WorkflowRouter.put(
-    "/update/{id}",
-    summary="更新工作流",
-    response_model=ResponseSchema[WorkflowOutSchema],
-)
+@WorkflowRouter.put("/update/{id}", summary="更新工作流", response_model=ResponseSchema[WorkflowOutSchema])
 async def update_workflow_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:update"]))],
     id: Annotated[int, Path(description="工作流ID")],
@@ -81,11 +57,7 @@ async def update_workflow_controller(
     return SuccessResponse(data=result_dict, msg="更新工作流成功")
 
 
-@WorkflowRouter.delete(
-    "/delete",
-    summary="删除工作流",
-    response_model=ResponseSchema[None],
-)
+@WorkflowRouter.delete("/delete", summary="删除工作流", response_model=ResponseSchema[None])
 async def delete_workflow_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
@@ -94,11 +66,7 @@ async def delete_workflow_controller(
     return SuccessResponse(msg="删除工作流成功")
 
 
-@WorkflowRouter.post(
-    "/publish/{id}",
-    summary="发布工作流",
-    response_model=ResponseSchema[WorkflowOutSchema],
-)
+@WorkflowRouter.post("/publish/{id}", summary="发布工作流", response_model=ResponseSchema[WorkflowOutSchema])
 async def publish_workflow_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:update"]))],
     id: Annotated[int, Path(description="工作流ID")],
@@ -107,11 +75,7 @@ async def publish_workflow_controller(
     return SuccessResponse(data=result_dict, msg="发布工作流成功")
 
 
-@WorkflowRouter.post(
-    "/execute",
-    summary="执行工作流",
-    response_model=ResponseSchema[WorkflowExecuteResultSchema],
-)
+@WorkflowRouter.post("/execute", summary="执行工作流", response_model=ResponseSchema[WorkflowExecuteResultSchema])
 async def execute_workflow_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_task:workflow:flow:execute"]))],
     body: Annotated[WorkflowExecuteSchema, Body(description="执行工作流参数")],

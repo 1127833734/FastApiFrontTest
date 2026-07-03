@@ -125,7 +125,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Check } from "@element-plus/icons-vue";
-import SelfServiceAPI, { type AvailablePackage } from "@/api/module_platform/self_service";
+import TenantAPI, { type AvailablePackage } from "@/api/module_platform/tenant";
 
 defineOptions({ name: "DashboardPricing" });
 
@@ -232,7 +232,7 @@ function enrichPlan(p: AvailablePackage, isRecommended: boolean): PlanDisplay {
 async function loadPackages() {
   loading.value = true;
   try {
-    const res = await SelfServiceAPI.getAvailablePackages();
+    const res = await TenantAPI.getAvailablePackages();
     const data = res.data?.data;
     packages.value = data?.packages || [];
   } catch {
@@ -246,7 +246,7 @@ async function buyPackage(plan: PlanDisplay) {
   buyingId.value = plan.id;
   const [action = "buy"] = plan.availableActions;
   try {
-    const res = await SelfServiceAPI.createOrder({
+    const res = await TenantAPI.createOrder({
       package_id: plan.id,
       order_type: action as "buy" | "renew" | "upgrade" | "downgrade",
     });

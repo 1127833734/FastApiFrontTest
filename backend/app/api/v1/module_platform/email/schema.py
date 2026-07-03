@@ -1,11 +1,7 @@
-from dataclasses import dataclass
-
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateTimeStr
 
 
@@ -35,21 +31,22 @@ class EmailConfigOutSchema(EmailConfigCreateSchema, BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class EmailConfigQueryParam(BaseQueryParam):
     """SMTP 配置查询参数"""
 
-    name: str | None = Query(None, description="配置名称")
-    status: int | None = Query(None, description="状态")
-    is_default: bool | None = Query(None, description="是否默认配置")
+    name: str | None = Field(None, description="配置名称")
+    status: int | None = Field(None, description="状态")
+    is_default: bool | None = Field(None, description="是否默认配置")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "EmailConfigQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
         if self.is_default is not None:
             self.is_default = (QueueEnum.eq.value, self.is_default)
+        return self
 
 
 class EmailTemplateCreateSchema(BaseModel):
@@ -75,18 +72,19 @@ class EmailTemplateOutSchema(EmailTemplateCreateSchema, BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class EmailTemplateQueryParam(BaseQueryParam):
     """邮件模板查询参数"""
 
-    name: str | None = Query(None, description="模板名称")
-    template_code: str | None = Query(None, description="模板编码")
+    name: str | None = Field(None, description="模板名称")
+    template_code: str | None = Field(None, description="模板编码")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "EmailTemplateQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.template_code:
             self.template_code = (QueueEnum.like.value, self.template_code)
+        return self
 
 
 class EmailSendSchema(BaseModel):
@@ -116,16 +114,16 @@ class EmailLogOutSchema(BaseSchema, UserBySchema):
     sent_time: DateTimeStr | None = Field(default=None, description="发送时间")
 
 
-@dataclass
 class EmailLogQueryParam(BaseQueryParam, UserByQueryParam):
     """邮件日志查询参数"""
 
-    to_email: str | None = Query(None, description="收件人邮箱")
-    biz_type: str | None = Query(None, description="业务类型")
-    status: int | None = Query(None, description="状态")
-    template_code: str | None = Query(None, description="模板编码")
+    to_email: str | None = Field(None, description="收件人邮箱")
+    biz_type: str | None = Field(None, description="业务类型")
+    status: int | None = Field(None, description="状态")
+    template_code: str | None = Field(None, description="模板编码")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "EmailLogQueryParam":
         if self.to_email:
             self.to_email = (QueueEnum.like.value, self.to_email)
         if self.biz_type:
@@ -134,6 +132,7 @@ class EmailLogQueryParam(BaseQueryParam, UserByQueryParam):
             self.status = (QueueEnum.eq.value, self.status)
         if self.template_code:
             self.template_code = (QueueEnum.eq.value, self.template_code)
+        return self
 
 
 class EmailTestSchema(BaseModel):

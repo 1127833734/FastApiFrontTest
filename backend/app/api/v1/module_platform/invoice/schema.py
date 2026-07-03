@@ -1,11 +1,7 @@
-from dataclasses import dataclass
-
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.common.enums import InvoiceTypeEnum, QueueEnum
-from app.core.base_params import BaseQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema, UserBySchema
 
 
 class InvoiceCreateSchema(BaseModel):
@@ -71,18 +67,19 @@ class InvoiceOutSchema(InvoiceCreateSchema, BaseSchema, UserBySchema, TenantBySc
     api_response: str | None = Field(default=None, description="第三方 API 响应")
 
 
-@dataclass
 class InvoiceQueryParam(BaseQueryParam):
     """发票查询参数"""
 
-    invoice_type: InvoiceTypeEnum | None = Query(None, description="发票类型")
-    status: int | None = Query(None, description="状态")
-    tenant_id: int | None = Query(None, description="租户ID")
+    invoice_type: InvoiceTypeEnum | None = Field(None, description="发票类型")
+    status: int | None = Field(None, description="状态")
+    tenant_id: int | None = Field(None, description="租户ID")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "InvoiceQueryParam":
         if self.invoice_type:
             self.invoice_type = (QueueEnum.eq.value, self.invoice_type)
         if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
         if self.tenant_id is not None:
             self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
+        return self

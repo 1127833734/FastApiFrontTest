@@ -1,11 +1,7 @@
-from dataclasses import dataclass
-
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam
-from app.core.base_schema import BaseSchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 
 
 class PackageCreateSchema(BaseModel):
@@ -94,21 +90,22 @@ class PackageOutSchema(PackageCreateSchema, BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class PackageQueryParam(BaseQueryParam):
     """套餐查询参数"""
 
-    name: str | None = Query(None, description="套餐名称")
-    code: str | None = Query(None, description="套餐编码")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="套餐名称")
+    code: str | None = Field(None, description="套餐编码")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "PackageQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.code:
             self.code = (QueueEnum.like.value, self.code)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self
 
 
 class PackageMenuSetSchema(BaseModel):

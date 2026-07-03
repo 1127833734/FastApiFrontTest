@@ -18,11 +18,7 @@ MenuRouter = APIRouter(route_class=OperationLogRoute, prefix="/menu", tags=["菜
 _MENU_NS = "menu"
 
 
-@MenuRouter.get(
-    "/tree",
-    summary="查询菜单树",
-    response_model=ResponseSchema[list[MenuOutSchema]],
-)
+@MenuRouter.get("/tree", summary="查询菜单树", response_model=ResponseSchema[list[MenuOutSchema]])
 @cache(expire=300, namespace=_MENU_NS)
 async def get_menu_tree_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:query"]))],
@@ -33,11 +29,7 @@ async def get_menu_tree_controller(
     return SuccessResponse(data=result_dict_tree, msg="查询菜单树成功")
 
 
-@MenuRouter.get(
-    "/detail/{id}",
-    summary="查询菜单详情",
-    response_model=ResponseSchema[MenuOutSchema],
-)
+@MenuRouter.get("/detail/{id}", summary="查询菜单详情", response_model=ResponseSchema[MenuOutSchema])
 async def get_obj_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:detail"]))],
     id: Annotated[int, Path(description="菜单ID", ge=1)],
@@ -46,11 +38,7 @@ async def get_obj_detail_controller(
     return SuccessResponse(data=result_dict, msg="查询菜单详情成功")
 
 
-@MenuRouter.post(
-    "/create",
-    summary="创建菜单",
-    response_model=ResponseSchema[MenuOutSchema],
-)
+@MenuRouter.post("/create", summary="创建菜单", response_model=ResponseSchema[MenuOutSchema])
 async def create_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:create"]))],
     data: Annotated[MenuCreateSchema, Body(description="菜单创建参数")],
@@ -60,11 +48,7 @@ async def create_obj_controller(
     return SuccessResponse(data=result_dict, msg="创建菜单成功")
 
 
-@MenuRouter.put(
-    "/update/{id}",
-    summary="修改菜单",
-    response_model=ResponseSchema[MenuOutSchema],
-)
+@MenuRouter.put("/update/{id}", summary="修改菜单", response_model=ResponseSchema[MenuOutSchema])
 async def update_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:update"]))],
     id: Annotated[int, Path(description="菜单ID", ge=1)],
@@ -75,11 +59,7 @@ async def update_obj_controller(
     return SuccessResponse(data=result_dict, msg="修改菜单成功")
 
 
-@MenuRouter.delete(
-    "/delete",
-    summary="删除菜单",
-    response_model=ResponseSchema[None],
-)
+@MenuRouter.delete("/delete", summary="删除菜单", response_model=ResponseSchema[None])
 async def delete_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:delete"]))],
     ids: Annotated[list[int], Body(description="菜单ID列表")],
@@ -89,11 +69,7 @@ async def delete_obj_controller(
     return SuccessResponse(msg="删除菜单成功")
 
 
-@MenuRouter.patch(
-    "/status/batch",
-    summary="批量修改菜单状态",
-    response_model=ResponseSchema[None],
-)
+@MenuRouter.patch("/status/batch", summary="批量修改菜单状态", response_model=ResponseSchema[None])
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_platform:menu:patch"]))],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],

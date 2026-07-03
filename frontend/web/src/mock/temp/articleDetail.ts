@@ -10,7 +10,7 @@ export const ArticleDetail: Record<number, string> = {
 <pre><code class="language-dockerfile">FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --prod
 COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
@@ -23,7 +23,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=prod
     restart: always
 </code></pre>
 <h3>4、自动化部署流程</h3>

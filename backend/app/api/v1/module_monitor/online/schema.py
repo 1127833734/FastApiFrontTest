@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-
-from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.common.enums import QueueEnum
 from app.core.validator import DateTimeStr
@@ -26,16 +23,16 @@ class OnlineOutSchema(BaseModel):
     login_type: str | None = Field(default=None, description="登录类型 PC端 | 移动端")
 
 
-@dataclass
-class OnlineQueryParam:
+class OnlineQueryParam(BaseModel):
     """在线用户查询参数"""
 
-    def __init__(
-        self,
-        name: str | None = Query(None, description="登录名称"),
-        ipaddr: str | None = Query(None, description="登陆IP地址"),
-        login_location: str | None = Query(None, description="登录所属地"),
-    ) -> None:
-        self.name = (QueueEnum.like.value, f"%{name}%") if name else None
-        self.login_location = (QueueEnum.like.value, f"%{login_location}%") if login_location else None
-        self.ipaddr = (QueueEnum.like.value, f"%{ipaddr}%") if ipaddr else None
+    name: str | None = Field(None, description="登录名称")
+    ipaddr: str | None = Field(None, description="登陆IP地址")
+    login_location: str | None = Field(None, description="登录所属地")
+
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "OnlineQueryParam":
+        self.name = (QueueEnum.like.value, self.name) if self.name else None
+        self.login_location = (QueueEnum.like.value, self.login_location) if self.login_location else None
+        self.ipaddr = (QueueEnum.like.value, self.ipaddr) if self.ipaddr else None
+        return self

@@ -1,8 +1,6 @@
-from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import urlparse
 
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -188,15 +186,13 @@ class ResourceCreateDirSchema(BaseModel):
         return value.strip()
 
 
-@dataclass
-class ResourceSearchQueryParam:
+class ResourceSearchQueryParam(BaseModel):
     """资源搜索查询参数"""
 
-    def __init__(
-        self,
-        name: str | None = Query(None, description="搜索关键词"),
-        path: str | None = Query(None, description="目录路径"),
-    ) -> None:
-        self.name = (QueueEnum.like.value, name) if name else None
+    name: str | None = Field(None, description="搜索关键词")
+    path: str | None = Field(None, description="目录路径")
 
-        self.path = path
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "ResourceSearchQueryParam":
+        self.name = (QueueEnum.like.value, self.name) if self.name else None
+        return self

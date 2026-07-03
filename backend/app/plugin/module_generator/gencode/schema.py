@@ -1,12 +1,9 @@
 import re
-from dataclasses import dataclass
 
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
 class GenDBTableSchema(BaseModel):
@@ -300,19 +297,20 @@ class GenSyncPreviewSchema(BaseModel):
     )
 
 
-@dataclass
 class GenTableQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """代码生成业务表查询参数
     - 支持按`table_name`、`table_comment`进行模糊检索（由CRUD层实现like）。
     - 空值将被忽略，不参与过滤。
     """
 
-    table_name: str | None = Query(None, description="表名称")
-    table_comment: str | None = Query(None, description="表注释")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    table_name: str | None = Field(None, description="表名称")
+    table_comment: str | None = Field(None, description="表注释")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "GenTableQueryParam":
         self.table_name = (QueueEnum.like.value, self.table_name) if self.table_name else None
         self.table_comment = (QueueEnum.like.value, self.table_comment) if self.table_comment else None
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self

@@ -1,13 +1,10 @@
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema
 
 
 class OrderCreateInternalSchema(BaseModel):
@@ -122,16 +119,16 @@ class OrderOutSchema(BaseSchema, TenantBySchema):
     description: str | None = Field(default=None, description="备注")
 
 
-@dataclass
 class OrderQueryParam(BaseQueryParam):
     """订单查询参数"""
 
-    tenant_id: int | None = Query(None, description="租户ID")
-    status: int | None = Query(None, description="订单状态(0:待支付 1:已支付 2:已取消 3:已退款)")
-    order_type: str | None = Query(None, description="订单类型")
-    order_no: str | None = Query(None, description="订单号")
+    tenant_id: int | None = Field(None, description="租户ID")
+    status: int | None = Field(None, description="订单状态(0:待支付 1:已支付 2:已取消 3:已退款)")
+    order_type: str | None = Field(None, description="订单类型")
+    order_no: str | None = Field(None, description="订单号")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "OrderQueryParam":
         if self.tenant_id is not None:
             self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
         if self.status is not None:
@@ -140,6 +137,7 @@ class OrderQueryParam(BaseQueryParam):
             self.order_type = (QueueEnum.eq.value, self.order_type)
         if self.order_no:
             self.order_no = (QueueEnum.like.value, self.order_no)
+        return self
 
 
 class PaymentCallbackSchema(BaseModel):

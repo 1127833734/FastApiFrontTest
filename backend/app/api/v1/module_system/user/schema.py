@@ -1,7 +1,5 @@
-from dataclasses import dataclass
 from urllib.parse import urlparse
 
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -14,8 +12,7 @@ from pydantic import (
 from app.api.v1.module_platform.menu.schema import MenuOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, CommonSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import email_validator, mobile_validator
 
 
@@ -296,7 +293,6 @@ class UserOutSchema(UserUpdateSchema, BaseSchema, UserBySchema, TenantBySchema):
     menus: list[MenuOutSchema] | None = Field(default=[], description="菜单")
 
 
-@dataclass
 class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """
     用户管理查询参数（继承标准 Mixin）
@@ -308,25 +304,29 @@ class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 
-    username: str | None = Query(None, description="用户名")
-    name: str | None = Query(None, description="名称")
-    mobile: str | None = Query(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
-    email: str | None = Query(
+    username: str | None = Field(None, description="用户名")
+    name: str | None = Field(None, description="名称")
+    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
+    email: str | None = Field(
         None,
         description="邮箱",
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
     )
-    dept_id: int | None = Query(None, description="部门ID")
-    status: int | None = Query(None, description="是否可用")
+    dept_id: int | None = Field(None, description="部门ID")
+    status: int | None = Field(None, description="是否可用")
 
-    def __post_init__(self) -> None:
-        self.username = (QueueEnum.like.value, self.username)
-        self.name = (QueueEnum.like.value, self.name)
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "UserQueryParam":
+        if self.username:
+            self.username = (QueueEnum.like.value, self.username)
+        if self.name:
+            self.name = (QueueEnum.like.value, self.name)
         if self.mobile:
             self.mobile = (QueueEnum.like.value, self.mobile)
         if self.email:
             self.email = (QueueEnum.like.value, self.email)
         if self.dept_id:
             self.dept_id = (QueueEnum.eq.value, self.dept_id)
-        if self.status:
+        if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
+        return self

@@ -6,29 +6,19 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 from app.utils.common_util import bytes2file_response
 
-from .schema import (
-    PositionCreateSchema,
-    PositionOutSchema,
-    PositionQueryParam,
-    PositionUpdateSchema,
-)
+from .schema import PositionCreateSchema, PositionOutSchema, PositionQueryParam, PositionUpdateSchema
 from .service import PositionService
 
 PositionRouter = APIRouter(route_class=OperationLogRoute, prefix="/position", tags=["岗位管理"])
 
 _POS_NS = "position"
 
-@PositionRouter.get(
-    "/list",
-    summary="查询岗位",
-    response_model=ResponseSchema[PageResultSchema[PositionOutSchema]],
-)
+@PositionRouter.get("/list", summary="查询岗位", response_model=ResponseSchema[PageResultSchema[PositionOutSchema]])
 @cache(expire=300, namespace=_POS_NS)
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:query"]))],
@@ -46,11 +36,7 @@ async def get_obj_list_controller(
     )
     return SuccessResponse(data=result_dict, msg="查询岗位列表成功")
 
-@PositionRouter.get(
-    "/detail/{id}",
-    summary="查询岗位详情",
-    response_model=ResponseSchema[PositionOutSchema],
-)
+@PositionRouter.get("/detail/{id}", summary="查询岗位详情", response_model=ResponseSchema[PositionOutSchema])
 async def get_obj_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:detail"]))],
     id: Annotated[int, Path(description="岗位ID")],
@@ -58,11 +44,7 @@ async def get_obj_detail_controller(
     result_dict = await PositionService(auth).detail(id=id)
     return SuccessResponse(data=result_dict, msg="获取岗位详情成功")
 
-@PositionRouter.post(
-    "/create",
-    summary="创建岗位",
-    response_model=ResponseSchema[PositionOutSchema],
-)
+@PositionRouter.post("/create", summary="创建岗位", response_model=ResponseSchema[PositionOutSchema])
 async def create_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:create"]))],
     data: Annotated[PositionCreateSchema, Body(description="岗位创建参数")],
@@ -71,11 +53,7 @@ async def create_obj_controller(
     await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(data=result_dict, msg="创建岗位成功")
 
-@PositionRouter.put(
-    "/update/{id}",
-    summary="修改岗位",
-    response_model=ResponseSchema[PositionOutSchema],
-)
+@PositionRouter.put("/update/{id}", summary="修改岗位", response_model=ResponseSchema[PositionOutSchema])
 async def update_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:update"]))],
     id: Annotated[int, Path(description="岗位ID")],
@@ -85,11 +63,7 @@ async def update_obj_controller(
     await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(data=result_dict, msg="修改岗位成功")
 
-@PositionRouter.delete(
-    "/delete",
-    summary="删除岗位",
-    response_model=ResponseSchema[None],
-)
+@PositionRouter.delete("/delete", summary="删除岗位", response_model=ResponseSchema[None])
 async def delete_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
@@ -98,11 +72,7 @@ async def delete_obj_controller(
     await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(msg="删除岗位成功")
 
-@PositionRouter.patch(
-    "/status/batch",
-    summary="批量修改岗位状态",
-    response_model=ResponseSchema[None],
-)
+@PositionRouter.patch("/status/batch", summary="批量修改岗位状态", response_model=ResponseSchema[None])
 async def batch_set_available_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:patch"]))],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
@@ -111,15 +81,11 @@ async def batch_set_available_obj_controller(
     await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(msg="批量修改岗位状态成功")
 
-@PositionRouter.get(
-    "/export",
-    summary="导出岗位",
-    response_model=ResponseSchema[None],
-)
+@PositionRouter.get("/export", summary="导出岗位")
 async def export_obj_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:position:export"]))],
     search: Annotated[PositionQueryParam, Query(description="岗位查询参数")],
-) -> StreamingResponse:
+) -> StreamingResponse[bytes]:
     position_query_result = await PositionService(auth).get_list(search=search)
     position_export_result = PositionService.export_list(position_list=position_query_result)
 

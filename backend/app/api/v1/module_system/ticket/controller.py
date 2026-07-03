@@ -4,18 +4,11 @@ from fastapi import APIRouter, Body, Depends, Path, Query
 from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
-from .schema import (
-    TicketBatchSchema,
-    TicketCreateSchema,
-    TicketOutSchema,
-    TicketQueryParam,
-    TicketUpdateSchema,
-)
+from .schema import TicketBatchSchema, TicketCreateSchema, TicketOutSchema, TicketQueryParam, TicketUpdateSchema
 from .service import TicketService
 
 TicketRouter = APIRouter(route_class=OperationLogRoute, prefix="/ticket", tags=["工单管理"])

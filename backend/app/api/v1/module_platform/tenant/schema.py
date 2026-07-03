@@ -1,12 +1,9 @@
-from dataclasses import dataclass
 from typing import Literal
 
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import OrderTypeEnum, QueueEnum
-from app.core.base_params import BaseQueryParam
-from app.core.base_schema import BaseSchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
 OrderType = OrderTypeEnum  # 兼容旧代码的类型别名
@@ -155,21 +152,22 @@ class TenantOutSchema(TenantCreateSchema, BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class TenantQueryParam(BaseQueryParam):
     """租户查询参数"""
 
-    name: str | None = Query(None, description="租户名称")
-    code: str | None = Query(None, description="租户编码")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="租户名称")
+    code: str | None = Field(None, description="租户编码")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "TenantQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.code:
             self.code = (QueueEnum.like.value, self.code)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self
 
 
 class TenantUserAddSchema(BaseModel):

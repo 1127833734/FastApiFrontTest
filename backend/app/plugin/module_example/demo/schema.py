@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -10,8 +7,7 @@ from pydantic import (
 )
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateStr, DateTimeStr, TimeStr
 
 
@@ -81,18 +77,19 @@ class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
 class DemoQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """示例查询参数（演示 Mixin 继承用法）"""
 
-    name: str | None = Query(None, description="名称")
-    description: str | None = Query(None, description="描述")
-    status: int | None = Query(None, description="是否启用")
+    name: str | None = Field(None, description="名称")
+    description: str | None = Field(None, description="描述")
+    status: int | None = Field(None, description="是否启用")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "DemoQueryParam":
         if self.name:
             self.name = (QueueEnum.like.value, self.name)
         if self.description:
             self.description = (QueueEnum.like.value, self.description)
-        if self.status:
+        if self.status is not None:
             self.status = (QueueEnum.eq.value, self.status)
+        return self

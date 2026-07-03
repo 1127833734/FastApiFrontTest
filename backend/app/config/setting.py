@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     SUMMARY: str = "接口汇总"  # 文档概述
     DOCS_URL: str = "/docs"  # Swagger UI路径
     REDOC_URL: str = "/redoc"  # ReDoc路径
+    WEB_URL: str = "/web"  # 前端路径
     ROOT_PATH: str = "/api/v1"  # API路由前缀
 
     # ================================================= #

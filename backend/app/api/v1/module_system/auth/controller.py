@@ -2,14 +2,14 @@ import json
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Form, Path, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.response import ErrorResponse, ResponseSchema, SuccessResponse
+from app.common.response import ErrorResponse, RedirectContentResponse, ResponseSchema, SuccessResponse
 from app.config.setting import settings
 from app.core.base_schema import (
     AuthSchema,
@@ -56,17 +56,13 @@ AuthRouter = APIRouter(route_class=OperationLogRoute, prefix="/auth", tags=["认
 _AUTH_TENANTS_NS = "auth_tenants"
 
 
-@AuthRouter.post(
-    "/login",
-    summary="登录",
-    response_model=LoginWithTenantsSchema,
-)
+@AuthRouter.post("/login", summary="登录", response_model=LoginWithTenantsSchema)
 async def login_for_access_token_controller(
     request: Request,
     background_tasks: BackgroundTasks,
     redis: Annotated[Redis, Depends(redis_getter)],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    login_form: Annotated[CustomOAuth2PasswordRequestForm, Form(description="登录表单")],
+    login_form: Annotated[CustomOAuth2PasswordRequestForm, Depends()],
 ) -> JSONResponse | dict:
     login_result = await LoginService.authenticate_user(
         request=request, redis=redis, login_form=login_form, db=db, background_tasks=background_tasks
@@ -79,11 +75,7 @@ async def login_for_access_token_controller(
     return SuccessResponse(data=login_result, msg="登录成功")
 
 
-@AuthRouter.post(
-    "/token/refresh",
-    summary="刷新token",
-    response_model=ResponseSchema[JWTOutSchema],
-)
+@AuthRouter.post("/token/refresh", summary="刷新token", response_model=ResponseSchema[JWTOutSchema])
 async def get_new_token_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -93,11 +85,7 @@ async def get_new_token_controller(
     return SuccessResponse(data=new_token, msg="刷新成功")
 
 
-@AuthRouter.get(
-    "/captcha/get",
-    summary="获取验证码",
-    response_model=ResponseSchema[CaptchaOutSchema],
-)
+@AuthRouter.get("/captcha/get", summary="获取验证码", response_model=ResponseSchema[CaptchaOutSchema])
 async def get_captcha_for_login_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
 ) -> JSONResponse:
@@ -105,12 +93,7 @@ async def get_captcha_for_login_controller(
     return SuccessResponse(data=captcha, msg="获取验证码成功")
 
 
-@AuthRouter.post(
-    "/logout",
-    summary="退出登录",
-    dependencies=[Depends(get_current_user)],
-    response_model=ResponseSchema[None],
-)
+@AuthRouter.post("/logout", summary="退出登录", response_model=ResponseSchema[None], dependencies=[Depends(get_current_user)])
 async def logout_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     payload: Annotated[LogoutPayloadSchema, Body(description="退出登录参数")],
@@ -121,11 +104,7 @@ async def logout_controller(
     return ErrorResponse(msg="退出失败")
 
 
-@AuthRouter.get(
-    "/auto-login/users",
-    summary="获取免登录用户列表",
-    response_model=ResponseSchema[list[AutoLoginUserSchema]],
-)
+@AuthRouter.get("/auto-login/users", summary="获取免登录用户列表", response_model=ResponseSchema[list[AutoLoginUserSchema]])
 async def get_auto_login_users_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(db_getter)],
@@ -135,11 +114,7 @@ async def get_auto_login_users_controller(
     return SuccessResponse(data=users, msg="获取成功")
 
 
-@AuthRouter.post(
-    "/auto-login/token",
-    summary="获取免登录Token",
-    response_model=ResponseSchema[AutoLoginTokenSchema],
-)
+@AuthRouter.post("/auto-login/token", summary="获取免登录Token", response_model=ResponseSchema[AutoLoginTokenSchema])
 async def get_auto_login_token_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -151,11 +126,7 @@ async def get_auto_login_token_controller(
     return SuccessResponse(data=result, msg="获取成功")
 
 
-@AuthRouter.post(
-    "/auto-login",
-    summary="免登录",
-    response_model=ResponseSchema[JWTOutSchema],
-)
+@AuthRouter.post("/auto-login", summary="免登录", response_model=ResponseSchema[JWTOutSchema])
 async def auto_login_controller(
     request: Request,
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -167,12 +138,7 @@ async def auto_login_controller(
     return SuccessResponse(data=login_token, msg="登录成功")
 
 
-@AuthRouter.post(
-    "/select-tenant",
-    summary="选择租户",
-    response_model=ResponseSchema[SelectTenantOutSchema],
-    dependencies=[Depends(get_current_user)],
-)
+@AuthRouter.post("/select-tenant", summary="选择租户", response_model=ResponseSchema[SelectTenantOutSchema], dependencies=[Depends(get_current_user)])
 async def select_tenant_controller(
     request: Request,
     auth: Annotated[AuthSchema, Depends(get_current_user)],
@@ -184,12 +150,7 @@ async def select_tenant_controller(
     return SuccessResponse(data=result, msg="租户切换成功")
 
 
-@AuthRouter.get(
-    "/tenants",
-    summary="获取可选租户列表",
-    response_model=ResponseSchema[list[TenantOptionSchema]],
-    dependencies=[Depends(get_current_user)],
-)
+@AuthRouter.get("/tenants", summary="获取可选租户列表", response_model=ResponseSchema[list[TenantOptionSchema]], dependencies=[Depends(get_current_user)])
 @cache(expire=120, namespace=_AUTH_TENANTS_NS)
 async def get_user_tenants_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
@@ -199,10 +160,7 @@ async def get_user_tenants_controller(
     return SuccessResponse(data=tenants, msg="获取租户列表成功")
 
 
-@AuthRouter.get(
-    "/oauth/{provider}/login",
-    summary="第三方OAuth跳转",
-)
+@AuthRouter.get("/oauth/{provider}/login", summary="第三方OAuth跳转", response_model=RedirectContentResponse[None])
 async def oauth_login_redirect_controller(
     request: Request,
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -212,12 +170,12 @@ async def oauth_login_redirect_controller(
     allowed = {"wechat", "qq", "github", "gitee"}
     fe = redirect_uri or settings.OAUTH_FRONTEND_FALLBACK
     if provider not in allowed:
-        return RedirectResponse(
+        return RedirectContentResponse(
             url=oauth_service_error_redirect(fe, "不支持的 OAuth 渠道"),
             status_code=302,
         )
     if not redirect_uri:
-        return RedirectResponse(
+        return RedirectContentResponse(
             url=oauth_service_error_redirect(fe, "缺少 redirect_uri 参数"),
             status_code=302,
         )
@@ -231,19 +189,15 @@ async def oauth_login_redirect_controller(
         )
         cb = _callback_url(request, provider)
         url = build_authorize_url(provider=provider, callback_url=cb, state=state)
-        return RedirectResponse(url=url, status_code=302)
+        return RedirectContentResponse(url=url, status_code=302)
     except CustomException as e:
-        return RedirectResponse(
+        return RedirectContentResponse(
             url=oauth_service_error_redirect(redirect_uri, e.msg),
             status_code=302,
         )
 
 
-@AuthRouter.get(
-    "/oauth/{provider}/callback",
-    summary="第三方OAuth回调",
-    include_in_schema=False,
-)
+@AuthRouter.get("/oauth/{provider}/callback", summary="第三方OAuth回调", include_in_schema=False, response_model=RedirectContentResponse[None])
 async def oauth_callback_controller(
     request: Request,
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -270,10 +224,10 @@ async def oauth_callback_controller(
 
     if provider not in {"wechat", "qq", "github", "gitee"}:
         url = oauth_service_error_redirect(await resolve_frontend(), "不支持的 OAuth 渠道")
-        return RedirectResponse(url=url, status_code=302)
+        return RedirectContentResponse(url=url, status_code=302)
     if not code or not state:
         url = oauth_service_error_redirect(await resolve_frontend(), "授权被取消或参数不完整")
-        return RedirectResponse(url=url, status_code=302)
+        return RedirectContentResponse(url=url, status_code=302)
     try:
         token, fe = await complete_oauth_login(
             request=request,
@@ -284,17 +238,13 @@ async def oauth_callback_controller(
             state=state,
         )
         success_url = oauth_service_frontend_redirect_from_token(fe, token)
-        return RedirectResponse(url=success_url, status_code=302)
+        return RedirectContentResponse(url=success_url, status_code=302)
     except CustomException as e:
         fe = await resolve_frontend()
-        return RedirectResponse(url=oauth_service_error_redirect(fe, e.msg), status_code=302)
+        return RedirectContentResponse(url=oauth_service_error_redirect(fe, e.msg), status_code=302)
 
 
-@AuthRouter.post(
-    "/tenant/register",
-    summary="租户自助注册",
-    response_model=ResponseSchema[TenantRegisterOutSchema],
-)
+@AuthRouter.post("/tenant/register", summary="租户自助注册", response_model=ResponseSchema[TenantRegisterOutSchema])
 async def tenant_register_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
     data: Annotated[TenantRegisterSchema, Body(description="租户注册参数")],
@@ -308,6 +258,3 @@ async def tenant_register_controller(
     )
     logger.info(f"新租户注册: username={data.username} tenant={result.tenant_name}")
     return SuccessResponse(data=result, msg=result.message)
-
-
-

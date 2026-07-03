@@ -143,4 +143,4 @@ def register_docs(app: FastAPI) -> None:
 
 
 def register_frontend(app: FastAPI) -> None:
-    app.frontend("/", directory="dist", fallback="index.html", check_dir=True)
+    app.frontend("/web", directory="dist", fallback="index.html", check_dir=True)

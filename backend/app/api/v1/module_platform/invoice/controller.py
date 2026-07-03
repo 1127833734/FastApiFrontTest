@@ -4,18 +4,11 @@ from fastapi import APIRouter, Body, Depends, Path, Query
 from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
-from .schema import (
-    InvoiceApplySchema,
-    InvoiceIssueSchema,
-    InvoiceOutSchema,
-    InvoiceQueryParam,
-    InvoiceVoidSchema,
-)
+from .schema import InvoiceApplySchema, InvoiceIssueSchema, InvoiceOutSchema, InvoiceQueryParam, InvoiceVoidSchema
 from .service import InvoicePlatformService, InvoiceTenantService
 
 InvoiceRouter = APIRouter(prefix="/invoice", route_class=OperationLogRoute, tags=["发票管理"])

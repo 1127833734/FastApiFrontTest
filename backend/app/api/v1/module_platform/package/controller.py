@@ -6,30 +6,18 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_params import PaginationQueryParam
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
-from .schema import (
-    PackageCreateSchema,
-    PackageMenuSetSchema,
-    PackageOutSchema,
-    PackagePluginSetSchema,
-    PackageQueryParam,
-    PackageUpdateSchema,
-)
+from .schema import PackageCreateSchema, PackageMenuSetSchema, PackageOutSchema, PackagePluginSetSchema, PackageQueryParam, PackageUpdateSchema
 from .service import PackageService
 
 PackageRouter = APIRouter(route_class=OperationLogRoute, prefix="/package", tags=["套餐管理"])
 
 _PKG_NS = "package"
 
-@PackageRouter.get(
-    "/detail/{id}",
-    summary="获取套餐详情",
-    response_model=ResponseSchema[PackageOutSchema],
-)
+@PackageRouter.get("/detail/{id}", summary="获取套餐详情", response_model=ResponseSchema[PackageOutSchema])
 @cache(expire=300, namespace=_PKG_NS)
 async def get_obj_detail_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:query"]))],
@@ -38,11 +26,7 @@ async def get_obj_detail_controller(
     result_dict = await PackageService(auth).detail(id=id)
     return SuccessResponse(data=result_dict, msg="获取套餐详情成功")
 
-@PackageRouter.get(
-    "/list",
-    summary="获取套餐列表",
-    response_model=ResponseSchema[PageResultSchema[PackageOutSchema]],
-)
+@PackageRouter.get("/list", summary="获取套餐列表", response_model=ResponseSchema[PageResultSchema[PackageOutSchema]])
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -56,11 +40,7 @@ async def get_obj_list_controller(
     )
     return SuccessResponse(data=result_dict, msg="查询成功")
 
-@PackageRouter.post(
-    "/create",
-    summary="创建套餐",
-    response_model=ResponseSchema[PackageOutSchema],
-)
+@PackageRouter.post("/create", summary="创建套餐", response_model=ResponseSchema[PackageOutSchema])
 async def create_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:create"]))],
     data: Annotated[PackageCreateSchema, Body(description="套餐信息")],
@@ -69,11 +49,7 @@ async def create_obj_controller(
     await FastAPICache.clear(namespace=_PKG_NS)
     return SuccessResponse(data=result_dict, msg="创建成功")
 
-@PackageRouter.put(
-    "/update/{id}",
-    summary="更新套餐",
-    response_model=ResponseSchema[PackageOutSchema],
-)
+@PackageRouter.put("/update/{id}", summary="更新套餐", response_model=ResponseSchema[PackageOutSchema])
 async def update_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:update"]))],
     id: Annotated[int, Path(description="套餐ID", ge=1)],
@@ -83,11 +59,7 @@ async def update_obj_controller(
     await FastAPICache.clear(namespace=_PKG_NS)
     return SuccessResponse(data=result_dict, msg="更新成功")
 
-@PackageRouter.delete(
-    "/delete",
-    summary="删除套餐",
-    response_model=ResponseSchema,
-)
+@PackageRouter.delete("/delete", summary="删除套餐", response_model=ResponseSchema)
 async def delete_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
@@ -96,11 +68,7 @@ async def delete_obj_controller(
     await FastAPICache.clear(namespace=_PKG_NS)
     return SuccessResponse(msg="删除成功")
 
-@PackageRouter.patch(
-    "/status/batch",
-    summary="批量修改状态",
-    response_model=ResponseSchema,
-)
+@PackageRouter.patch("/status/batch", summary="批量修改状态", response_model=ResponseSchema)
 async def set_available_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:update"]))],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
@@ -110,11 +78,7 @@ async def set_available_controller(
     await FastAPICache.clear(namespace=_PKG_NS)
     return SuccessResponse(msg="状态设置成功")
 
-@PackageRouter.get(
-    "/menus/{package_id}",
-    summary="获取套餐菜单",
-    response_model=ResponseSchema[list[int]],
-)
+@PackageRouter.get("/menus/{package_id}", summary="获取套餐菜单", response_model=ResponseSchema[list[int]])
 async def get_menus_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:query"]))],
     package_id: Annotated[int, Path(description="套餐ID", ge=1)],
@@ -122,11 +86,7 @@ async def get_menus_controller(
     result = await PackageService(auth).get_menus(package_id=package_id)
     return SuccessResponse(data=result, msg="获取成功")
 
-@PackageRouter.post(
-    "/menus/{package_id}/set",
-    summary="设置套餐菜单",
-    response_model=ResponseSchema,
-)
+@PackageRouter.post("/menus/{package_id}/set", summary="设置套餐菜单", response_model=ResponseSchema)
 async def set_menus_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:update"]))],
     package_id: Annotated[int, Path(description="套餐ID", ge=1)],
@@ -135,11 +95,7 @@ async def set_menus_controller(
     await PackageService(auth).set_menus(package_id=package_id, data=data)
     return SuccessResponse(msg="设置成功")
 
-@PackageRouter.get(
-    "/plugins/{package_id}",
-    summary="获取套餐插件",
-    response_model=ResponseSchema[list[int]],
-)
+@PackageRouter.get("/plugins/{package_id}", summary="获取套餐插件", response_model=ResponseSchema[list[int]])
 async def get_plugins_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:query"]))],
     package_id: Annotated[int, Path(description="套餐ID", ge=1)],
@@ -147,11 +103,7 @@ async def get_plugins_controller(
     result = await PackageService(auth).get_plugins(package_id=package_id)
     return SuccessResponse(data=result, msg="获取成功")
 
-@PackageRouter.post(
-    "/plugins/{package_id}/set",
-    summary="设置套餐插件",
-    response_model=ResponseSchema,
-)
+@PackageRouter.post("/plugins/{package_id}/set", summary="设置套餐插件", response_model=ResponseSchema)
 async def set_plugins_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_package:package:update"]))],
     package_id: Annotated[int, Path(description="套餐ID", ge=1)],

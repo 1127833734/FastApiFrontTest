@@ -1,11 +1,7 @@
-from dataclasses import dataclass
-
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 ALLOWED_REQUEST_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
 
@@ -49,30 +45,31 @@ class LoginLogDetailOutSchema(LoginLogOutSchema):
     """登录日志详情响应"""
 
 
-@dataclass
 class LoginLogQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """登录日志查询参数"""
 
-    username: str | None = Query(None, max_length=64, description="用户名")
-    status: int | None = Query(None, description="登录状态(1:成功 2:失败)")
+    username: str | None = Field(None, max_length=64, description="用户名")
+    status: int | None = Field(None, description="登录状态(1:成功 2:失败)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "LoginLogQueryParam":
         if self.username:
             self.username = (QueueEnum.like.value, self.username)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self
 
 
-@dataclass
 class OperationLogQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """操作日志查询参数"""
 
-    request_path: str | None = Query(None, description="请求路径")
-    request_method: str | None = Query(None, description="请求方式")
-    username: str | None = Query(None, description="用户名")
-    status: int | None = Query(None, ge=0, le=1, description="状态(0:成功 1:失败)")
+    request_path: str | None = Field(None, description="请求路径")
+    request_method: str | None = Field(None, description="请求方式")
+    username: str | None = Field(None, description="用户名")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:成功 1:失败)")
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def validate_query_params(self) -> "OperationLogQueryParam":
         if self.request_path:
             self.request_path = (QueueEnum.like.value, self.request_path)
         if self.request_method:
@@ -81,6 +78,7 @@ class OperationLogQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryPara
             self.username = (QueueEnum.like.value, self.username)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
+        return self
 
 
 class OperationLogOutSchema(BaseSchema, UserBySchema, TenantBySchema):
