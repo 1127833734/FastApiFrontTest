@@ -37,12 +37,14 @@ def _strip_bearer(authorization: str) -> str | None:
 
 # 中间件配置的「安全默认值」：Redis 不可用 / 解析异常时启用，确保中间件行为可预测。
 # 使用 MappingProxyType 防止任何地方误改导致跨请求污染。
-_DEFAULT_CONFIG: MappingProxyType = MappingProxyType({
-    "demo_enable": False,
-    "ip_white_list": (),
-    "ip_black_list": (),
-    "white_api_list_path": (),
-})
+_DEFAULT_CONFIG: MappingProxyType = MappingProxyType(
+    {
+        "demo_enable": False,
+        "ip_white_list": (),
+        "ip_black_list": (),
+        "white_api_list_path": (),
+    },
+)
 
 
 class CustomCORSMiddleware(CORSMiddleware):
@@ -93,21 +95,18 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
             config = await self._load_config(request)
             is_blacklisted = bool(client_ip and client_ip in config["ip_black_list"])
             in_demo = (
-                config["demo_enable"]
-                and request.method != "GET"
-                and (client_ip is None or client_ip not in config["ip_white_list"])
-                and not _is_path_whitelisted(path, config["white_api_list_path"])
+                config["demo_enable"] and request.method != "GET" and (client_ip is None or client_ip not in config["ip_white_list"]) and not _is_path_whitelisted(path, config["white_api_list_path"])
             )
 
             if is_blacklisted or in_demo:
                 logger.warning(
                     "请求被拦截: {} {} | ip={} | 原因={}",
-                    request.method, path, client_ip,
+                    request.method,
+                    path,
+                    client_ip,
                     "IP黑名单" if is_blacklisted else "演示模式",
                 )
-                return ErrorResponse(
-                    msg="IP已被黑名单" if is_blacklisted else "演示环境，禁止操作"
-                )
+                return ErrorResponse(msg="IP已被黑名单" if is_blacklisted else "演示环境，禁止操作")
 
             response = await call_next(request)
             process_time = time.perf_counter() - start_time
@@ -123,12 +122,12 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
         """加载中间件配置（带 60 秒内存缓存），失败时返回全部默认值。"""
         redis = getattr(request.app.state, "redis", None)
         if not redis:
-            return _DEFAULT_CONFIG
+            return dict(_DEFAULT_CONFIG)
         try:
             tenant_id = await _extract_tenant_from_token(request) or 1
             return await ParamsService.get_system_config_for_middleware(redis, tenant_id)
         except Exception:
-            return _DEFAULT_CONFIG
+            return dict(_DEFAULT_CONFIG)
 
 
 class CustomGZipMiddleware(GZipMiddleware):
@@ -138,6 +137,7 @@ class CustomGZipMiddleware(GZipMiddleware):
 
 class CustomHTTPSRedirectMiddleware(HTTPSRedirectMiddleware):
     """HTTP → HTTPS 重定向中间件"""
+
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
 
@@ -167,8 +167,11 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
 
 _TENANT_WHITELIST_PREFIXES = ("/docs", "/redoc", "/openapi.json", "/metrics", "/static/")
 _WHITELIST_ALL = (
-    "/api/v1/system/auth/login", "/api/v1/system/auth/captcha",
-    "/api/v1/system/auth/refresh", "/api/v1/health", "/api/v1/common/health",
+    "/api/v1/system/auth/login",
+    "/api/v1/system/auth/captcha",
+    "/api/v1/system/auth/refresh",
+    "/api/v1/health",
+    "/api/v1/common/health",
 ) + tuple(settings.TENANT_WHITELIST_PATHS)
 
 
@@ -217,6 +220,7 @@ async def await_redis_get(redis, key: str) -> str | None:
     """获取用户会话；Redis 不可用时返回 None。"""
     from app.common.enums import RedisInitKeyConfig
     from app.core.redis_crud import RedisCURD
+
     try:
         return await RedisCURD(redis).get(f"{RedisInitKeyConfig.USER_SESSION.key}:{key}")
     except Exception:

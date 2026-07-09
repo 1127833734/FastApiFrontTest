@@ -3,7 +3,7 @@ import json
 from redis.asyncio.client import Redis
 
 from app.common.enums import RedisInitKeyConfig
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -24,8 +24,7 @@ from .schema import (
 
 
 class DictTypeService:
-    """
-    字典类型管理服务
+    """字典类型管理服务
 
     设计：实例方法承载「当前用户上下文 (auth)」，``redis`` 仍是方法参数
     （因为不是每个端点都用到）。调用方写法由 ``XxxService.method_service(auth=...)``
@@ -36,8 +35,7 @@ class DictTypeService:
         self.auth = auth
 
     async def detail(self, id: int) -> DictTypeOutSchema:
-        """
-        获取数据字典类型详情
+        """获取数据字典类型详情
 
         参数:
         - id (int): 数据字典类型ID
@@ -45,15 +43,15 @@ class DictTypeService:
         返回:
         - DictTypeOutSchema: 字典类型响应模型
         """
-        return await DictTypeCRUD(self.auth).get_or_404(id=id, out_schema=DictTypeOutSchema)
+        obj = await DictTypeCRUD(self.auth).get_or_404(id=id)
+        return DictTypeOutSchema.model_validate(obj)
 
     async def get_list(
         self,
         search: DictTypeQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[DictTypeOutSchema]:
-        """
-        获取数据字典类型列表
+        """获取数据字典类型列表
 
         参数:
         - search (DictTypeQueryParam | None): 搜索条件模型
@@ -71,9 +69,8 @@ class DictTypeService:
         page_size: int,
         search: DictTypeQueryParam | None = None,
         order_by: list[dict] | None = None,
-    ) -> dict:
-        """
-        分页查询字典类型（数据库 OFFSET/LIMIT）。
+    ) -> PageResultSchema[DictTypeOutSchema]:
+        """分页查询字典类型（数据库 OFFSET/LIMIT）。
 
         参数:
         - page_no (int): 页码（从 1 开始）
@@ -82,7 +79,7 @@ class DictTypeService:
         - order_by (list[dict] | None): 排序字段列表
 
         返回:
-        - dict: 分页结果（结构由 ``CRUD.page`` 返回约定）
+        - PageResultSchema[DictTypeOutSchema]: 分页结果
         """
         offset = (page_no - 1) * page_size
         return await DictTypeCRUD(self.auth).page(
@@ -94,8 +91,7 @@ class DictTypeService:
         )
 
     async def create(self, redis: Redis, data: DictTypeCreateSchema) -> DictTypeOutSchema:
-        """
-        创建数据字典类型
+        """创建数据字典类型
 
         参数:
         - redis (Redis): Redis客户端
@@ -132,8 +128,7 @@ class DictTypeService:
         id: int,
         data: DictTypeUpdateSchema,
     ) -> DictTypeOutSchema:
-        """
-        更新数据字典类型
+        """更新数据字典类型
 
         参数:
         - redis (Redis): Redis客户端
@@ -191,8 +186,7 @@ class DictTypeService:
         return new_obj_dict
 
     async def delete(self, redis: Redis, ids: list[int]) -> None:
-        """
-        删除数据字典类型
+        """删除数据字典类型
 
         参数:
         - redis (Redis): Redis客户端
@@ -225,8 +219,7 @@ class DictTypeService:
         await DictTypeCRUD(self.auth).delete(ids=ids)
 
     async def set_available(self, data: BatchSetAvailable) -> None:
-        """
-        设置数据字典类型状态
+        """设置数据字典类型状态
 
         参数:
         - data (BatchSetAvailable): 批量设置状态模型
@@ -238,8 +231,7 @@ class DictTypeService:
 
     @staticmethod
     def export(data_list: list[dict]) -> bytes:
-        """
-        导出数据字典类型列表（无状态工具方法）
+        """导出数据字典类型列表（无状态工具方法）
 
         参数:
         - data_list (list[dict]): 数据字典类型列表
@@ -269,8 +261,7 @@ class DictTypeService:
 
 
 class DictDataService:
-    """
-    字典数据管理服务
+    """字典数据管理服务
 
     设计同 DictTypeService：实例方法 + ``__init__(auth)``。
     """
@@ -279,8 +270,7 @@ class DictDataService:
         self.auth = auth
 
     async def detail(self, id: int) -> DictDataOutSchema:
-        """
-        获取数据字典数据详情
+        """获取数据字典数据详情
 
         参数:
         - id (int): 数据字典数据ID
@@ -288,15 +278,15 @@ class DictDataService:
         返回:
         - DictDataOutSchema: 字典数据响应模型
         """
-        return await DictDataCRUD(self.auth).get_or_404(id=id, out_schema=DictDataOutSchema)
+        obj = await DictDataCRUD(self.auth).get_or_404(id=id)
+        return DictDataOutSchema.model_validate(obj)
 
     async def get_list(
         self,
         search: DictDataQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[DictDataOutSchema]:
-        """
-        获取数据字典数据列表
+        """获取数据字典数据列表
 
         参数:
         - search (DictDataQueryParam | None): 搜索条件模型
@@ -314,9 +304,8 @@ class DictDataService:
         page_size: int,
         search: DictDataQueryParam | None = None,
         order_by: list[dict] | None = None,
-    ) -> dict:
-        """
-        分页查询字典数据（数据库 OFFSET/LIMIT）。
+    ) -> PageResultSchema[DictDataOutSchema]:
+        """分页查询字典数据（数据库 OFFSET/LIMIT）。
 
         参数:
         - page_no (int): 页码（从 1 开始）
@@ -325,7 +314,7 @@ class DictDataService:
         - order_by (list[dict] | None): 排序字段列表
 
         返回:
-        - dict: 分页结果（结构由 ``CRUD.page`` 返回约定）
+        - PageResultSchema[DictDataOutSchema]: 分页结果
         """
         offset = (page_no - 1) * page_size
         return await DictDataCRUD(self.auth).page(
@@ -338,8 +327,7 @@ class DictDataService:
 
     @staticmethod
     async def init_cache(redis: Redis) -> None:
-        """
-        应用初始化: 获取所有字典类型对应的字典数据信息并按租户缓存（无 auth）。
+        """应用初始化: 获取所有字典类型对应的字典数据信息并按租户缓存（无 auth）。
 
         参数:
         - redis (Redis): Redis客户端
@@ -348,35 +336,28 @@ class DictDataService:
         - None
         """
         try:
-            async with async_db_session() as session:
-                async with session.begin():
-                    init_auth = AuthSchema(db=session, check_data_scope=False)
-                    obj_list = await DictTypeCRUD(init_auth).get_list()
-                    if not obj_list:
-                        logger.warning("未找到任何字典类型数据")
-                        return
+            async with async_db_session() as session, session.begin():
+                init_auth = AuthSchema.anonymous(db=session)
+                obj_list = await DictTypeCRUD(init_auth).get_list()
+                if not obj_list:
+                    logger.warning("未找到任何字典类型数据")
+                    return
 
-                    for obj in obj_list:
-                        dict_type = obj.dict_type
-                        tenant_id = obj.tenant_id
-                        try:
-                            dict_data_list = await DictDataCRUD(init_auth).get_list(
-                                search={"dict_type": dict_type, "tenant_id": tenant_id}
-                            )
-                            dict_data = [
-                                DictDataOutSchema.model_validate(row).model_dump(mode="json")
-                                for row in dict_data_list
-                                if row
-                            ]
-                            redis_key = f"{RedisInitKeyConfig.SYSTEM_DICT.key}:{tenant_id}:{dict_type}"
-                            value = json.dumps(dict_data, ensure_ascii=False)
-                            await RedisCURD(redis).set(
-                                key=redis_key,
-                                value=value,
-                                expire=None,
-                            )
-                        except Exception as e:
-                            logger.error(f"❌ 初始化字典数据失败 [{dict_type}]: {e}")
+                for obj in obj_list:
+                    dict_type = obj.dict_type
+                    tenant_id = obj.tenant_id
+                    try:
+                        dict_data_list = await DictDataCRUD(init_auth).get_list(search={"dict_type": dict_type, "tenant_id": tenant_id})
+                        dict_data = [DictDataOutSchema.model_validate(row).model_dump(mode="json") for row in dict_data_list if row]
+                        redis_key = f"{RedisInitKeyConfig.SYSTEM_DICT.key}:{tenant_id}:{dict_type}"
+                        value = json.dumps(dict_data, ensure_ascii=False)
+                        await RedisCURD(redis).set(
+                            key=redis_key,
+                            value=value,
+                            expire=None,
+                        )
+                    except Exception as e:
+                        logger.error(f"❌ 初始化字典数据失败 [{dict_type}]: {e}")
 
         except Exception as e:
             logger.error(f"字典初始化过程发生错误: {e}")
@@ -384,8 +365,7 @@ class DictDataService:
 
     @staticmethod
     async def get_init_cache(redis: Redis, dict_type: str, tenant_id: int = 1) -> list[dict]:
-        """
-        从缓存获取字典数据列表信息（无 auth）。
+        """从缓存获取字典数据列表信息（无 auth）。
 
         参数:
         - redis (Redis): Redis客户端
@@ -427,8 +407,7 @@ class DictDataService:
             raise CustomException(msg="获取字典数据失败") from e
 
     async def create(self, redis: Redis, data: DictDataCreateSchema) -> DictDataOutSchema:
-        """
-        创建数据字典数据
+        """创建数据字典数据
 
         参数:
         - redis (Redis): Redis客户端
@@ -474,8 +453,7 @@ class DictDataService:
         id: int,
         data: DictDataUpdateSchema,
     ) -> DictDataOutSchema:
-        """
-        更新数据字典数据
+        """更新数据字典数据
 
         参数:
         - redis (Redis): Redis客户端
@@ -538,8 +516,7 @@ class DictDataService:
         return DictDataOutSchema.model_validate(obj)
 
     async def delete(self, redis: Redis, ids: list[int]) -> None:
-        """
-        删除数据字典数据
+        """删除数据字典数据
 
         参数:
         - redis (Redis): Redis客户端
@@ -575,8 +552,7 @@ class DictDataService:
         await DictDataCRUD(self.auth).delete(ids=ids)
 
     async def set_available(self, data: BatchSetAvailable) -> None:
-        """
-        设置数据字典数据状态
+        """设置数据字典数据状态
 
         参数:
         - data (BatchSetAvailable): 批量设置状态模型
@@ -588,8 +564,7 @@ class DictDataService:
 
     @staticmethod
     def export(data_list: list[dict]) -> bytes:
-        """
-        导出数据字典数据列表（无状态工具方法）
+        """导出数据字典数据列表（无状态工具方法）
 
         参数:
         - data_list (list[dict]): 数据字典数据列表

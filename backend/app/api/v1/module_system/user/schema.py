@@ -66,61 +66,10 @@ class CurrentUserUpdateSchema(BaseModel):
         return self
 
 
-class UserRegisterSchema(BaseModel):
-    """注册"""
-
-    name: str | None = Field(default=None, max_length=32, description="姓名")
-    mobile: str | None = Field(default=None, max_length=11, description="手机号")
-    username: str = Field(..., min_length=3, max_length=32, description="账号")
-    password: str = Field(..., min_length=6, max_length=128, description="密码")
-    role_ids: list[int] | None = Field(default=[1], description="角色ID列表")
-    created_id: int | None = Field(default=1, description="创建人ID")
-    description: str | None = Field(default=None, max_length=255, description="备注")
-
-    @field_validator("mobile")
-    @classmethod
-    def validate_mobile(cls, value: str | None):
-        """校验手机号格式"""
-        return mobile_validator(value)
-
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, value: str):
-        """校验账号：字母开头，3-32 位，仅含字母/数字/_ . -"""
-        v = value.strip()
-        if not v:
-            raise ValueError("账号不能为空")
-        import re
-
-        if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
-            raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
-        return v
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, value: str):
-        """校验密码：6-128 位"""
-        if len(value) < 6:
-            raise ValueError("密码长度不能少于 6 位")
-        if len(value) > 128:
-            raise ValueError("密码长度不能超过 128 位")
-        return value
-
-    @model_validator(mode="after")
-    def check_model(self):
-        """校验注册信息长度约束"""
-        if self.name and len(self.name) > 32:
-            raise ValueError("姓名长度不能超过 32 个字符")
-        if self.username and len(self.username) > 32:
-            raise ValueError("账号长度不能超过 32 个字符")
-        if self.description and len(self.description) > 255:
-            raise ValueError("备注长度不能超过 255 个字符")
-        return self
-
-
 class UserForgetPasswordSchema(BaseModel):
     """忘记密码"""
 
+    tenant_name: str = Field(..., min_length=1, max_length=32, description="租户名称")
     username: str = Field(..., min_length=3, max_length=32, description="用户名")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
@@ -190,8 +139,7 @@ class ResetPasswordSchema(BaseModel):
 
 
 class UserCreateSchema(CurrentUserUpdateSchema):
-    """
-    新增用户
+    """新增用户
     """
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
@@ -242,6 +190,7 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
     model_config = ConfigDict(from_attributes=True)
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
+    password: str | None = Field(default=None, min_length=6, max_length=128, description="密码")
     status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
     dept_id: int | None = Field(default=None, description="部门ID")
@@ -270,18 +219,22 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
         return v
 
 
-class UserOutSchema(UserUpdateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class UserOutSchema(BaseSchema, UserBySchema, TenantBySchema):
     """响应"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
-
-    tenant_id: int | None = Field(
-        default=None,
-        exclude=True,
-        description="创建入参使用；列表/详情出参见 tenant",
-    )
+    name: str | None = Field(default=None, max_length=32, description="名称")
+    mobile: str | None = Field(default=None, max_length=11, description="手机号")
+    email: EmailStr | None = Field(default=None, description="邮箱")
+    gender: str | None = Field(default=None, max_length=1, description="性别(0:男 1:女 2:未知)")
+    avatar: str | None = Field(default=None, max_length=255, description="头像")
+    status: int | None = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    description: str | None = Field(default=None, max_length=255, description="备注")
+    dept_id: int | None = Field(default=None, description="部门ID")
+    role_ids: list[int] | None = Field(default=[], description="角色ID列表")
+    position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
     gitee_login: str | None = Field(default=None, max_length=32, description="Gitee登录")
     github_login: str | None = Field(default=None, max_length=32, description="Github登录")
     wx_login: str | None = Field(default=None, max_length=32, description="微信登录")
@@ -291,11 +244,11 @@ class UserOutSchema(UserUpdateSchema, BaseSchema, UserBySchema, TenantBySchema):
     positions: list[CommonSchema] | None = Field(default=[], description="岗位")
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuOutSchema] | None = Field(default=[], description="菜单")
+    is_impersonate: bool = Field(default=False, description="是否为平台管理员代签入")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
-    """
-    用户管理查询参数（继承标准 Mixin）
+    """用户管理查询参数（继承标准 Mixin）
 
     支持：
     - 时间范围（BaseQueryParam）
@@ -304,29 +257,33 @@ class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 
-    username: str | None = Field(None, description="用户名")
-    name: str | None = Field(None, description="名称")
-    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
-    email: str | None = Field(
+    username: str | tuple[str, str] | None = Field(None, description="用户名")
+    name: str | tuple[str, str] | None = Field(None, description="名称")
+    mobile: str | tuple[str, str] | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
+    email: str | tuple[str, str] | None = Field(
         None,
         description="邮箱",
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
     )
-    dept_id: int | None = Field(None, description="部门ID")
-    status: int | None = Field(None, description="是否可用")
+    dept_id: int | tuple[str, int] | None = Field(None, description="部门ID")
+    status: int | tuple[str, int] | None = Field(None, description="是否可用")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "UserQueryParam":
-        if self.username:
+        if isinstance(self.username, str):
             self.username = (QueueEnum.like.value, self.username)
-        if self.name:
+        if isinstance(self.name, str):
             self.name = (QueueEnum.like.value, self.name)
-        if self.mobile:
+        if isinstance(self.mobile, str):
             self.mobile = (QueueEnum.like.value, self.mobile)
-        if self.email:
+        if isinstance(self.email, str):
             self.email = (QueueEnum.like.value, self.email)
-        if self.dept_id:
+        if isinstance(self.dept_id, int):
             self.dept_id = (QueueEnum.eq.value, self.dept_id)
-        if self.status is not None:
+        if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
         return self
+
+
+UserBySchema.model_rebuild()
+TenantBySchema.model_rebuild()

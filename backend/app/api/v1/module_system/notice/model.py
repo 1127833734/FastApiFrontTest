@@ -7,13 +7,16 @@ from app.core.base_model import MappedBase, ModelMixin, TenantMixin, UserMixin
 
 
 class NoticeModel(ModelMixin, TenantMixin, UserMixin):
-    """
-    通知公告表
+    """通知公告表
+
+    __platform_data_shared__ = True 表示 tenant_id=1 的平台公告对
+    所有租户可读，但只有平台管理员可写。
     """
 
     __tablename__: str = "sys_notice"
     __table_args__: dict[str, str] = {"comment": "通知公告表"}
     __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
+    __platform_data_shared__: bool = True
 
     notice_title: Mapped[str] = mapped_column(String(64), nullable=False, comment="公告标题")
     notice_type: Mapped[str] = mapped_column(String(1), nullable=False, comment="公告类型(1通知 2公告)")
@@ -23,8 +26,7 @@ class NoticeModel(ModelMixin, TenantMixin, UserMixin):
 
 
 class NoticeReadModel(MappedBase):
-    """
-    通知已读记录表 — 记录用户对公告的已读状态。
+    """通知已读记录表 — 记录用户对公告的已读状态。
 
     设计说明:
     - 不继承 TenantMixin：该表按 user_id 隔离，租户上下文由所属 notice 间接确定

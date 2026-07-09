@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.api.v1.module_platform.menu.crud import MenuCRUD
 from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.core.base_crud import CRUDBase
@@ -15,8 +17,7 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
         super().__init__(model=RoleModel, auth=auth)
 
     async def set_role_menus_crud(self, role_ids: list[int], menu_ids: list[int]) -> None:
-        """
-        设置角色的菜单权限
+        """设置角色的菜单权限
 
         参数:
         - role_ids (list[int]): 角色ID列表
@@ -25,27 +26,26 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
         返回:
         - None
         """
+        from app.api.v1.module_platform.package.service import PackageService
+
         roles = await self.get_list(search={"id": ("in", role_ids)})
         menus = [] if not menu_ids else await MenuCRUD(self.auth).get_list(search={"id": ("in", menu_ids)})
 
-        from app.api.v1.module_platform.package.service import PackageService
-
-        if self.auth.user and not self.auth.user.is_superuser and self.auth.tenant_id:
-            allowed_menu_ids = await PackageService.get_tenant_available_menu_ids(self.auth, self.auth.tenant_id)
-            allowed_set = set(allowed_menu_ids)
+        # 非超管需校验菜单在租户套餐范围内
+        user = self.auth.user
+        if user and not user.is_superuser and user.tenant_id:
+            allowed_set = set[int](await PackageService(self.auth).get_tenant_available_menu_ids(user.tenant_id))
             for menu in menus:
                 if int(menu.id) not in allowed_set:
                     raise CustomException(msg=f"菜单[{menu.name}]不在当前租户的功能组内，无法分配")
 
         for obj in roles:
-            relationship = obj.menus
-            relationship.clear()
-            relationship.extend(menus)
+            obj.menus.clear()
+            obj.menus.extend(menus)
         await self.auth.db.flush()
 
     async def set_role_depts_crud(self, role_ids: list[int], dept_ids: list[int]) -> None:
-        """
-        设置角色的部门权限
+        """设置角色的部门权限
 
         参数:
         - role_ids (list[int]): 角色ID列表
@@ -62,3 +62,8 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
             relationship.clear()
             relationship.extend(depts)
         await self.auth.db.flush()
+
+    async def get_options(self) -> list[dict[str, Any]]:
+        """获取角色下拉选项，返回 [{value, label}]"""
+        items = await self.get_list(search={"status": 0})
+        return [{"value": item.id, "label": item.name} for item in items]

@@ -39,14 +39,12 @@
           <FaTableHeaderLeft
             :remove-ids="selectedIds"
             :perm-create="['module_system:notice:create']"
-            :perm-export="['module_system:notice:export']"
             :perm-delete="['module_system:notice:delete']"
             :perm-patch="['module_system:notice:patch']"
             :delete-loading="batchDeleting"
             :create-loading="createLoading"
             :more-loading="moreLoading"
             @add="handleAdd"
-            @export="openExport"
             @delete="handleBatchDelete"
             @more="handleMoreClick"
           />
@@ -136,35 +134,19 @@
         </FaForm>
       </template>
     </FaDialog>
-
-    <FaExportDialog
-      v-model="exportVisible"
-      :content-config="noticeExportContentConfig"
-      :query-params="exportQueryParams"
-      :page-data="data"
-      :selection-data="selectedRows"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
 import { useCrudDialog } from "@/hooks/core/useCrudDialog";
 import { useTableSelection } from "@/hooks/core/useTableSelection";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
-import type { ColumnOption } from "@/types/component";
-import NoticeAPI, {
-  type NoticeForm,
-  type NoticePageQuery,
-  type NoticeTable,
-} from "@/api/module_system/notice";
+import NoticeAPI, { type NoticeForm, type NoticeTable } from "@/api/module_system/notice";
 import { useAuth } from "@/hooks/core/useAuth";
 import { renderTableOperationCell, type TableOperationAction, resolveStatusColumns } from "@utils";
 import { useDictStore, useNoticeStore } from "@stores";
-import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -188,10 +170,6 @@ type NoticeSearchForm = {
   created_time?: string[];
   created_id?: number;
 };
-
-function normalizeNoticeQuery(params: Record<string, unknown>): NoticePageQuery {
-  return cleanEmptyArrayParams({ ...params }) as unknown as NoticePageQuery;
-}
 
 function noticeTypeLabel(val?: string) {
   if (!val) return "";
@@ -260,8 +238,7 @@ const noticeSearchItems = computed<SearchFormItem[]>(() => [
 const faTableRef = ref<{ elTableRef?: { clearSelection: () => void } } | null>(null);
 
 // ─── 表格多选 ───
-const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
-  useTableSelection<NoticeTable>();
+const { selectedIds, batchDeleting, onTableSelectionChange } = useTableSelection<NoticeTable>();
 
 const createLoading = ref(false);
 const moreLoading = ref(false);
@@ -288,6 +265,7 @@ const noticeDetailItems: import("@/components/others/fa-descriptions/index.vue")
     { label: "更新人", prop: "updated_by.name" },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
+    { label: "所属租户", prop: "tenant_by.name" },
   ];
 
 /** 详情富文本 HTML（用于预览，已做 XSS 净化） */
@@ -431,7 +409,6 @@ const {
   data,
   loading,
   pagination,
-  searchParams,
   getData,
   replaceSearchParams,
   resetSearchParams,
@@ -497,38 +474,6 @@ const {
     ]),
   },
 });
-
-const noticeCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<NoticeTable>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
-
-const exportQueryParams = computed(() => {
-  const sp = stripPaginationParams(searchParams as Record<string, unknown>);
-  return normalizeNoticeQuery(sp);
-});
-
-const noticeExportContentConfig = computed(() => ({
-  permPrefix: "module_system:notice",
-  cols: noticeCrudCols.value,
-  exportsBlobAction: async (params: IObject) => {
-    const merged = normalizeNoticeQuery({
-      ...(exportQueryParams.value as unknown as Record<string, unknown>),
-      ...params,
-    } as Record<string, unknown>);
-    const res = await NoticeAPI.exportNotice(merged as NoticePageQuery);
-    return res.data as Blob;
-  },
-}));
-
-const { exportVisible, openExport } = useImportExport();
 
 function buildNoticeReplaceParams(p: NoticeSearchForm): Record<string, unknown> {
   return {

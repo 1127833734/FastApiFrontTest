@@ -116,6 +116,7 @@ function mapMenuNode(item: MenuTable, depth = 0): AppRouteRecord {
     showBadge: !!item.show_badge,
     showTextBadge: item.show_text_badge || undefined,
     client: item.client,
+    scope: item.scope,
   };
 
   return {

@@ -69,6 +69,16 @@ export const useUserStore = defineStore(
     const tenantList = ref<TenantOption[]>([]);
     // 当前选中租户
     const currentTenant = ref<TenantOption | null>(null);
+    /**
+     * 工作区模式: "platform" = 平台管理视角, "tenant" = 租户内部视角
+     * 超管默认 platform，普通用户默认 tenant
+     */
+    const workspaceMode = ref<"platform" | "tenant">("tenant");
+    /** 当前正在访问的工作区租户（平台管理员进入某个租户时设置） */
+    const workspaceTenant = ref<TenantOption | null>(null);
+
+    /** 是否为平台管理模式 */
+    const isPlatformMode = computed(() => workspaceMode.value === "platform");
     /** info 扩展类型：兼容 API 返回 `user_id`（非标准 UserInfo 字段） */
     type UserInfoLike = Partial<UserInfo> & Record<string, any>;
 
@@ -215,6 +225,8 @@ export const useUserStore = defineStore(
           currentTenant.value = found;
           localStorage.setItem(StorageConfig.LAST_TENANT_ID_KEY, String(found.id));
         }
+        // 刷新权限和菜单
+        return getUserInfo();
       }
     }
 
@@ -227,6 +239,55 @@ export const useUserStore = defineStore(
         localStorage.setItem(StorageConfig.LAST_TENANT_ID_KEY, String(tenant.id));
       } else {
         localStorage.removeItem(StorageConfig.LAST_TENANT_ID_KEY);
+      }
+    }
+
+    /**
+     * 平台管理员进入租户工作区
+     * 保持当前 JWT 不变，仅在前端切换菜单显示为租户视角
+     */
+    function enterTenantWorkspace(tenant: TenantOption) {
+      workspaceTenant.value = tenant;
+      workspaceMode.value = "tenant";
+      // 刷新用户信息以获取该租户的菜单
+      return getUserInfo();
+    }
+
+    /**
+     * 从租户工作区返回平台管理视角
+     */
+    async function exitTenantWorkspace() {
+      // 调用后端清除 tenant_id 上下文并获取平台作用域 token
+      const response = await AuthAPI.enterPlatform();
+      const data = response.data.data;
+      if (data?.access_token) {
+        const currentRefreshToken = Auth.getRefreshToken() || "";
+        Auth.setTokens(data.access_token, currentRefreshToken, rememberMe.value);
+        setToken(data.access_token);
+      }
+      workspaceTenant.value = null;
+      workspaceMode.value = "platform";
+      // 刷新用户信息以获取平台菜单
+      return getUserInfo();
+    }
+
+    /**
+     * 平台管理员代签入指定租户
+     */
+    async function impersonate(tenantId: number) {
+      const response = await AuthAPI.impersonate(tenantId);
+      const data = response.data.data;
+      if (response.data.code === ResultEnum.SUCCESS && data?.access_token) {
+        Auth.setTokens(data.access_token, data.refresh_token, rememberMe.value);
+        setToken(data.access_token, data.refresh_token);
+        const found = tenantList.value.find((t) => String(t.id) === String(tenantId));
+        if (found) {
+          workspaceTenant.value = found;
+          currentTenant.value = found;
+          localStorage.setItem(StorageConfig.LAST_TENANT_ID_KEY, String(found.id));
+        }
+        workspaceMode.value = "tenant";
+        return getUserInfo();
       }
     }
 
@@ -327,6 +388,10 @@ export const useUserStore = defineStore(
 
       await getUserInfo();
       await useConfigStore().getConfig(true);
+      // 超管默认进入平台管理模式
+      if (info.value?.is_superuser) {
+        workspaceMode.value = "platform";
+      }
       setLoginStatus(true);
     }
 
@@ -394,6 +459,8 @@ export const useUserStore = defineStore(
       prems.value = [];
       tenantList.value = [];
       currentTenant.value = null;
+      workspaceMode.value = "tenant";
+      workspaceTenant.value = null;
       /** 登出 / 认证失效：会话结束，工作栏与 KeepAlive exclude 一并清空（pinia 持久化随之写入） */
       useWorktabStore().clearAll();
     }
@@ -481,6 +548,12 @@ export const useUserStore = defineStore(
       fetchTenants,
       selectTenant,
       setCurrentTenant,
+      workspaceMode,
+      workspaceTenant,
+      isPlatformMode,
+      enterTenantWorkspace,
+      exitTenantWorkspace,
+      impersonate,
     };
   },
   {

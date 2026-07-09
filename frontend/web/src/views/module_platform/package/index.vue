@@ -36,7 +36,6 @@
             :more-loading="moreLoading"
             @add="handleAdd"
             @delete="handleBatchDelete"
-            @more="handleMoreClick"
           />
         </template>
       </FaTableHeader>
@@ -641,9 +640,7 @@ async function handleBatchDelete() {
   }
 }
 
-function handleMoreClick() {
-  // 预留
-}
+// 预留
 
 // 菜单权限管理
 const menuDialogVisible = ref(false);

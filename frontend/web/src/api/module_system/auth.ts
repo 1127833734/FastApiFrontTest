@@ -61,12 +61,47 @@ const AuthAPI = {
       data: { tenant_id: tenantId },
     });
   },
+
+  /** 返回平台管理模式，清除 tenant_id 返回平台作用域 JWT */
+  enterPlatform() {
+    return request<ApiResponse<SelectTenantResult>>({
+      url: `${API_PATH}/enter-platform`,
+      method: "post",
+    });
+  },
+
+  /** 平台管理员代签入（以指定租户身份登录） */
+  impersonate(tenantId: number) {
+    return request<ApiResponse<ImpersonateResult>>({
+      url: `${API_PATH}/impersonate`,
+      method: "post",
+      data: { tenant_id: tenantId },
+    });
+  },
+
   /** 租户自助注册（PRD §4.5） */
   tenantRegister(body: TenantRegisterForm) {
     return request<ApiResponse<TenantRegisterResult>>({
       url: `${API_PATH}/tenant/register`,
       method: "post",
       data: body,
+    });
+  },
+
+  /** 根据编码查询租户 */
+  lookupTenant(code: string) {
+    return request<ApiResponse>({
+      url: `${API_PATH}/tenant/${encodeURIComponent(code)}`,
+      method: "get",
+    });
+  },
+
+  /** 根据域名查询租户 */
+  lookupTenantByDomain(domain: string) {
+    return request<ApiResponse>({
+      url: `${API_PATH}/tenant-by-domain`,
+      method: "get",
+      params: { domain },
     });
   },
 };
@@ -138,6 +173,16 @@ export interface SelectTenantResult {
   access_token: string;
   token_type: string;
   expires_in: number;
+}
+
+/** 平台管理员代签入返回 (ImpersonateOutSchema) */
+export interface ImpersonateResult {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  tenant_id: number;
+  tenant_name: string;
 }
 
 /** 验证码信息 */

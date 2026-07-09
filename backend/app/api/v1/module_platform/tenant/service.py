@@ -1,4 +1,3 @@
-
 import json
 import random
 import string
@@ -7,26 +6,22 @@ from datetime import datetime, timedelta
 from redis.asyncio.client import Redis
 from sqlalchemy import delete, func, select, update
 
-from app.api.v1.module_platform.menu.model import MenuModel
 from app.api.v1.module_platform.order.crud import OrderCRUD
 from app.api.v1.module_platform.order.model import OrderModel
 from app.api.v1.module_platform.order.schema import (
     OrderCreateInternalSchema,
-    OrderCreateSchema,
     OrderUpdateInternalSchema,
 )
 from app.api.v1.module_platform.order.service import (
-    OrderService,
     PaymentService,
     _generate_order_no,
 )
-from app.api.v1.module_platform.package.model import PackageMenuModel, PackageModel
-from app.api.v1.module_platform.plugin.model import PluginModel, TenantPluginModel
+from app.api.v1.module_platform.package.model import PackageModel
 from app.api.v1.module_system.dept.model import DeptModel
 from app.api.v1.module_system.role.model import RoleModel
 from app.api.v1.module_system.user.model import UserModel
-from app.common.enums import RedisInitKeyConfig
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from app.common.enums import OrderTypeEnum, RedisInitKeyConfig
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.dependencies import require_superadmin
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -36,11 +31,11 @@ from app.utils.hash_bcrpy_util import PwdUtil
 from .crud import TenantCRUD
 from .model import TenantModel, TenantUserModel
 from .schema import (
+    PackageAction,
     PackageAvailableItem,
     PackageAvailableOut,
     PackageChangePreviewOut,
     PackagePreviewOut,
-    PluginPurchaseCreate,
     SelfOrderCreate,
     SelfOrderDetailOut,
     SelfOrderListItem,
@@ -63,8 +58,7 @@ from .schema import (
 
 
 class TenantService:
-    """
-    租户管理服务（查询操作租户可见，写操作仅超级管理员可操作）
+    """租户管理服务（查询操作租户可见，写操作仅超级管理员可操作）
 
     设计：实例方法承载「当前用户上下文 (auth)」，``redis`` 仍是方法参数。
     内部跨方法调用从 ``cls.xxx(auth, ...)`` 改为 ``self.xxx(...)``。
@@ -75,8 +69,7 @@ class TenantService:
         self.auth = auth
 
     async def detail(self, id: int) -> TenantOutSchema:
-        """
-        租户详情
+        """租户详情
 
         参数:
         - id (int): 租户ID
@@ -84,7 +77,8 @@ class TenantService:
         返回:
         - TenantOutSchema: 租户详情
         """
-        return await TenantCRUD(self.auth).get_or_404(id=id, out_schema=TenantOutSchema)
+        obj = await TenantCRUD(self.auth).get_or_404(id=id)
+        return TenantOutSchema.model_validate(obj)
 
     async def page(
         self,
@@ -92,7 +86,7 @@ class TenantService:
         page_size: int,
         search: TenantQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[TenantOutSchema]:
         return await TenantCRUD(self.auth).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
@@ -118,6 +112,7 @@ class TenantService:
         # 3. 创建初始管理员用户
         username = f"{tenant_obj.code}_admin"
         from app.api.v1.module_system.user.crud import UserCRUD
+        from app.api.v1.module_system.user.schema import UserCreateSchema
 
         if await UserCRUD(self.auth).get(username=username):
             raise CustomException(msg=f"初始管理员用户名已存在: {username}，请更换租户编码后重试")
@@ -125,14 +120,14 @@ class TenantService:
         password_length = 12
         characters = string.ascii_letters + string.digits + "!@#$%^&*"
         password = "".join(random.choice(characters) for _ in range(password_length))
-        admin_data = {
-            "username": username,
-            "password": PwdUtil.hash_password(password=password),
-            "name": f"{tenant_obj.name}管理员",
-            "tenant_id": tenant_obj.id,
-            "status": 0,
-            "is_superuser": False,
-        }
+        admin_data = UserCreateSchema(
+            username=username,
+            password=PwdUtil.hash_password(password=password),
+            name=f"{tenant_obj.name}管理员",
+            tenant_id=tenant_obj.id,
+            status=0,
+            is_superuser=False,
+        )
         try:
             user_obj = await UserCRUD(self.auth).create(data=admin_data)
             if not user_obj:
@@ -143,7 +138,7 @@ class TenantService:
             logger.error(f"为租户[{tenant_obj.name}]创建初始管理员失败: {e!s}")
             raise CustomException(msg="创建租户初始管理员失败") from e
 
-        logger.info(f"为租户[{tenant_obj.name}]创建初始管理员成功，用户名: {username}，临时密码: {password}")
+        logger.info(f"为租户[{tenant_obj.name}]创建初始管理员成功，用户名: {username}")
 
         await self.auth.db.refresh(tenant_obj)
         result = TenantOutSchema.model_validate(tenant_obj)
@@ -152,8 +147,7 @@ class TenantService:
 
     @require_superadmin
     async def update(self, id: int, data: TenantUpdateSchema) -> TenantOutSchema:
-        """
-        更新租户
+        """更新租户
 
         参数:
         - id (int): 租户ID
@@ -192,7 +186,6 @@ class TenantService:
 
         # 套餐变更后：清理角色中不再可用的菜单关联，防止用户看到空白菜单
         if data.package_id is not None and data.package_id != old_package_id:
-
             from app.api.v1.module_platform.package.service import PackageService
             from app.api.v1.module_system.role.model import RoleMenusModel, RoleModel
 
@@ -206,21 +199,17 @@ class TenantService:
                         delete(RoleMenusModel).where(
                             RoleMenusModel.role_id.in_(tenant_role_ids),
                             RoleMenusModel.menu_id.notin_(available_ids),
-                        )
+                        ),
                     )
                     await self.auth.db.flush()
-                    logger.info(
-                        f"租户[{id}]套餐变更：已清理角色中不再可用的菜单关联, "
-                        f"available_menus={len(available_ids)}, roles_affected={len(tenant_role_ids)}"
-                    )
+                    logger.info(f"租户[{id}]套餐变更：已清理角色中不再可用的菜单关联, available_menus={len(available_ids)}, roles_affected={len(tenant_role_ids)}")
 
         result = TenantOutSchema.model_validate(updated)
         return result
 
     @require_superadmin
     async def delete(self, ids: list[int]) -> None:
-        """
-        批量删除租户（含级联资源检查：用户/部门/角色/岗位）
+        """批量删除租户（含级联资源检查：用户/部门/角色/岗位）
 
         参数:
         - ids (list[int]): 租户ID列表
@@ -253,8 +242,7 @@ class TenantService:
         await TenantCRUD(self.auth).delete(ids=ids)
 
     async def set_available(self, data: BatchSetAvailable) -> None:
-        """
-        批量设置租户状态
+        """批量设置租户状态
 
         参数:
         - data (BatchSetAvailable): 批量状态设置
@@ -267,8 +255,7 @@ class TenantService:
         await TenantCRUD(self.auth).set(ids=data.ids, status=data.status)
 
     async def toggle_status(self, id: int) -> None:
-        """
-        切换单个租户的启用/禁用状态
+        """切换单个租户的启用/禁用状态
 
         参数:
         - id (int): 租户ID
@@ -309,13 +296,12 @@ class TenantService:
                     create_time=tu.create_time,
                     username=u.username,
                     name=u.name,
-                )
+                ),
             )
         return users
 
     async def add_tenant_user(self, tenant_id: int, data: TenantUserAddSchema) -> None:
-        """
-        向租户添加用户
+        """向租户添加用户
 
         参数:
         - tenant_id (int): 租户ID
@@ -353,14 +339,10 @@ class TenantService:
 
         # 如果设为默认租户，先取消其他默认
         if data.is_default == 1:
-            await self.auth.db.execute(
-                update(TenantUserModel).where(TenantUserModel.user_id == data.user_id).values(is_default=0)
-            )
+            await self.auth.db.execute(update(TenantUserModel).where(TenantUserModel.user_id == data.user_id).values(is_default=0))
         elif data.is_default == 0:
             # 检查是否是该用户的第一个租户关联
-            count_result = await self.auth.db.execute(
-                select(func.count()).select_from(TenantUserModel).where(TenantUserModel.user_id == data.user_id)
-            )
+            count_result = await self.auth.db.execute(select(func.count()).select_from(TenantUserModel).where(TenantUserModel.user_id == data.user_id))
             count = count_result.scalar()
             if count == 0:
                 # 第一个租户自动设为默认
@@ -381,8 +363,7 @@ class TenantService:
         logger.info(f"向租户[{tenant.name}]添加用户[{user.username}]成功, role={data.role}")
 
     async def remove_tenant_user(self, tenant_id: int, user_id: int) -> None:
-        """
-        从租户移除用户
+        """从租户移除用户
 
         参数:
         - tenant_id (int): 租户ID
@@ -415,9 +396,9 @@ class TenantService:
                 .where(
                     TenantUserModel.tenant_id == tenant_id,
                     TenantUserModel.role == "owner",
-                )
+                ),
             )
-            owner_count = count_result.scalar()
+            owner_count = count_result.scalar() or 0
             if owner_count <= 1:
                 raise CustomException(msg="租户至少需要保留一个拥有者(owner)")
 
@@ -427,8 +408,7 @@ class TenantService:
         logger.info(f"从租户[{tenant_id}]移除用户[{user_id}]成功")
 
     async def get_quota(self, tenant_id: int) -> dict:
-        """
-        获取租户配额（从关联套餐读取，系统租户返回无限配额）
+        """获取租户配额（从关联套餐读取，系统租户返回无限配额）
 
         参数:
         - tenant_id (int): 租户ID
@@ -544,19 +524,18 @@ class TenantService:
         elif resource_type == "storage":
             # storage 的实际容量校验在文件上传时进行，此处仅检查是否有配额
             return
+        else:
+            return
 
         result = await self.auth.db.execute(count_stmt)
         current_count = result.scalar() or 0
 
         if current_count >= max_limit:
             resource_labels = {"user": "用户", "role": "角色", "dept": "部门"}
-            raise CustomException(
-                msg=f"租户{resource_labels.get(resource_type, resource_type)}数量已达套餐上限（{max_limit}），无法继续创建"
-            )
+            raise CustomException(msg=f"租户{resource_labels.get(resource_type, resource_type)}数量已达套餐上限（{max_limit}），无法继续创建")
 
     async def get_config(self, tenant_id: int) -> dict:
-        """
-        获取租户所有配置（从租户主表读取，返回原始 dict 供内部使用）
+        """获取租户所有配置（从租户主表读取，返回原始 dict 供内部使用）
 
         参数:
         - tenant_id (int): 租户ID
@@ -569,22 +548,33 @@ class TenantService:
             raise CustomException(msg="该数据不存在")
 
         config_fields = [
-            "name", "description", "version", "logo_url", "favicon",
-            "login_bg", "copyright", "keep_record", "help_doc", "privacy",
-            "clause", "git_code",
+            "name",
+            "description",
+            "version",
+            "logo_url",
+            "favicon",
+            "login_bg",
+            "copyright",
+            "keep_record",
+            "help_doc",
+            "privacy",
+            "clause",
+            "git_code",
         ]
         config = {field: getattr(tenant, field, None) for field in config_fields}
         return config
 
-    async def get_config_items(self, tenant_id: int) -> list[TenantConfigOutSchema]:
-        """获取租户所有配置（对外接口，返回结构化列表）"""
-        config = await self.get_config(tenant_id)
+    @staticmethod
+    def _config_to_items(config: dict) -> list[TenantConfigOutSchema]:
+        """将配置字典转换为结构化列表"""
         return [TenantConfigOutSchema(config_key=k, config_value=str(v) if v is not None else None) for k, v in config.items()]
+
+    async def get_config_items(self, tenant_id: int) -> list[TenantConfigOutSchema]:
+        return TenantService._config_to_items(await self.get_config(tenant_id))
 
     @staticmethod
     async def get_config_cache(redis: Redis, tenant_id: int) -> dict:
-        """
-        从 Redis 缓存获取租户配置，缓存未命中则从 DB 加载并回写缓存
+        """从 Redis 缓存获取租户配置，缓存未命中则从 DB 加载并回写缓存
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -605,23 +595,20 @@ class TenantService:
         logger.info(f"Redis 中没有租户[{tenant_id}]配置数据，从数据库中加载")
         from app.core.database import async_db_session
 
-        async with async_db_session() as session:
-            async with session.begin():
-                from app.core.base_schema import AuthSchema as _AuthSchema
+        async with async_db_session() as session, session.begin():
+            from app.core.base_schema import AuthSchema as _AuthSchema
 
-                _auth = _AuthSchema(db=session, check_data_scope=False)
-                svc = TenantService(_auth)
-                config = await svc.get_config(tenant_id)
-                await TenantService._sync_configs_to_redis(redis, tenant_id, config)
-                logger.info("✅ 已从数据库加载租户配置到缓存")
+            _auth = _AuthSchema.anonymous(db=session)
+            svc = TenantService(_auth)
+            config = await svc.get_config(tenant_id)
+            await TenantService._sync_configs_to_redis(redis, tenant_id, config)
+            logger.info("✅ 已从数据库加载租户配置到缓存")
 
         return config
 
     @staticmethod
     async def get_config_cache_items(redis: Redis, tenant_id: int) -> list[TenantConfigOutSchema]:
-        """获取租户缓存配置（对外接口，返回结构化列表）"""
-        config = await TenantService.get_config_cache(redis, tenant_id)
-        return [TenantConfigOutSchema(config_key=k, config_value=str(v) if v is not None else None) for k, v in config.items()]
+        return TenantService._config_to_items(await TenantService.get_config_cache(redis, tenant_id))
 
     @staticmethod
     async def _sync_configs_to_redis(redis: Redis, tenant_id: int, config: dict) -> None:
@@ -637,8 +624,7 @@ class TenantService:
         await RedisCURD(redis).delete(redis_key)
 
     async def update_config(self, redis: Redis, tenant_id: int, config: dict) -> list[TenantConfigOutSchema]:
-        """
-        更新租户配置（同步 Redis 缓存）
+        """更新租户配置（同步 Redis 缓存）
 
         参数:
         - redis (Redis): Redis 客户端
@@ -653,9 +639,18 @@ class TenantService:
             raise CustomException(msg="该数据不存在")
 
         config_fields = [
-            "name", "description", "version", "logo_url", "favicon",
-            "login_bg", "copyright", "keep_record", "help_doc", "privacy",
-            "clause", "git_code",
+            "name",
+            "description",
+            "version",
+            "logo_url",
+            "favicon",
+            "login_bg",
+            "copyright",
+            "keep_record",
+            "help_doc",
+            "privacy",
+            "clause",
+            "git_code",
         ]
 
         for field in config_fields:
@@ -668,12 +663,11 @@ class TenantService:
         new_config = await self.get_config(tenant_id)
         await TenantService._sync_configs_to_redis(redis, tenant_id, new_config)
         logger.info(f"租户[{tenant_id}]配置已更新")
-        return [TenantConfigOutSchema(config_key=k, config_value=str(v) if v is not None else None) for k, v in new_config.items()]
+        return TenantService._config_to_items(new_config)
 
     @staticmethod
     async def init_cache(redis: Redis) -> None:
-        """
-        初始化所有租户配置到 Redis 缓存（应用启动时调用）。
+        """初始化所有租户配置到 Redis 缓存（应用启动时调用）。
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -685,22 +679,30 @@ class TenantService:
 
         from app.core.database import async_db_session
 
-        async with async_db_session() as session:
-            async with session.begin():
-                stmt = select(TenantModel)
-                result = await session.execute(stmt)
-                tenants = result.scalars().all()
+        async with async_db_session() as session, session.begin():
+            stmt = select(TenantModel)
+            result = await session.execute(stmt)
+            tenants = result.scalars().all()
 
-                for tenant in tenants:
-                    config_fields = [
-                        "name", "description", "version", "logo_url", "favicon",
-                        "login_bg", "copyright", "keep_record", "help_doc", "privacy",
-                        "clause", "git_code",
-                    ]
-                    config = {field: getattr(tenant, field, None) for field in config_fields}
+            for tenant in tenants:
+                config_fields = [
+                    "name",
+                    "description",
+                    "version",
+                    "logo_url",
+                    "favicon",
+                    "login_bg",
+                    "copyright",
+                    "keep_record",
+                    "help_doc",
+                    "privacy",
+                    "clause",
+                    "git_code",
+                ]
+                config = {field: getattr(tenant, field, None) for field in config_fields}
 
-                    await TenantService._sync_configs_to_redis(redis, tenant.id, config)
-                    logger.info(f"✅ 租户[{tenant.name}](id={tenant.id}) 配置已缓存到 Redis")
+                await TenantService._sync_configs_to_redis(redis, tenant.id, config)
+                logger.info(f"✅ 租户[{tenant.name}](id={tenant.id}) 配置已缓存到 Redis")
 
     async def renew(self, tenant_id: int, end_time: str) -> TenantOutSchema:
         """租户续期：延长 end_time 并恢复为 active 状态
@@ -723,7 +725,7 @@ class TenantService:
 
         if tenant.status not in (0, 1, 2):
             status_labels = {0: "正常", 1: "宽限期", 2: "暂停", 3: "冻结", 4: "过期", 5: "归档"}
-            current_label = status_labels.get(str(tenant.status), str(tenant.status))
+            current_label = status_labels.get(tenant.status, str(tenant.status))
             raise CustomException(msg=f"当前租户状态为「{current_label}」，仅正常/宽限期/暂停状态可续期")
 
         new_end = datetime.fromisoformat(end_time) if isinstance(end_time, str) else end_time
@@ -740,8 +742,7 @@ class TenantService:
         return TenantOutSchema.model_validate(tenant)
 
     async def package_change_preview(self, tenant_id: int, new_package_id: int) -> PackageChangePreviewOut:
-        """
-        套餐变更影响预览
+        """套餐变更影响预览
 
         返回受影响角色、菜单清单、配额对比等，供超管确认后再执行变更。
 
@@ -769,7 +770,7 @@ class TenantService:
             raise CustomException(msg="该数据不存在")
 
         # 当前可用菜单
-        current_menu_ids = await PackageService(self.auth).get_tenant_available_menu_ids(tenant_id)
+        current_menu_ids = set(await PackageService(self.auth).get_tenant_available_menu_ids(tenant_id))
 
         # 新套餐可用菜单（直接取套餐菜单，不再包含自定义授权）
         new_menu_ids = set(await PackageService(self.auth).get_package_menu_ids(new_package_id))
@@ -816,7 +817,7 @@ class TenantService:
                     "code": role.code,
                     "affected_menu_count": affected_menu_count,
                     "user_count": user_count,
-                }
+                },
             )
             total_affected_users += user_count
 
@@ -870,16 +871,13 @@ class TenantService:
         async with async_db_session() as session:
             # 获取所有已过期的活跃租户（status=0）
             rows = await session.execute(
-                text(
-                    "SELECT id, name, contact_email, contact_name, end_time, status "
-                    "FROM platform_tenant WHERE status = '0' AND end_time IS NOT NULL AND end_time < :now"
-                ),
+                text("SELECT id, name, end_time, status FROM platform_tenant WHERE status = '0' AND end_time IS NOT NULL AND end_time < :now"),
                 {"now": now},
             )
             expired_tenants = rows.fetchall()
 
             for t in expired_tenants:
-                tenant_id, tenant_name, email, contact_name, end_time, cur_status = t
+                tenant_id, tenant_name, end_time, cur_status = t
                 days_past = (now - end_time).days if end_time else 0
 
                 if days_past <= 7:
@@ -900,47 +898,9 @@ class TenantService:
                 )
                 logger.info(f"租户状态切换: id={tenant_id} name={tenant_name} status={cur_status}→{new_status} ({label})")
 
-                # 发送通知邮件
-                if email:
-                    await TenantService._send_expiry_email(
-                        tenant_name, contact_name, email, end_time, days_past, label
-                    )
-
             await session.commit()
 
         logger.info(f"到期检查完成，处理了 {len(expired_tenants)} 个过期租户")
-
-    @staticmethod
-    async def send_grace_reminders() -> None:
-        """定时任务：向宽限期租户发送续费提醒邮件（每天 09:00）"""
-        from datetime import datetime
-
-        from sqlalchemy import text
-
-        from app.core.database import async_db_session
-
-        async with async_db_session() as session:
-            rows = await session.execute(
-                text(
-                    "SELECT id, name, contact_email, contact_name, end_time FROM platform_tenant "
-                    "WHERE status = '1' AND contact_email IS NOT NULL AND contact_email != ''"
-                )
-            )
-            grace_tenants = rows.fetchall()
-
-            sent = 0
-            for t in grace_tenants:
-                tenant_id, name, email, contact_name, end_time = t
-                days_past = (datetime.now() - end_time).days if end_time else 0
-
-                try:
-                    ok = await TenantService._send_renew_email(name, contact_name, email, days_past)
-                    if ok:
-                        sent += 1
-                except Exception as e:
-                    logger.warning(f"续费提醒邮件发送失败: tenant_id={tenant_id}, err={e}")
-
-            logger.info(f"续费提醒完成，共发送 {sent}/{len(grace_tenants)} 封邮件")
 
     @staticmethod
     async def clean_expired_tenants() -> None:
@@ -968,93 +928,9 @@ class TenantService:
                 await session.commit()
                 logger.info(f"已将 {count} 个过期超过 90 天的租户标记为归档")
 
-            await session.commit()
-
-    @staticmethod
-    async def _send_expiry_email(
-        tenant_name: str,
-        contact_name: str | None,
-        email: str,
-        end_time: object,
-        days_past: int,
-        label: str,
-    ) -> None:
-        """发送租户状态变更通知邮件"""
-        from app.config.setting import settings
-        from app.utils.email_util import render_template, send_email
-
-        if not settings.SMTP_HOST:
-            return
-
-        smtp_config = {
-            "host": settings.SMTP_HOST,
-            "port": settings.SMTP_PORT,
-            "username": settings.SMTP_USER,
-            "password": settings.SMTP_PASSWORD,
-            "from_addr": settings.SMTP_FROM,
-            "starttls": settings.SMTP_TLS,
-            "ssl_tls": settings.SMTP_SSL,
-        }
-        end_str = end_time.strftime("%Y-%m-%d") if hasattr(end_time, "strftime") else str(end_time)
-
-        try:
-            html_body = await render_template(
-                "email/tenant_expiry_notice.html",
-                tenant_name=tenant_name,
-                contact_name=contact_name or "管理员",
-                days_expired=days_past,
-                status_name=label,
-                end_time=end_str,
-                site_url=getattr(settings, "SITE_URL", ""),
-            )
-            await send_email(
-                smtp_config=smtp_config,
-                recipients=[email],
-                subject=f"【重要】租户 {tenant_name} 服务状态变更通知",
-                body=html_body,
-                html=True,
-            )
-        except Exception as e:
-            logger.warning(f"到期通知邮件发送失败: tenant={tenant_name}, err={e}")
-
-    @staticmethod
-    async def _send_renew_email(name: str, contact_name: str | None, email: str, days_past: int) -> bool:
-        """发送续费提醒邮件"""
-        from app.config.setting import settings
-        from app.utils.email_util import render_template, send_email
-
-        if not settings.SMTP_HOST:
-            return False
-
-        smtp_config = {
-            "host": settings.SMTP_HOST,
-            "port": settings.SMTP_PORT,
-            "username": settings.SMTP_USER,
-            "password": settings.SMTP_PASSWORD,
-            "from_addr": settings.SMTP_FROM,
-            "starttls": settings.SMTP_TLS,
-            "ssl_tls": settings.SMTP_SSL,
-        }
-
-        html_body = await render_template(
-            "email/tenant_renew_reminder.html",
-            tenant_name=name,
-            contact_name=contact_name or "管理员",
-            days_expired=days_past,
-            renew_url=f"{getattr(settings, 'SITE_URL', '')}/tenant/order/create",
-        )
-        return await send_email(
-            smtp_config=smtp_config,
-            recipients=[email],
-            subject=f"【续费提醒】租户 {name} 服务即将到期",
-            body=html_body,
-            html=True,
-        )
-
     @classmethod
     async def get_available_packages(cls, auth: AuthSchema, tenant_id: int) -> PackageAvailableOut:
-        """
-        获取可选套餐列表
+        """获取可选套餐列表
 
         参数:
         - auth (AuthSchema): 认证信息模型
@@ -1079,7 +955,7 @@ class TenantService:
         items: list[PackageAvailableItem] = []
         for pkg in packages:
             is_current = pkg.id == current_pkg_id
-            actions: list[str] = []
+            actions: list[PackageAction] = []
             if is_current:
                 actions = ["renew"]
             elif current_pkg_id is None:
@@ -1101,7 +977,7 @@ class TenantService:
                     description=pkg.description,
                     is_current=is_current,
                     available_actions=actions,
-                )
+                ),
             )
 
         return PackageAvailableOut(
@@ -1111,88 +987,42 @@ class TenantService:
 
     @classmethod
     async def preview_package_change(cls, auth: AuthSchema, tenant_id: int, target_package_id: int) -> PackagePreviewOut:
-        """
-        套餐变更影响预览
+        """套餐变更预览（委托给 package_change_preview 并映射输出）"""
+        svc = cls(auth)
+        preview = await svc.package_change_preview(tenant_id, target_package_id)
 
-        参数:
-        - auth (AuthSchema): 认证信息模型
-        - tenant_id (int): 租户ID
-        - target_package_id (int): 目标套餐ID
-
-        返回:
-        - PackagePreviewOut: 套餐变更预览结果
-        """
         tenant = await auth.db.get(TenantModel, tenant_id)
-        current_pkg_id = tenant.package_id if tenant else None
-
         target_pkg = await auth.db.get(PackageModel, target_package_id)
-        if not target_pkg:
-            raise CustomException(msg="该数据不存在")
 
         current_pkg = None
-        if current_pkg_id:
-            current_pkg = await auth.db.get(PackageModel, current_pkg_id)
-
-        # 获取当前套餐的菜单
-        current_menus = set()
-        if current_pkg_id:
-            cm_stmt = select(MenuModel).join(PackageMenuModel, MenuModel.id == PackageMenuModel.menu_id).where(PackageMenuModel.package_id == current_pkg_id)
-            result = await auth.db.execute(cm_stmt)
-            current_menus = {m.id for m in result.scalars().all()}
-
-        # 获取目标套餐的菜单
-        tm_stmt = select(MenuModel).join(PackageMenuModel, MenuModel.id == PackageMenuModel.menu_id).where(PackageMenuModel.package_id == target_package_id)
-        result = await auth.db.execute(tm_stmt)
-        target_menus = {m.id for m in result.scalars().all()}
-
-        # 计算差异
-        gained_menus, lost_menus = [], []
-        if current_menus:
-            lost_ids = current_menus - target_menus
-            if lost_ids:
-                lost_stmt = select(MenuModel).where(MenuModel.id.in_(lost_ids))
-                lost = await auth.db.execute(lost_stmt)
-                lost_menus = [{"id": m.id, "name": m.name, "path": m.route_path} for m in lost.scalars().all()]
-
-        gained_ids = target_menus - (current_menus or set())
-        if gained_ids:
-            gain_stmt = select(MenuModel).where(MenuModel.id.in_(gained_ids))
-            gained = await auth.db.execute(gain_stmt)
-            gained_menus = [{"id": m.id, "name": m.name, "path": m.route_path} for m in gained.scalars().all()]
+        if tenant and tenant.package_id:
+            current_pkg = await auth.db.get(PackageModel, tenant.package_id)
 
         # 确定操作类型
-        if current_pkg_id is None:
+        if not tenant or not tenant.package_id:
             action = "buy"
-        elif current_pkg and target_pkg.price > current_pkg.price:
+        elif current_pkg and target_pkg and target_pkg.price > current_pkg.price:
             action = "upgrade"
-        elif current_pkg and target_pkg.price < current_pkg.price:
+        elif current_pkg and target_pkg and target_pkg.price < current_pkg.price:
             action = "downgrade"
         else:
             action = "renew"
 
-        # 受影响角色
-        affected_roles = []
-        if current_pkg_id:
-            role_stmt = select(RoleModel).where(RoleModel.tenant_id == tenant_id)
-            r_result = await auth.db.execute(role_stmt)
-            affected_roles = [r.name for r in r_result.scalars().all()]
-
         return PackagePreviewOut(
             current_package=current_pkg.name if current_pkg else "",
-            target_package=target_pkg.name,
+            target_package=target_pkg.name if target_pkg else "",
             action=action,
-            amount=target_pkg.price,
-            period=target_pkg.period,
-            gained_menus=gained_menus,
-            lost_menus=lost_menus,
-            affected_roles=affected_roles,
-            affected_users=0,
+            amount=target_pkg.price if target_pkg else 0,
+            period=target_pkg.period if target_pkg else "",
+            gained_menus=preview.added_menus,
+            lost_menus=preview.removed_menus,
+            affected_roles=[r.get("name", "") for r in preview.affected_roles],
+            affected_users=preview.total_affected_users,
         )
 
     @classmethod
     async def create_self_order(cls, auth: AuthSchema, tenant_id: int, data: SelfOrderCreate) -> SelfOrderOut:
-        """
-        创建自助订单（套餐购买/续费/升级/降级；免费订单自动激活）
+        """创建自助订单（套餐购买/续费/升级/降级；免费订单自动激活）
 
         参数:
         - auth (AuthSchema): 认证信息模型
@@ -1222,7 +1052,7 @@ class TenantService:
                 order_type=data.order_type,
                 amount=amount,
                 expire_time=datetime.now() + timedelta(minutes=15),
-            )
+            ),
         )
         await auth.db.flush()
 
@@ -1243,57 +1073,6 @@ class TenantService:
         )
 
     @classmethod
-    async def create_plugin_purchase_order(cls, auth: AuthSchema, tenant_id: int, data: PluginPurchaseCreate) -> SelfOrderOut:
-        """
-        创建插件购买订单（复用套餐订单流程）
-
-        参数:
-        - auth (AuthSchema): 认证信息模型
-        - tenant_id (int): 租户ID
-        - data (PluginPurchaseCreate): 插件购买参数
-
-        返回:
-        - SelfOrderOut: 订单创建结果
-        """
-        # 校验插件存在且可用
-        plugin = await auth.db.get(PluginModel, data.plugin_id)
-        if not plugin or plugin.status == 1:
-            raise CustomException(msg="该数据不存在")
-
-        if plugin.price == 0:
-            raise CustomException(msg="免费插件可直接安装，无需购买")
-
-        # 校验未重复购买
-        existing = await auth.db.execute(
-            select(TenantPluginModel)
-            .where(
-                TenantPluginModel.tenant_id == tenant_id,
-                TenantPluginModel.plugin_id == data.plugin_id,
-            )
-            .limit(1)
-        )
-        tp = existing.scalar_one_or_none()
-        if tp and tp.purchased == "1":
-            raise CustomException(msg="您已购买此插件，可直接安装")
-
-        order_data = OrderCreateSchema(
-            tenant_id=tenant_id,
-            package_id=None,
-            plugin_id=data.plugin_id,
-            order_type="plugin",
-            pay_method=data.pay_method,
-        )
-        result = await OrderService.create_order(auth=auth, data=order_data)
-
-        logger.info(f"插件购买订单创建: order_no={result.order_no} plugin={plugin.name}")
-        return SelfOrderOut(
-            order_id=result.id,
-            order_no=result.order_no,
-            amount=result.amount,
-            need_pay=result.amount > 0,
-        )
-
-    @classmethod
     async def get_self_order_list(
         cls,
         auth: AuthSchema,
@@ -1302,8 +1081,7 @@ class TenantService:
         page_size: int = 20,
         order_by: list[dict] | None = None,
     ) -> SelfOrderListOut:
-        """
-        我的订单列表
+        """我的订单列表
 
         参数:
         - auth (AuthSchema): 认证信息模型
@@ -1344,7 +1122,7 @@ class TenantService:
                     pay_method=o.pay_method,
                     pay_time=o.pay_time.isoformat() if o.pay_time else None,
                     created_at=o.created_time.isoformat() if o.created_time else None,
-                )
+                ),
             )
 
         return SelfOrderListOut(
@@ -1356,8 +1134,7 @@ class TenantService:
 
     @classmethod
     async def get_self_order_detail(cls, auth: AuthSchema, order_id: int) -> SelfOrderDetailOut:
-        """
-        订单详情
+        """订单详情
 
         参数:
         - auth (AuthSchema): 认证信息模型
@@ -1380,7 +1157,7 @@ class TenantService:
             package_id=order.package_id,
             package_name=pkg_name,
             amount=order.amount,
-            order_type=order.order_type,
+            order_type=OrderTypeEnum(order.order_type),
             status=order.status,
             pay_method=order.pay_method,
             pay_time=order.pay_time.isoformat() if order.pay_time else None,
@@ -1389,8 +1166,7 @@ class TenantService:
 
     @classmethod
     async def get_workspace_data(cls, auth: AuthSchema, tenant_id: int) -> WorkspaceOut:
-        """
-        获取租户工作台概览（租户信息、套餐、配额用量、近期订单）
+        """获取租户工作台概览（租户信息、套餐、配额用量、近期订单）
 
         参数:
         - auth (AuthSchema): 认证信息模型
@@ -1446,10 +1222,10 @@ class TenantService:
                     id=o.id,
                     order_no=o.order_no,
                     amount=o.amount,
-                    order_type=o.order_type,
+                    order_type=OrderTypeEnum(o.order_type),
                     status=o.status,
                     created_at=o.created_time.isoformat() if o.created_time else None,
-                )
+                ),
             )
 
         return WorkspaceOut(
@@ -1489,36 +1265,3 @@ class TenantService:
             ),
             recent_orders=recent_orders,
         )
-
-    @classmethod
-    async def get_tenant_api_usage_today(cls, auth: AuthSchema, tenant_id: int) -> dict:
-        """
-        获取租户当日 API 用量汇总（已移除 api_usage 模块）
-
-        参数:
-        - auth (AuthSchema): 认证信息模型
-        - tenant_id (int): 租户ID
-
-        返回:
-        - dict: API 用量占位数据
-        """
-        return {
-            "today": {"request_count": 0, "error_count": 0, "total_duration_ms": 0},
-            "month": {"total_calls": 0},
-            "top_paths": [],
-        }
-
-    @classmethod
-    async def get_tenant_api_usage_daily(cls, auth: AuthSchema, tenant_id: int, days: int = 7) -> dict:
-        """
-        获取租户每日 API 用量（已移除 api_usage 模块）
-
-        参数:
-        - auth (AuthSchema): 认证信息模型
-        - tenant_id (int): 租户ID
-        - days (int): 查询天数
-
-        返回:
-        - dict: 每日用量占位数据
-        """
-        return {"daily": []}

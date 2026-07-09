@@ -209,7 +209,7 @@
 import { useTable } from "@/hooks/core/useTable";
 import { useCrudDialog } from "@/hooks/core/useCrudDialog";
 import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
+import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
 import TenantAPI, {
   type TenantCreateForm,
   type TenantForm,
@@ -359,16 +359,16 @@ async function deleteTenantRow(id: number) {
 }
 
 async function toggleTenantStatus(id: number) {
+  const row = (data.value as TenantTable[]).find((item) => item.id === id);
+  if (!row) return;
+  const newStatus = row.status === 0 ? 1 : 0;
   try {
+    await confirmToggleStatus(newStatus);
     await TenantAPI.toggleTenantStatus(id);
-    // 直接更新当前行的 status，确保 UI 即时响应
-    const row = (data.value as TenantTable[]).find((item) => item.id === id);
-    if (row) {
-      row.status = row.status === 0 ? 1 : 0;
-    }
+    row.status = newStatus;
     await refreshData();
   } catch {
-    /* 接口错误已由拦截器提示 */
+    /* 用户取消或接口错误已由拦截器提示 */
   }
 }
 
@@ -593,19 +593,14 @@ async function handleCloseDialog() {
 
 const activeTab = ref("basic");
 
-const packageOptions = ref<{ label: string; value: number }[]>([]);
-const packageLoading = ref(false);
+const packageOptions = ref<OptionType[]>([]);
 
 async function fetchPackageOptions() {
-  packageLoading.value = true;
   try {
-    const res = await PackageAPI.listPackage({ page_no: 1, page_size: 100 });
-    const list = (res.data?.data?.items ?? res.data?.data ?? []) as { id: number; name: string }[];
-    packageOptions.value = list.map((p) => ({ label: p.name, value: p.id }));
+    const res = await PackageAPI.getPackageOptions();
+    packageOptions.value = res.data?.data ?? [];
   } catch {
     packageOptions.value = [];
-  } finally {
-    packageLoading.value = false;
   }
 }
 
@@ -650,7 +645,6 @@ const basicFormItems = computed<FormItem[]>(() => [
     props: {
       placeholder: "请选择套餐",
       options: packageOptions.value,
-      loading: packageLoading.value,
       clearable: true,
       style: { width: "100%" },
     },

@@ -56,43 +56,6 @@ const NoticeAPI = {
       data: body,
     });
   },
-
-  exportNotice(body: NoticePageQuery) {
-    return request<Blob>({
-      url: `${API_PATH}/export`,
-      method: "post",
-      data: body,
-      responseType: "blob",
-    });
-  },
-
-  readNotice(id: number) {
-    return request<ApiResponse>({
-      url: `${API_PATH}/read/${id}`,
-      method: "post",
-    });
-  },
-
-  readAllNotice() {
-    return request<ApiResponse>({
-      url: `${API_PATH}/read-all`,
-      method: "post",
-    });
-  },
-
-  getUnreadCount() {
-    return request<ApiResponse<number>>({
-      url: `${API_PATH}/unread-count`,
-      method: "get",
-    });
-  },
-
-  getNotificationPanel() {
-    return request<ApiResponse<NotificationPanel>>({
-      url: `${API_PATH}/panel`,
-      method: "get",
-    });
-  },
 };
 
 export default NoticeAPI;
@@ -117,18 +80,4 @@ export interface NoticeForm extends BaseFormType {
   notice_content?: string;
   status?: number;
   description?: string;
-}
-
-export interface NotificationPanelMessage {
-  id?: number;
-  title: string;
-  content?: string;
-  time: string;
-  type?: string;
-}
-
-export interface NotificationPanel {
-  notices: NoticeTable[];
-  messages: NotificationPanelMessage[];
-  pendings: NotificationPanelMessage[];
 }

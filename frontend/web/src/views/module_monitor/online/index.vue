@@ -280,6 +280,15 @@ function handleClearAll() {
     }
   })();
 }
+
+// 在线用户列表自动刷新（30 秒轮询）
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  refreshTimer = setInterval(() => refreshData(), 30000);
+});
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
+});
 </script>
 
 <style lang="scss" scoped></style>

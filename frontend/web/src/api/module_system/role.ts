@@ -66,6 +66,13 @@ const RoleAPI = {
       responseType: "blob",
     });
   },
+
+  getRoleOptions() {
+    return request<ApiResponse<OptionType[]>>({
+      url: `${API_PATH}/options`,
+      method: "get",
+    });
+  },
 };
 
 export default RoleAPI;

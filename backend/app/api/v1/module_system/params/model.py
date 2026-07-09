@@ -5,8 +5,7 @@ from app.core.base_model import ModelMixin, TenantMixin, UserMixin
 
 
 class ParamsModel(ModelMixin, TenantMixin, UserMixin):
-    """
-    系统参数表
+    """系统参数表
 
     用于存储全局系统配置（如 retention_days、smtp 主机等）。
     平台参数（tenant_id=1）对所有租户共享；租户级参数仅本租户可见。
@@ -20,6 +19,7 @@ class ParamsModel(ModelMixin, TenantMixin, UserMixin):
         "deleted_by",
         "tenant_by",
     ]
+    __platform_data_shared__: bool = True
 
     config_name: Mapped[str] = mapped_column(String(64), nullable=False, comment="参数名称")
     config_key: Mapped[str] = mapped_column(String(500), nullable=False, comment="参数键名")

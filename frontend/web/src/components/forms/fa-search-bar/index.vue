@@ -7,6 +7,7 @@
       ref="formRef"
       :model="modelValue"
       :label-position="labelPosition"
+      @keyup.enter="emit('search', modelValue)"
       v-bind="{ ...$attrs }"
     >
       <ElRow :gutter="gutter">

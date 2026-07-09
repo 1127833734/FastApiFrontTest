@@ -42,8 +42,33 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { commentList, Comment } from "@/mock/temp/commentDetail";
 import { ElMessage } from "element-plus";
+
+interface Comment {
+  id: number;
+  author: string;
+  content: string;
+  timestamp: string;
+  replies: Comment[];
+}
+
+const mockCommentList: Comment[] = [
+  {
+    id: 1,
+    author: "白夜",
+    content: "黑神话悟空的打斗场面真的燃爆了！期待上线！",
+    timestamp: "2024-09-04 09:00",
+    replies: [
+      {
+        id: 101,
+        author: "星河",
+        content: "是啊，特别是那些技能特效，简直帅炸！",
+        timestamp: "2024-09-04 09:15",
+        replies: [],
+      },
+    ],
+  },
+];
 
 defineOptions({ name: "FaCommentWidget" });
 
@@ -65,7 +90,7 @@ const emit = defineEmits<Emits>();
 
 /** 内部评论数据（优先使用 props，否则使用 mock 数据） */
 const internalComments = ref<Comment[]>(
-  props.comments.length > 0 ? props.comments : commentList.value
+  props.comments.length > 0 ? props.comments : mockCommentList
 );
 
 const newComment = ref<Partial<Comment>>({

@@ -2,10 +2,27 @@
   <div class="flex flex-col relative last:mb-0">
     <FaDashboardSkeleton v-if="loading" />
     <template v-else>
+      <!-- 租户模式：状态横幅 -->
+      <div v-if="isTenantMode && workspace" class="mb-5">
+        <FaBasicBanner
+          :title="`${workspace.tenant.name}`"
+          :subtitle="`${workspace.package?.name || '暂无套餐'} · 剩余 ${workspace.tenant.days_remaining} 天 · ${workspace.tenant.status_label}`"
+          :boxStyle="tenantStatusStyle"
+          titleColor="var(--fa-gray-900)"
+          subtitleColor="var(--fa-gray-500)"
+          :decoration="false"
+        />
+      </div>
+
+      <!-- 租户模式：配额预警提示 -->
+      <div v-if="isTenantMode && workspace && quotaWarning" class="mb-5">
+        <ElAlert type="warning" :title="quotaWarning" show-icon :closable="false" />
+      </div>
+
       <!-- 左列：主内容区 | 右列：侧边栏 -->
       <ElRow :gutter="20">
         <ElCol :xs="24" :md="18">
-          <Banner class="mb-5" />
+          <Banner v-if="!isTenantMode" class="mb-5" />
 
           <ElRow :gutter="20">
             <ElCol :xs="24" :md="16">
@@ -14,7 +31,96 @@
                   <CardList />
                 </ElCol>
               </ElRow>
-              <ElRow :gutter="20">
+              <ElRow :gutter="20" v-if="isTenantMode && workspace">
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaStatsCard
+                    icon="ri:user-line"
+                    :iconStyle="
+                      workspace.quota.usage_percent.users >= 80 ? 'bg-warning' : 'bg-theme'
+                    "
+                    :boxStyle="
+                      workspace.quota.usage_percent.users >= 80 ? 'bg-warning/10!' : 'bg-theme/10!'
+                    "
+                    title="用户"
+                    :description="`上限 ${workspace.quota.max_users || '—'}`"
+                    :count="workspace.quota.current_users"
+                    :textColor="
+                      workspace.quota.usage_percent.users >= 80 ? '#e6a23c' : 'var(--theme-color)'
+                    "
+                    :showArrow="false"
+                  />
+                </ElCol>
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaStatsCard
+                    icon="ri:shield-user-line"
+                    :iconStyle="
+                      workspace.quota.usage_percent.roles >= 80 ? 'bg-warning' : 'bg-success'
+                    "
+                    :boxStyle="
+                      workspace.quota.usage_percent.roles >= 80
+                        ? 'bg-warning/10!'
+                        : 'bg-success/10!'
+                    "
+                    title="角色"
+                    :description="`上限 ${workspace.quota.max_roles || '—'}`"
+                    :count="workspace.quota.current_roles"
+                    :textColor="
+                      workspace.quota.usage_percent.roles >= 80
+                        ? '#e6a23c'
+                        : 'var(--el-color-success)'
+                    "
+                    :showArrow="false"
+                  />
+                </ElCol>
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaStatsCard
+                    icon="ri:organization-chart"
+                    :iconStyle="
+                      workspace.quota.usage_percent.depts >= 80 ? 'bg-warning' : 'bg-info'
+                    "
+                    :boxStyle="
+                      workspace.quota.usage_percent.depts >= 80 ? 'bg-warning/10!' : 'bg-info/10!'
+                    "
+                    title="部门"
+                    :description="`上限 ${workspace.quota.max_depts || '—'}`"
+                    :count="workspace.quota.current_depts"
+                    :textColor="
+                      workspace.quota.usage_percent.depts >= 80 ? '#e6a23c' : 'var(--el-color-info)'
+                    "
+                    :showArrow="false"
+                  />
+                </ElCol>
+              </ElRow>
+              <ElRow :gutter="20" v-if="isTenantMode && workspace">
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaProgressCard
+                    :percentage="workspace.quota.usage_percent.users"
+                    title="用户用量"
+                    :color="getQuotaColor(workspace.quota.usage_percent.users)"
+                    icon="ri:user-line"
+                    iconStyle="bg-theme/12 text-theme"
+                  />
+                </ElCol>
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaProgressCard
+                    :percentage="workspace.quota.usage_percent.roles"
+                    title="角色用量"
+                    :color="getQuotaColor(workspace.quota.usage_percent.roles)"
+                    icon="ri:shield-user-line"
+                    iconStyle="bg-success/12 text-success"
+                  />
+                </ElCol>
+                <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
+                  <FaProgressCard
+                    :percentage="workspace.quota.usage_percent.depts"
+                    title="部门用量"
+                    :color="getQuotaColor(workspace.quota.usage_percent.depts)"
+                    icon="ri:organization-chart"
+                    iconStyle="bg-info/12 text-info"
+                  />
+                </ElCol>
+              </ElRow>
+              <ElRow :gutter="20" v-else>
                 <ElCol :xs="24" :sm="8" :md="8" class="mb-5">
                   <FaStatsCard
                     :icon="'ri:money-cny-box-line'"
@@ -138,6 +244,7 @@
             @more="handleMore"
           />
           <TodoList class="mb-5" />
+          <HealthStatus />
         </ElCol>
       </ElRow>
 
@@ -181,15 +288,108 @@
 <script setup lang="ts">
 defineOptions({ name: "Home", inheritAttrs: false });
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import { useUserStore } from "@stores";
+import TenantAPI from "@/api/module_platform/tenant";
+import DashboardAPI from "@/api/module_monitor/dashboard";
+import type { WorkspaceData } from "@/api/module_platform/tenant";
+import type { DashboardStats, RecentLoginItem } from "@/api/module_monitor/dashboard";
 import FaDashboardSkeleton from "@/components/skeleton/fa-dashboard-skeleton.vue";
+import FaBasicBanner from "@/components/banners/fa-basic-banner/index.vue";
 import bannerIcon4 from "@imgs/3d/icon4.webp";
 import cover2 from "@imgs/cover/img2.webp";
 
 const loading = ref(true);
+const workspace = ref<WorkspaceData | null>(null);
+const dashboardStats = ref<DashboardStats | null>(null);
+const userStore = useUserStore();
+
+const isTenantMode = computed(() => userStore.workspaceMode === "tenant");
+
+const tenantStatusStyle = computed(() => {
+  if (!workspace.value) return "bg-theme/5!";
+  const status = workspace.value.tenant.status;
+  if (status === 3 || status === 4) return "bg-error/10!";
+  if (status === 2) return "bg-warning/10!";
+  if (status === 1) return "bg-info/10!";
+  return "bg-theme/5!";
+});
+
+const quotaWarning = computed(() => {
+  if (!workspace.value) return "";
+  const warnings: string[] = [];
+  const quota = workspace.value.quota;
+  if (quota.usage_percent.users >= 80) {
+    warnings.push(`用户用量已达 ${quota.usage_percent.users.toFixed(0)}%`);
+  }
+  if (quota.usage_percent.roles >= 80) {
+    warnings.push(`角色用量已达 ${quota.usage_percent.roles.toFixed(0)}%`);
+  }
+  if (quota.usage_percent.depts >= 80) {
+    warnings.push(`部门用量已达 ${quota.usage_percent.depts.toFixed(0)}%`);
+  }
+  if (warnings.length > 0) {
+    return `${warnings.join("、")}，即将达到套餐上限，请考虑升级套餐`;
+  }
+  return "";
+});
+
+function getQuotaColor(percent: number): string {
+  if (percent >= 90) return "#f56c6c";
+  if (percent >= 70) return "#e6a23c";
+  return "var(--theme-color)";
+}
+
+async function loadWorkspace() {
+  if (!isTenantMode.value) return;
+  try {
+    const { data: res } = await TenantAPI.getWorkspace();
+    workspace.value = (res?.data as WorkspaceData) || null;
+  } catch {
+    // ignore
+  }
+}
+
+async function loadDashboardStats() {
+  try {
+    const { data: res } = await DashboardAPI.getStats();
+    dashboardStats.value = (res?.data as DashboardStats) || null;
+    const s = dashboardStats.value;
+    if (s) {
+      // 更新最近活动
+      if (s.recent_logins?.length) {
+        dataList.value = s.recent_logins.slice(0, 6).map((log: RecentLoginItem) => ({
+          title: log.login_location ? `${log.username} · ${log.login_location}` : log.username,
+          status: log.status === 1 ? "成功" : "失败",
+          time: log.login_ip || "",
+          class: log.status === 1 ? "bg-success/12 text-success" : "bg-error/12 text-error",
+          icon: "ri:login-circle-line",
+        }));
+      }
+      // 更新最近交易时间线
+      if (s.recent_logins?.length) {
+        timelineData.value = s.recent_logins.map((log: RecentLoginItem) => ({
+          time: log.login_time
+            ? new Date(log.login_time).toLocaleString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          status: log.status === 1 ? "rgb(73, 190, 255)" : "rgb(255, 105, 105)",
+          content: `${log.username} - ${log.status === 1 ? "登录成功" : "登录失败"}`,
+        }));
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 onMounted(() => {
   loading.value = false;
+  loadWorkspace();
+  loadDashboardStats();
 });
 import FaCardBanner from "@/components/banners/fa-card-banner/index.vue";
 import FaImageCard from "@/components/cards/fa-image-card/index.vue";
@@ -206,6 +406,7 @@ import TodoList from "./modules/todo-list.vue";
 import CardList from "./modules/card-list.vue";
 import AboutProject from "./modules/about-project.vue";
 import QuickLinks from "./modules/quick-links.vue";
+import HealthStatus from "./modules/health-status.vue";
 
 function handleBannerDemoConfirm() {
   // TODO: 接入真实操作
@@ -225,7 +426,7 @@ const imageCards = {
   date: "12月20日 周二",
 };
 
-const dataList = [
+const dataList = ref([
   {
     title: "新加坡之行",
     status: "进行中",
@@ -268,8 +469,8 @@ const dataList = [
     class: "bg-error/12 text-error",
     icon: "ri:account-circle-line",
   },
-];
-const timelineData = [
+]);
+const timelineData = ref([
   {
     time: "上午 09:30",
     status: "rgb(73, 190, 255)",
@@ -318,7 +519,7 @@ const timelineData = [
     status: "rgb(103, 232, 207)",
     content: "完成日销售报表",
   },
-];
+]);
 
 function handleMore() {
   ElMessage.info("查看更多");

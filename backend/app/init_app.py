@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 
+from .config import path_conf
 from .config.setting import settings
 from .core.exceptions import handle_exception
 from .core.http_limit import WebSocketRateLimiter, limiter
@@ -44,10 +45,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
         logger.info("✅ 请求限流器初始化完成")
 
         console_start(
-            host=settings.SERVER_HOST, port=settings.SERVER_PORT,
-            reload=settings.ENVIRONMENT,
-            database_ready=True, redis_ready=True,
-            scheduler_ready=SchedulerUtil.is_running(), limiter_ready=True,
+            host=settings.SERVER_HOST,
+            port=settings.SERVER_PORT,
+            reload=settings.DEBUG,
+            database_ready=True,
+            redis_ready=True,
+            scheduler_ready=SchedulerUtil.is_running(),
+            limiter_ready=True,
         )
     except Exception as e:
         logger.error("❌ 应用初始化失败: {}", e)
@@ -63,6 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
         await import_modules_async(modules=settings.EVENT_LIST, desc="全局事件", app=app, status=False)
         logger.info("✅ 全局事件模块卸载完成")
         from app.core.database import async_engine
+
         await async_engine.dispose()
         logger.info("✅ 数据库引擎连接池已释放")
         console_end()
@@ -84,17 +89,23 @@ def register_exceptions(app: FastAPI) -> None:
 
 
 def register_routers(app: FastAPI) -> None:
+    from app.api.v1.module_ai import ai_router
     from app.api.v1.module_common import common_router
+    from app.api.v1.module_generator import generator_router
     from app.api.v1.module_monitor import monitor_router
     from app.api.v1.module_platform import platform_router
     from app.api.v1.module_system import system_router
+    from app.api.v1.module_task import task_router
 
     app.include_router(common_router)
     app.include_router(monitor_router)
     app.include_router(platform_router)
     app.include_router(system_router)
+    app.include_router(ai_router)
+    app.include_router(generator_router)
+    app.include_router(task_router)
 
-    from app.plugin.module_ai.chat.ws import WS_AI
+    from app.api.v1.module_ai.chat.ws import WS_AI
     app.include_router(router=WS_AI, dependencies=[Depends(WebSocketRateLimiter(max_calls=200, period=10))])
 
     from app.core.discover import dynamic_router
@@ -117,6 +128,7 @@ def register_docs(app: FastAPI) -> None:
     @app.get(swagger_ui_redirect_url, include_in_schema=False)
     async def swagger_ui_redirect():
         return get_swagger_ui_oauth2_redirect_html()
+
     swagger_ui_redirect.__slower_exempt__ = True
 
     @app.get(settings.DOCS_URL, include_in_schema=False)
@@ -129,6 +141,7 @@ def register_docs(app: FastAPI) -> None:
             swagger_css_url=settings.SWAGGER_CSS_URL,
             swagger_favicon_url=settings.FAVICON_URL,
         )
+
     custom_swagger_ui_html.__slower_exempt__ = True
 
     @app.get(settings.REDOC_URL, include_in_schema=False)
@@ -139,8 +152,9 @@ def register_docs(app: FastAPI) -> None:
             redoc_js_url=settings.REDOC_JS_URL,
             redoc_favicon_url=settings.FAVICON_URL,
         )
+
     custom_redoc_html.__slower_exempt__ = True
 
 
 def register_frontend(app: FastAPI) -> None:
-    app.frontend("/web", directory="dist", fallback="index.html", check_dir=True)
+    app.frontend("/web", directory=str(path_conf.FRONTEND_DIST_DIR), fallback="index.html", check_dir=True)

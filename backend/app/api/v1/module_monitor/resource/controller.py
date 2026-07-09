@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Body, File, Form, Query, Request, Security, UploadFile, status
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from app.api.v1.module_common.file.service import FileService
@@ -17,7 +17,7 @@ from .service import ResourceService
 ResourceRouter = APIRouter(route_class=OperationLogRoute, prefix="/resource", tags=["资源管理"])
 
 
-@ResourceRouter.get("/list", summary="获取目录列表", response_model=ResponseSchema[list[ResourceItemSchema]], dependencies=[Depends(AuthPermission(["module_monitor:resource:query"]))])
+@ResourceRouter.get("/list", summary="获取目录列表", response_model=ResponseSchema[list[ResourceItemSchema]], dependencies=[Security(AuthPermission(["module_monitor:resource:query"]))])
 async def get_directory_list_controller(
     request: Request,
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -32,7 +32,7 @@ async def get_directory_list_controller(
     return SuccessResponse(data=result_dict, msg="获取目录列表成功")
 
 
-@ResourceRouter.post("/upload", summary="上传文件", response_model=ResponseSchema[UploadResponseSchema], dependencies=[Depends(AuthPermission(["module_monitor:resource:upload"]))])
+@ResourceRouter.post("/upload", summary="上传文件", response_model=ResponseSchema[UploadResponseSchema], dependencies=[Security(AuthPermission(["module_monitor:resource:upload"]))])
 async def upload_file_controller(
     request: Request,
     file: Annotated[UploadFile, File(description="上传文件")],
@@ -47,7 +47,10 @@ async def upload_file_controller(
     return SuccessResponse(data=result, msg="上传文件成功")
 
 
-@ResourceRouter.get("/download", summary="下载文件", response_model=UploadFileResponse, dependencies=[Depends(AuthPermission(["module_monitor:resource:download"]))],
+@ResourceRouter.get(
+    "/download",
+    summary="下载文件",
+    dependencies=[Security(AuthPermission(["module_monitor:resource:download"]))],
 )
 async def download_file_controller(
     path: Annotated[str, Query(description="文件路径")],
@@ -65,7 +68,7 @@ async def download_file_controller(
     )
 
 
-@ResourceRouter.delete("/delete", summary="删除文件", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:resource:delete"]))])
+@ResourceRouter.delete("/delete", summary="删除文件", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:resource:delete"]))])
 async def delete_files_controller(
     paths: Annotated[list[str], Body(description="文件路径列表")],
 ) -> JSONResponse:
@@ -73,7 +76,7 @@ async def delete_files_controller(
     return SuccessResponse(msg="删除文件成功")
 
 
-@ResourceRouter.post("/move", summary="移动文件", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:resource:move"]))])
+@ResourceRouter.post("/move", summary="移动文件", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:resource:move"]))])
 async def move_file_controller(
     data: Annotated[ResourceMoveSchema, Body(description="移动文件参数")],
 ) -> JSONResponse:
@@ -81,7 +84,7 @@ async def move_file_controller(
     return SuccessResponse(msg="移动文件成功")
 
 
-@ResourceRouter.post("/copy", summary="复制文件", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:resource:copy"]))])
+@ResourceRouter.post("/copy", summary="复制文件", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:resource:copy"]))])
 async def copy_file_controller(
     data: Annotated[ResourceCopySchema, Body(description="复制文件参数")],
 ) -> JSONResponse:
@@ -89,7 +92,7 @@ async def copy_file_controller(
     return SuccessResponse(msg="复制文件成功")
 
 
-@ResourceRouter.post("/rename", summary="重命名文件", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:resource:rename"]))])
+@ResourceRouter.post("/rename", summary="重命名文件", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:resource:rename"]))])
 async def rename_file_controller(
     data: Annotated[ResourceRenameSchema, Body(description="重命名文件参数")],
 ) -> JSONResponse:
@@ -97,7 +100,7 @@ async def rename_file_controller(
     return SuccessResponse(msg="重命名文件成功")
 
 
-@ResourceRouter.post("/mkdir", summary="创建目录", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:resource:mkdir"]))])
+@ResourceRouter.post("/mkdir", status_code=status.HTTP_201_CREATED, summary="创建目录", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:resource:mkdir"]))])
 async def create_directory_controller(
     data: Annotated[ResourceCreateDirSchema, Body(description="创建目录参数")],
 ) -> JSONResponse:
@@ -105,11 +108,11 @@ async def create_directory_controller(
     return SuccessResponse(msg="创建目录成功")
 
 
-@ResourceRouter.post("/export", summary="导出资源列表", dependencies=[Depends(AuthPermission(["module_monitor:resource:export"]))])
+@ResourceRouter.post("/export", summary="导出资源列表", dependencies=[Security(AuthPermission(["module_monitor:resource:export"]))])
 async def export_resource_list_controller(
     request: Request,
     search: Annotated[ResourceSearchQueryParam, Query(description="资源查询参数")],
-) -> StreamingResponse[bytes]:
+) -> StreamingResponse:
     result_dict_list = await ResourceService.get_resources_list(search=search, base_url=str(request.base_url))
     export_result = await ResourceService.export_resource(data_list=result_dict_list)
 

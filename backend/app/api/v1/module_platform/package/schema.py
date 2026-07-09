@@ -93,15 +93,15 @@ class PackageOutSchema(PackageCreateSchema, BaseSchema):
 class PackageQueryParam(BaseQueryParam):
     """套餐查询参数"""
 
-    name: str | None = Field(None, description="套餐名称")
-    code: str | None = Field(None, description="套餐编码")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | tuple[str, str] | None = Field(None, description="套餐名称")
+    code: str | tuple[str, str] | None = Field(None, description="套餐编码")
+    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "PackageQueryParam":
-        if self.name:
+        if isinstance(self.name, str):
             self.name = (QueueEnum.like.value, self.name)
-        if self.code:
+        if isinstance(self.code, str):
             self.code = (QueueEnum.like.value, self.code)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
@@ -112,9 +112,3 @@ class PackageMenuSetSchema(BaseModel):
     """批量设置套餐菜单权限"""
 
     menu_ids: list[int] = Field(..., description="菜单ID列表")
-
-
-class PackagePluginSetSchema(BaseModel):
-    """批量设置套餐插件"""
-
-    plugin_ids: list[int] = Field(..., description="插件ID列表")

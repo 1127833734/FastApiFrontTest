@@ -9,6 +9,18 @@
       class="login-page-form"
       @keyup.enter="$emit('submit')"
     >
+      <ElFormItem prop="tenant_name">
+        <ElInput
+          class="custom-height"
+          v-model.trim="registerForm.tenant_name"
+          clearable
+          :placeholder="$t('login.placeholder.tenantName')"
+        >
+          <template #prefix>
+            <ElIcon><OfficeBuilding /></ElIcon>
+          </template>
+        </ElInput>
+      </ElFormItem>
       <ElFormItem prop="username">
         <ElInput
           class="custom-height"
@@ -108,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { Lock, Message, User } from "@element-plus/icons-vue";
+import { Lock, Message, OfficeBuilding, User } from "@element-plus/icons-vue";
 import type { RegisterForm } from "@/api/module_system/user";
 import type { FormRules } from "element-plus";
 

@@ -13,8 +13,7 @@ from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam,
 
 
 class DictTypeCreateSchema(BaseModel):
-    """
-    字典类型表对应pydantic模型
+    """字典类型表对应pydantic模型
     """
 
     dict_name: str = Field(..., min_length=1, max_length=64, description="字典名称")
@@ -32,8 +31,7 @@ class DictTypeCreateSchema(BaseModel):
     @field_validator("dict_name")
     @classmethod
     def validate_dict_name(cls, value: str):
-        """
-        校验字典名称为非空字符串。
+        """校验字典名称为非空字符串。
 
         参数:
         - value (str): 字典名称。
@@ -51,8 +49,7 @@ class DictTypeCreateSchema(BaseModel):
     @field_validator("dict_type")
     @classmethod
     def validate_dict_type(cls, value: str):
-        """
-        校验字典类型：小写字母开头，仅包含小写字母/数字/下划线。
+        """校验字典类型：小写字母开头，仅包含小写字母/数字/下划线。
 
         参数:
         - value (str): 字典类型。
@@ -84,15 +81,15 @@ class DictTypeOutSchema(DictTypeCreateSchema, BaseSchema, UserBySchema, TenantBy
 class DictTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典类型查询参数"""
 
-    dict_name: str | None = Field(default=None, description="字典名称", max_length=100)
-    dict_type: str | None = Field(default=None, description="字典类型", max_length=100)
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    dict_name: str | tuple[str, str] | None = Field(default=None, description="字典名称", max_length=100)
+    dict_type: str | tuple[str, str] | None = Field(default=None, description="字典类型", max_length=100)
+    status: int | tuple[str, int] | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "DictTypeQueryParam":
-        if self.dict_name:
+        if isinstance(self.dict_name, str):
             self.dict_name = (QueueEnum.like.value, self.dict_name)
-        if self.dict_type:
+        if isinstance(self.dict_type, str):
             self.dict_type = (QueueEnum.eq.value, self.dict_type)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
@@ -100,8 +97,7 @@ class DictTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
 
 
 class DictDataCreateSchema(BaseModel):
-    """
-    字典数据表对应pydantic模型
+    """字典数据表对应pydantic模型
     """
 
     dict_sort: int = Field(..., ge=1, le=999, description="排序")
@@ -124,8 +120,7 @@ class DictDataCreateSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_after(self):
-        """
-        校验并规范化字典数据字段（标签/键值/类型/类型ID）。
+        """校验并规范化字典数据字段（标签/键值/类型/类型ID）。
 
         返回:
         - DictDataCreateSchema: 校验与去空格后的同一实例。
@@ -163,19 +158,19 @@ class DictDataOutSchema(DictDataCreateSchema, BaseSchema, UserBySchema, TenantBy
 class DictDataQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典数据查询参数"""
 
-    dict_label: str | None = Field(default=None, description="字典标签", max_length=100)
-    dict_type: str | None = Field(default=None, description="字典类型", max_length=100)
-    dict_type_id: int | None = Field(default=None, description="字典类型ID")
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    dict_label: str | tuple[str, str] | None = Field(default=None, description="字典标签", max_length=100)
+    dict_type: str | tuple[str, str] | None = Field(default=None, description="字典类型", max_length=100)
+    dict_type_id: int | tuple[str, int] | None = Field(default=None, description="字典类型ID")
+    status: int | tuple[str, int] | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "DictDataQueryParam":
-        if self.dict_label:
+        if isinstance(self.dict_label, str):
             self.dict_label = (QueueEnum.like.value, self.dict_label)
-        if self.dict_type:
+        if isinstance(self.dict_type, str):
             self.dict_type = (QueueEnum.eq.value, self.dict_type)
+        if isinstance(self.dict_type_id, int):
+            self.dict_type_id = (QueueEnum.eq.value, self.dict_type_id)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
-        if self.dict_type_id is not None:
-            self.dict_type_id = (QueueEnum.eq.value, self.dict_type_id)
         return self

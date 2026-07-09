@@ -27,7 +27,7 @@ class MenuService:
     def __init__(self, auth: AuthSchema) -> None:
         self.auth = auth
 
-    async def _validate_parent_child_type(self, parent_id: int | None, child_type: int) -> None:
+    async def _validate_parent_child_type(self, parent_id: int | None, child_type: int | None) -> None:
         if parent_id is None:
             if child_type is None:
                 return
@@ -47,7 +47,7 @@ class MenuService:
         else:
             raise CustomException(msg="菜单或链接类型下不允许新增子菜单")
 
-    async def _validate_parent_child_client(self, parent_id: int | None, client: str) -> None:
+    async def _validate_parent_child_client(self, parent_id: int | None, client: str | None) -> None:
         if parent_id is None or client is None:
             return
         parent = await MenuCRUD(self.auth).get(id=parent_id)

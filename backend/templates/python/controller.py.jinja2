@@ -172,7 +172,7 @@ async def batch_set_available_obj_controller(
 async def export_obj_list_controller(
     search: Annotated[{{ class_name }}QueryParam, Query(description="查询参数")],
     auth: Annotated[AuthSchema, Depends(AuthPermission(["{{ permission_prefix }}:export"]))],
-) -> StreamingResponse[bytes]:
+) -> StreamingResponse:
     """
     导出{{ function_name }}
 
@@ -223,7 +223,7 @@ async def import_obj_list_controller(
     summary="获取{{ function_name }}导入模板",
     dependencies=[Depends(AuthPermission(["{{ permission_prefix }}:download"]))],
 )
-async def export_obj_template_controller() -> StreamingResponse[bytes]:
+async def export_obj_template_controller() -> StreamingResponse:
     """
     获取{{ function_name }}导入模板
 

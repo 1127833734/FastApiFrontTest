@@ -3,14 +3,14 @@ import time
 from collections.abc import AsyncGenerator
 from dataclasses import replace
 from functools import wraps
+from typing import Any
 
 from fastapi import Depends, Query, Request
 from redis.asyncio.client import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.common.enums import RedisInitKeyConfig
+from app.common.enums import RET, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema
 from app.core.database import async_db_session
@@ -31,9 +31,8 @@ async def db_getter() -> AsyncGenerator[AsyncSession, None]:
     一个 HTTP 请求内所有 SQL 共享同一个事务：要么全成功，要么全失败。
     读操作也走这个事务（牺牲一点 MVCC 隔离换取读已写一致性）。
     """
-    async with async_db_session() as session:
-        async with session.begin():
-            yield session
+    async with async_db_session() as session, session.begin():
+        yield session
 
 
 async def redis_getter(request: Request) -> Redis:
@@ -59,6 +58,7 @@ async def get_current_tenant_id() -> int | None:
     """
     return _get_ctx_tenant_id()
 
+
 async def _decode_token_info(token: str, redis: Redis) -> tuple[dict, str]:
     """解码 JWT token 返回 (user_info, session_id)
 
@@ -73,17 +73,15 @@ async def _decode_token_info(token: str, redis: Redis) -> tuple[dict, str]:
     """
     payload = decode_access_token(token)
     if not payload or not hasattr(payload, "is_refresh") or payload.is_refresh:
-        raise CustomException(msg="非法凭证", code=10401, status_code=401)
+        raise CustomException(msg="非法凭证", code=RET.INVALID_CREDENTIALS.code, status_code=401)
 
     session_id = payload.sub
     if not session_id:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
-    raw = await RedisCURD(redis).get(
-        f"{RedisInitKeyConfig.USER_SESSION.key}:{session_id}"
-    )
+    raw = await RedisCURD(redis).get(f"{RedisInitKeyConfig.USER_SESSION.key}:{session_id}")
     if not raw:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
     user_info = json.loads(raw)
     return user_info, session_id
@@ -96,11 +94,9 @@ async def _check_token_online(redis: Redis, session_id: str) -> None:
         redis: Redis 连接
         session_id: 会话 ID
     """
-    online_ok = await RedisCURD(redis).exists(
-        key=f"{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}"
-    )
+    online_ok = await RedisCURD(redis).exists(key=f"{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}")
     if not online_ok:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
 
 async def _try_sliding_refresh(redis: Redis, session_id: str) -> None:
@@ -113,9 +109,7 @@ async def _try_sliding_refresh(redis: Redis, session_id: str) -> None:
     if not settings.TOKEN_SLIDING_EXPIRE:
         return
 
-    ttl = await RedisCURD(redis).ttl(
-        key=f"{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}"
-    )
+    ttl = await RedisCURD(redis).ttl(key=f"{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}")
     # TTL 返回秒，配置也是秒，无需转换
     expire_seconds = settings.ACCESS_TOKEN_EXPIRE_SECONDS
     if ttl > 0 and ttl < expire_seconds // 2:
@@ -128,46 +122,6 @@ async def _try_sliding_refresh(redis: Redis, session_id: str) -> None:
             expire=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
         )
 
-async def _load_user_from_db(db: AsyncSession, username: str):
-    """从数据库加载用户（含角色、菜单、部门、职位全量预加载）
-
-    使用原始查询以绕过 CRUDBase 的权限过滤，确保用户认证阶段不受数据权限影响。
-    所有关系链均 eager-loaded，调用方可在会话关闭后安全访问对象属性。
-
-    参数:
-        db: 数据库会话
-        username: 用户名
-
-    返回:
-        UserModel: 已全量加载的用户 ORM 对象
-    """
-    from app.api.v1.module_system.role.model import RoleModel
-    from app.api.v1.module_system.user.model import UserModel
-
-    stmt = (
-        select(UserModel)
-        .options(
-            selectinload(UserModel.dept),
-            selectinload(UserModel.roles).selectinload(RoleModel.menus),
-            selectinload(UserModel.positions),
-            selectinload(UserModel.created_by),
-        )
-        .where(UserModel.username == username, UserModel.is_deleted == False)  # noqa: E712
-    )
-    result = await db.execute(stmt)
-    user = result.scalars().first()
-    if not user:
-        raise CustomException(msg="用户不存在", code=10401, status_code=401)
-    if user.status == 1:
-        raise CustomException(msg="用户已被停用", code=10401, status_code=401)
-
-    # 过滤不可用的角色和职位（在会话内完成，确保关联数据已加载）
-    if hasattr(user, "roles"):
-        user.roles = [role for role in user.roles if role and role.status]
-    if hasattr(user, "positions"):
-        user.positions = [pos for pos in user.positions if pos and pos.status]
-
-    return user
 
 async def get_current_user(
     request: Request,
@@ -187,7 +141,7 @@ async def get_current_user(
     - token (str): 访问令牌
 
     返回:
-    - AuthSchema: 认证信息模型
+    - AuthSchema: 已认证的信息模型
     """
     return await _authenticate(token, db, redis, request)
 
@@ -205,7 +159,7 @@ async def get_current_user_ws(
     - redis (Redis): Redis连接
 
     返回:
-    - AuthSchema: 认证信息模型
+    - AuthSchema: 已认证的信息模型
     """
     return await _authenticate(token, db, redis)
 
@@ -228,7 +182,7 @@ async def _authenticate(
     - AuthSchema: 认证信息模型
     """
     if not token:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
     # 处理Bearer token
     if token.startswith("Bearer"):
@@ -246,7 +200,7 @@ async def _authenticate(
 
     session_id = user_info.get("session_id")
     if not session_id:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
     # Redis 在线检查 + 滑动续期
     await _check_token_online(redis, session_id)
@@ -254,27 +208,45 @@ async def _authenticate(
 
     username = user_info.get("user_name")
     if not username:
-        raise CustomException(msg="认证已失效", code=10401, status_code=401)
-    tenant_id = user_info.get("tenant_id")
+        raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
-    # 用户查询使用独立只读会话（不参与请求事务，查询后立即释放快照）
-    async with async_db_session() as lookup_db:
-        user = await _load_user_from_db(lookup_db, username)
+    user_status = user_info.get("user_status", 0)
+    tenant_status = user_info.get("tenant_status", 0)
+    is_superuser = user_info.get("is_superuser", False)
+    tenant_id = user_info.get("tenant_id", 0)
+    user_id = user_info.get("user_id")
 
-    # 设置请求上下文（仅在当前 request 对象上，业务方通过 request.state.ctx 读取）
+    if user_status == 1:
+        raise CustomException(msg="用户已被停用", code=RET.UNAUTHORIZED.code, status_code=401)
+
+    from app.common.enums import TenantStatusEnum
+
+    if not is_superuser and tenant_id > 0:
+        if tenant_status == TenantStatusEnum.FROZEN:
+            raise CustomException(msg="租户已被冻结，请联系平台管理员", code=RET.FORBIDDEN.code, status_code=423)
+        if tenant_status == TenantStatusEnum.CANCELLED:
+            raise CustomException(msg="租户已注销", code=RET.FORBIDDEN.code, status_code=423)
+
     if request:
         request.state.ctx = replace(
             (getattr(request.state, "ctx", None) or RequestContext()),
-            user_id=user.id,
-            user_username=user.username,
+            user_id=user_id,
+            user_username=username,
             session_id=session_id,
             session_info=user_info,
         )
 
-    # 返回的 auth.db 指向请求级事务会话，供后续读写操作使用
-    auth = AuthSchema(db=db, tenant_id=tenant_id, check_data_scope=False)
-    auth.user = user
+    from app.api.v1.module_system.user.model import UserModel
+
+    stmt = select(UserModel).where(UserModel.id == user_id, UserModel.is_deleted == False)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if not user:
+        raise CustomException(msg="用户不存在", code=RET.NOT_FOUND.code, status_code=401)
+
+    auth = AuthSchema(db=db, check_data_scope=False, session_info=user_info, user=user)
     return auth
+
 
 async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int) -> list[int]:
     """获取租户可用菜单 ID，带 60s 进程级缓存
@@ -294,7 +266,7 @@ async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int) -> list[
 
     from app.api.v1.module_platform.package.service import PackageService
 
-    result = await PackageService.get_tenant_available_menu_ids(auth, tenant_id)
+    result = await PackageService(auth).get_tenant_available_menu_ids(tenant_id)
     _package_menu_cache[tenant_id] = (time.time(), result)
     return result
 
@@ -307,8 +279,7 @@ class AuthPermission:
         permissions: list[str] | None = None,
         check_data_scope: bool = True,
     ) -> None:
-        """
-        初始化权限验证
+        """初始化权限验证
 
         参数:
         - permissions (list[str] | None): 权限标识列表。
@@ -318,54 +289,38 @@ class AuthPermission:
         self.check_data_scope = check_data_scope
 
     async def __call__(self, auth: AuthSchema = Depends(get_current_user)) -> AuthSchema:
-        """
-        调用权限验证
+        """调用权限验证
 
         参数:
         - auth (AuthSchema): 认证信息对象。
 
         返回:
-        - AuthSchema: 认证信息对象。
+        - AuthSchema: 已认证的权限信息对象。
         """
-        # 用 model_copy 派生一份带正确 check_data_scope 的新实例（不修改原实例）
         auth = auth.model_copy(update={"check_data_scope": self.check_data_scope})
 
-        # 超级管理员直接通过
-        if auth.user and auth.user.is_superuser:
+        user = auth.user
+        if not user or not user.is_superuser:
             return auth
 
-        # 无需验证权限
         if not self.permissions:
             return auth
 
-        # 超级管理员权限标识
         if "*" in self.permissions or "*:*:*" in self.permissions:
             return auth
 
-        # 检查用户是否有角色
-        if not auth.user or not auth.user.roles:
-            raise CustomException(msg="无权限操作", code=10403, status_code=403)
+        user_permissions = set[Any](auth.session_info.get("permissions", [])) if auth.session_info else set()
 
-        # 收集角色权限（附带 menu_id 用于套餐过滤）
-        role_perms: dict[str, int] = {}
-        for role in auth.user.roles:
-            if role.status != 0:
-                continue
-            for menu in role.menus:
-                if menu.status == 0 and menu.permission:
-                    role_perms[menu.permission] = menu.id
+        if not user_permissions:
+            raise CustomException(msg="无权限操作", code=RET.FORBIDDEN.code, status_code=403)
 
-        if not role_perms:
-            raise CustomException(msg="无权限操作", code=10403, status_code=403)
-
-        # 租户用户：权限必须受套餐菜单约束（带 60s 进程级缓存）
-        if auth.tenant_id:
-            allowed_ids = set(await _get_cached_tenant_menu_ids(auth, auth.tenant_id))
-            user_permissions = {p for p, mid in role_perms.items() if mid in allowed_ids}
+        if user.tenant_id:
+            allowed_ids = set[int](await _get_cached_tenant_menu_ids(auth, user.tenant_id))
+            cached_perms = auth.session_info.get("permissions_with_menu", {}) if auth.session_info else {}
+            user_permissions = {p for p, mid in cached_perms.items() if mid in allowed_ids}
         else:
-            user_permissions = set(role_perms.keys())
+            user_permissions = set[Any](auth.session_info.get("permissions", [])) if auth.session_info else set()
 
-        # 权限验证 - 满足任一权限即可
         if not any(perm in user_permissions for perm in self.permissions):
             logger.error(f"用户缺少任何所需的权限: {self.permissions}")
             raise CustomException(msg="无权限操作", code=10403, status_code=403)
@@ -374,8 +329,7 @@ class AuthPermission:
 
 
 def require_superadmin(func):
-    """
-    装饰器：仅超级管理员可调用 Service 方法。
+    """装饰器：仅超级管理员可调用 Service 方法。
 
     自动校验 ``self.auth.user.is_superuser`` 属性，非超管直接抛出 403。
     适用于实例方法（``Service(auth).xxx(...)``），由 ``self.auth`` 取认证上下文。
@@ -389,6 +343,7 @@ def require_superadmin(func):
             async def create(self, data: ...) -> ...:
                 ...
     """
+
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
         if not self.auth.user or not self.auth.user.is_superuser:
@@ -396,3 +351,34 @@ def require_superadmin(func):
         return await func(self, *args, **kwargs)
 
     return wrapper
+
+
+class RequireTenantWrite:
+    """租户写权限依赖 — 拒绝 ARREARS/TRIAL 租户的写操作。
+
+    从 session_info 获取租户状态，无需查询数据库。
+
+    豁免场景：
+    - 平台管理员（is_superuser=True）
+    - 平台管理员代签入模式（session_info.is_impersonate=True）
+    """
+
+    async def __call__(self, auth: AuthSchema = Depends(get_current_user)) -> AuthSchema:
+        if not auth.user or auth.user.is_superuser:
+            return auth
+
+        is_impersonate = auth.session_info.get("is_impersonate", False) if auth.session_info else False
+        if is_impersonate:
+            return auth
+
+        from app.common.enums import TenantStatusEnum
+
+        user = auth.user
+        tenant_status = user.tenant.status if user.tenant else 0
+        if tenant_status in (TenantStatusEnum.ARREARS, TenantStatusEnum.TRIAL):
+            if tenant_status == TenantStatusEnum.ARREARS:
+                raise CustomException(msg="租户已欠费，仅允许查看操作，请联系平台管理员续费", code=RET.FORBIDDEN.code, status_code=423)
+            if tenant_status == TenantStatusEnum.TRIAL:
+                raise CustomException(msg="租户处于试用期，部分功能受限，请升级正式套餐", code=RET.FORBIDDEN.code, status_code=423)
+
+        return auth

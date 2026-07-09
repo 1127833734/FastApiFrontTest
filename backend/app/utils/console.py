@@ -20,8 +20,7 @@ def console_start(
     scheduler_ready: bool | None = None,
     limiter_ready: bool | None = None,
 ) -> None:
-    """
-    在终端输出 Rich 面板：服务信息、组件就绪状态与文档链接。
+    """在终端输出 Rich 面板：服务信息、组件就绪状态与文档链接。
 
     参数:
     - host (str): 监听主机。
@@ -35,7 +34,6 @@ def console_start(
     返回:
     - None
     """
-
     url = f"http://{host}:{port}"
     base_url = f"{url}{settings.ROOT_PATH}"
     docs_url = base_url + settings.DOCS_URL
@@ -99,8 +97,7 @@ def console_start(
 
 
 def console_end() -> None:
-    """
-    在终端输出服务关闭提示面板。
+    """在终端输出服务关闭提示面板。
 
     返回:
     - None

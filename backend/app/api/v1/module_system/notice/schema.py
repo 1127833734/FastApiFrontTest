@@ -63,34 +63,16 @@ class NoticeOutSchema(NoticeCreateSchema, BaseSchema, UserBySchema, TenantBySche
 class NoticeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """公告通知查询参数"""
 
-    notice_title: str | None = Field(None, description="公告标题")
-    notice_type: str | None = Field(None, description="公告类型")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    notice_title: str | tuple[str, str] | None = Field(None, description="公告标题")
+    notice_type: str | tuple[str, str] | None = Field(None, description="公告类型")
+    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "NoticeQueryParam":
-        if self.notice_title:
+        if isinstance(self.notice_title, str):
             self.notice_title = (QueueEnum.like.value, self.notice_title)
-        if self.notice_type:
+        if isinstance(self.notice_type, str):
             self.notice_type = (QueueEnum.eq.value, self.notice_type)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
         return self
-
-
-class PanelMessageItem(BaseModel):
-    """面板-消息项"""
-
-    id: int = Field(..., description="消息ID")
-    title: str = Field(..., description="标题")
-    content: str = Field(..., description="内容")
-    time: str = Field(..., description="时间")
-    type: str = Field(..., description="类型")
-
-
-class PanelDataOut(BaseModel):
-    """通知面板聚合数据"""
-
-    notices: list[NoticeOutSchema] = Field(default_factory=list, description="通知列表")
-    messages: list[PanelMessageItem] = Field(default_factory=list, description="消息列表")
-    pendings: list[dict] = Field(default_factory=list, description="待办列表")

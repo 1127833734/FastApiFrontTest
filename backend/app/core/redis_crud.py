@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from redis.asyncio.client import Redis
@@ -66,31 +65,23 @@ class RedisCURD:
             logger.error(f"获取缓存失败: {e!s}")
             return None
 
-    async def set(self, key: str, value: Any, expire: int | None = 86400) -> bool:
+    async def set(self, key: str, value: Any, expire: int | None = None) -> bool:
         """设置缓存
 
         参数:
         - key (str): 缓存键名
         - value (Any): 缓存值
-        - expire (int | None, optional): 过期时间,单位为秒,默认值为86400（24小时）。
+        - expire (int, optional): 过期时间,单位为秒,默认值为None
 
         返回:
         - bool: 如果设置缓存成功则返回True,否则返回False
         """
         try:
-            # 根据数据类型选择序列化方式
-            if isinstance(value, (int, float, str)):
-                data = str(value).encode("utf-8")
+            if expire:
+                await self.redis.set(name=key, value=value, ex=expire)
             else:
-                try:
-                    data = json.dumps(value).encode("utf-8")
-                except Exception as e:
-                    logger.error(f"序列化数据失败: {e!s}")
-                    return False
-
-            await self.redis.set(name=key, value=data, ex=expire)
+                await self.redis.set(name=key, value=value)
             return True
-
         except Exception as e:
             logger.error(f"设置缓存失败: {e!s}")
             return False
@@ -318,7 +309,7 @@ class RedisCURD:
         - bool: 如果设置哈希缓存成功则返回True,否则返回False
         """
         try:
-            await self.redis.hset(name=name, key=key, value=value)
+            await self.redis.hset(name=name, key=key, value=value)  # type: ignore[arg-type]
             return True
         except Exception as e:
             logger.error(f"设置哈希缓存失败: {e!s}")
@@ -335,7 +326,7 @@ class RedisCURD:
         - Awaitable[list[Any]] | list[Any]: 返回哈希缓存值列表,如果获取失败则返回空列表
         """
         try:
-            data = await self.redis.hmget(name=name, keys=keys)
+            data = await self.redis.hmget(name=name, keys=keys)  # type: ignore[arg-type]
             return data
         except Exception as e:
             logger.error(f"获取哈希缓存失败: {e!s}")

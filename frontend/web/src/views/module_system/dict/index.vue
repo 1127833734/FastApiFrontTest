@@ -243,6 +243,9 @@ const dictDetailItems: import("@/components/others/fa-descriptions/index.vue").D
     { label: "描述", prop: "description" },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
+    { label: "创建人", prop: "created_by.name" },
+    { label: "更新人", prop: "updated_by.name" },
+    { label: "所属租户", prop: "tenant_by.name" },
   ];
 
 const formData = ref<DictForm>({

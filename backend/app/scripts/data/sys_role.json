@@ -25,23 +25,5 @@
     "data_scope": 1,
     "description": "仅能查看和操作自己的数据",
     "tenant_id": 1
-  },
-  {
-    "name": "测试租户管理员",
-    "code": "TEST_ADMIN",
-    "order": 1,
-    "data_scope": 4,
-    "tenant_id": 2,
-    "status": 0,
-    "description": "测试租户管理员"
-  },
-  {
-    "name": "测试租户员工",
-    "code": "TEST_STAFF",
-    "order": 2,
-    "data_scope": 2,
-    "tenant_id": 2,
-    "status": 0,
-    "description": "测试租户普通员工"
   }
 ]

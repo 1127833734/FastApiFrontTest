@@ -33,10 +33,13 @@
             :perm-export="['module_system:param:export']"
             :perm-delete="['module_system:param:delete']"
             :delete-loading="batchDeleting"
+            :perm-patch="['module_system:params:update']"
+            :more-loading="moreLoading"
             :create-loading="createLoading"
             @add="handleAdd"
             @export="openExport"
             @delete="handleBatchDelete"
+            @more="handleMoreClick"
           />
         </template>
       </FaTableHeader>
@@ -116,7 +119,7 @@ import { useImportExport } from "@/hooks/core/useImportExport";
 import { useCrudDialog } from "@/hooks/core/useCrudDialog";
 import { useTableSelection } from "@/hooks/core/useTableSelection";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
+import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
 import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
 import type { ColumnOption } from "@/types/component";
 import ParamsAPI, {
@@ -233,6 +236,8 @@ const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
 
 const createLoading = ref(false);
 
+const moreLoading = ref(false);
+
 // ─── 对话框状态 ───
 const { dialogVisible } = useCrudDialog();
 
@@ -253,6 +258,9 @@ const paramDetailItems: import("@/components/others/fa-descriptions/index.vue").
     { label: "描述", prop: "description" },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
+    { label: "创建人", prop: "created_by.name" },
+    { label: "更新人", prop: "updated_by.name" },
+    { label: "所属租户", prop: "tenant_by.name" },
   ];
 
 const formData = ref<ConfigForm>({
@@ -531,6 +539,27 @@ async function handleBatchDelete() {
     // 用户取消
   } finally {
     batchDeleting.value = false;
+  }
+}
+
+async function handleMoreClick(status: number) {
+  const ids = selectedIds.value;
+  if (!ids.length) {
+    ElMessage.warning("请先选择要操作的数据");
+    return;
+  }
+  try {
+    await confirmToggleStatus(status);
+    moreLoading.value = true;
+    await ParamsAPI.batchParams({ ids, status });
+    configStore.isConfigLoaded = false;
+    await configStore.getConfig();
+    faTableRef.value?.elTableRef?.clearSelection();
+    await refreshData();
+  } catch {
+    // 用户取消
+  } finally {
+    moreLoading.value = false;
   }
 }
 </script>

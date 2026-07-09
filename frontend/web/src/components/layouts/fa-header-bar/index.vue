@@ -9,6 +9,14 @@
     ]"
   >
     <div
+      v-if="isImpersonate"
+      class="h-8 bg-warning/10 flex items-center justify-center gap-2 text-sm text-warning border-b border-warning/20"
+    >
+      <FaSvgIcon icon="ri:shield-alert-line" class="text-warning" />
+      <span>当前为平台管理员代签入模式 · 租户：{{ impersonateTenantName }}</span>
+      <ElButton type="primary" size="small" @click="handleExitImpersonate">退出工作区</ElButton>
+    </div>
+    <div
       class="relative box-border flex justify-between h-15 leading-15 select-none"
       :class="[
         tabStyle === 'tab-card' || tabStyle === 'tab-google' || tabStyle === 'tab-default'
@@ -134,7 +142,14 @@
           class="notice-button relative"
           @click="visibleNotice"
         >
-          <div class="absolute top-2 right-2 size-1.5 bg-danger! rounded-full"></div>
+          <ElBadge
+            v-if="noticeStore.total > 0"
+            :value="noticeStore.total > 99 ? '99+' : noticeStore.total"
+            :max="99"
+            class="absolute top-0 right-0"
+          >
+            <div class="size-1.5"></div>
+          </ElBadge>
         </FaIconButton>
 
         <!-- 聊天按钮 -->
@@ -195,7 +210,13 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useFullscreen, useWindowSize } from "@vueuse/core";
 import { LanguageEnum, MenuTypeEnum } from "@/enums/appEnum";
-import { useSettingsStore, useMenuStore, useUserStore, useConfigStore } from "@stores";
+import {
+  useSettingsStore,
+  useMenuStore,
+  useUserStore,
+  useNoticeStore,
+  useConfigStore,
+} from "@stores";
 import AppConfig from "@/config";
 import { languageOptions } from "@/locales";
 import { mittBus, themeAnimation } from "@utils";
@@ -217,6 +238,7 @@ const settingStore = useSettingsStore();
 const userStore = useUserStore();
 const menuStore = useMenuStore();
 const configStore = useConfigStore();
+const noticeStore = useNoticeStore();
 
 /** 租户配置：tenant_logo / tenant_name */
 const headerLogoSrc = computed(() => {
@@ -251,10 +273,20 @@ const { menuOpen, systemThemeColor, showSettingGuide, menuType, isDark, tabStyle
   storeToRefs(settingStore);
 
 const { language } = storeToRefs(userStore);
-const { menuList } = storeToRefs(menuStore);
+const { visibleMenus: menuList } = storeToRefs(menuStore);
 
 const showNotice = ref(false);
 const notice = ref(null);
+
+const isImpersonate = computed(() => userStore.info.is_impersonate === true);
+
+const impersonateTenantName = computed(() => {
+  return userStore.workspaceTenant?.name || userStore.currentTenant?.name || "未知";
+});
+
+async function handleExitImpersonate() {
+  await userStore.exitTenantWorkspace();
+}
 
 // 菜单类型判断
 const isLeftMenu = computed(() => menuType.value === MenuTypeEnum.LEFT);

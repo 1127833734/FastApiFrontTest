@@ -155,7 +155,7 @@
             />
           </template>
           <template #role_ids>
-            <ElSelect v-model="formData.role_ids" multiple placeholder="请选择角色">
+            <ElSelect v-model="formData.role_ids" multiple placeholder="请选择角色" filterable>
               <ElOption
                 v-for="item in roleOptions"
                 :key="item.value"
@@ -166,7 +166,7 @@
             </ElSelect>
           </template>
           <template #position_ids>
-            <ElSelect v-model="formData.position_ids" multiple placeholder="请选择岗位">
+            <ElSelect v-model="formData.position_ids" multiple placeholder="请选择岗位" filterable>
               <ElOption
                 v-for="item in positionOptions"
                 :key="item.value"
@@ -386,6 +386,7 @@ const userDetailItems: DescriptionsItem[] = [
   { label: "更新人", prop: "updated_by.name" },
   { label: "创建时间", prop: "created_time" },
   { label: "更新时间", prop: "updated_time" },
+  { label: "所属租户", prop: "tenant_by.name" },
   { label: "描述", prop: "description", span: 4 },
 ];
 
@@ -710,9 +711,22 @@ const formData = ref<UserForm>({
 const { dialogVisible } = useCrudDialog();
 
 const rules = reactive({
-  username: [{ required: true, message: "请输入账号", trigger: "blur" }],
-  name: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+  username: [
+    { required: true, message: "请输入账号", trigger: "blur" },
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_.-]{1,31}$/,
+      message: "账号需以字母开头，2-32位字母/数字/_.-",
+      trigger: "blur",
+    },
+  ],
+  name: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+    { max: 32, message: "用户名不能超过32位", trigger: "blur" },
+  ],
+  password: [
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 6, message: "密码不能少于6位", trigger: "blur" },
+  ],
   gender: [{ required: false, message: "请选择性别", trigger: "blur" }],
   email: [
     {
@@ -723,7 +737,7 @@ const rules = reactive({
   ],
   mobile: [
     {
-      pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/,
+      pattern: /^1[3-9]\d{9}$/,
       message: "请输入正确的手机号码",
       trigger: "blur",
     },
@@ -843,27 +857,12 @@ async function handleOpenDialog(type: "create" | "update" | "detail", id?: numbe
   const deptResponse = await DeptAPI.listDept({});
   deptOptions.value = formatTree(deptResponse.data.data);
 
-  const roleResponse = await RoleAPI.listRole();
-  const roleRows = roleResponse.data.data.items ?? [];
-  roleOptions.value = roleRows
-    .filter((item) => item.id !== undefined && item.name !== undefined)
-    .map((item) => ({
-      value: item.id as number,
-      label: item.name as string,
-      disabled: item.status === 1,
-    }))
-    .filter((opt) => !opt.disabled);
-
-  const positionResponse = await PositionAPI.listPosition();
-  const positionRows = positionResponse.data.data.items ?? [];
-  positionOptions.value = positionRows
-    .filter((item) => item.id !== undefined && item.name !== undefined)
-    .map((item) => ({
-      value: item.id as number,
-      label: item.name as string,
-      disabled: item.status === 1,
-    }))
-    .filter((opt) => !opt.disabled);
+  const [roleRes, positionRes] = await Promise.all([
+    RoleAPI.getRoleOptions(),
+    PositionAPI.getPositionOptions(),
+  ]);
+  roleOptions.value = (roleRes.data.data ?? []) as typeof roleOptions.value;
+  positionOptions.value = (positionRes.data.data ?? []) as typeof positionOptions.value;
 }
 
 async function handleSubmit() {

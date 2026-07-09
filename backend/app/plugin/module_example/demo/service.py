@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import UploadFile
 
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.excel_util import ExcelUtil
@@ -42,13 +42,13 @@ class DemoService:
         page_size: int,
         search: DemoQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[DemoOutSchema]:
         offset = (page_no - 1) * page_size
         return await DemoCRUD(self.auth).page(
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
-            search=vars(search) if search else None,
+            search=vars(search) if search else {},
             out_schema=DemoOutSchema,
         )
 
@@ -149,21 +149,26 @@ class DemoService:
                         error_msgs.append(f"第{i}行: 状态必须是'正常'或'停用'")
                         continue
 
-                    data = {
-                        "name": str(row["name"]),
-                        "status": status,
-                        "description": str(row["description"] or ""),
-                    }
+                    create_data = DemoCreateSchema(
+                        name=str(row["name"]),
+                        status=status,
+                        description=str(row["description"] or ""),
+                    )
 
-                    exists_obj = await DemoCRUD(self.auth).get(name=data["name"])
+                    exists_obj = await DemoCRUD(self.auth).get(name=create_data.name)
                     if exists_obj:
                         if update_support:
-                            await DemoCRUD(self.auth).update(id=exists_obj.id, data=data)
+                            update_data = DemoUpdateSchema(
+                                name=create_data.name,
+                                status=create_data.status,
+                                description=create_data.description,
+                            )
+                            await DemoCRUD(self.auth).update(id=exists_obj.id, data=update_data)
                             success_count += 1
                         else:
-                            error_msgs.append(f"第{i}行: 对象 {data['name']} 已存在")
+                            error_msgs.append(f"第{i}行: 对象 {create_data.name} 已存在")
                     else:
-                        await DemoCRUD(self.auth).create(data=data)
+                        await DemoCRUD(self.auth).create(data=create_data)
                         success_count += 1
 
                 except Exception as e:

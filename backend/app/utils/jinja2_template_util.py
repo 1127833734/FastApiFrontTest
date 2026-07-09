@@ -17,14 +17,12 @@ from app.utils.string_util import StringUtil
 
 
 class Jinja2TemplateUtil:
-    """
-    模板处理工具类
+    """模板处理工具类
     """
 
     @classmethod
     def normalize_db_column_type_for_mapping(cls, column_type: str | None) -> str:
-        """
-        与 ``GenUtils.get_db_type`` 一致地去掉 COLLATE / UNSIGNED，便于与 ``DB_TO_SQLALCHEMY`` 键匹配。
+        """与 ``GenUtils.get_db_type`` 一致地去掉 COLLATE / UNSIGNED，便于与 ``DB_TO_SQLALCHEMY`` 键匹配。
 
         参数:
         - column_type (str | None): 原始列类型字符串。
@@ -52,8 +50,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_env(cls):
-        """
-        获取模板环境对象。
+        """获取模板环境对象。
 
         参数:
         - 无
@@ -77,7 +74,7 @@ class Jinja2TemplateUtil:
                         "snake_to_camel": CamelCaseUtil.snake_to_camel,
                         "get_sqlalchemy_type": cls.get_sqlalchemy_type,
                         "python_to_ts_type": cls.python_type_to_ts_type,
-                    }
+                    },
                 )
             return cls._env
         except Exception as e:
@@ -85,8 +82,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_template(cls, template_path: str) -> Template:
-        """
-        获取模板。
+        """获取模板。
 
         参数:
         - template_path (str): 模板路径。
@@ -101,8 +97,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def business_name_to_slug(cls, business_name: str | None) -> str:
-        """
-        业务路径可含斜杠（如 ``demo/subdir``）用于目录与路由前缀；
+        """业务路径可含斜杠（如 ``demo/subdir``）用于目录与路由前缀；
         Python 函数/方法名仅使用最后一段并规范为合法 snake_case 片段。
 
         参数:
@@ -152,8 +147,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def prepare_context(cls, gen_table: GenTableOutSchema) -> dict[str, Any]:
-        """
-        准备模板变量。
+        """准备模板变量。
 
         参数:
         - gen_table (GenTableOutSchema): 生成表的配置信息。
@@ -181,12 +175,8 @@ class Jinja2TemplateUtil:
 
         _cols = gen_table.columns or []
         table_column_names = frozenset(c.column_name for c in _cols if getattr(c, "column_name", None))
-        has_dict_column = any(
-            getattr(c, "dict_type", None) for c in _cols
-        )
-        has_image_column = any(
-            getattr(c, "html_type", None) == "imageUpload" for c in _cols
-        )
+        has_dict_column = any(getattr(c, "dict_type", None) for c in _cols)
+        has_image_column = any(getattr(c, "html_type", None) == "imageUpload" for c in _cols)
 
         sub_class_name = ""
         sub_model_class_name = ""
@@ -248,8 +238,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_menu_route_first_segment(cls, gen_table: GenTableOutSchema) -> str:
-        """
-        前端页面路由首段（与写入菜单 ``route_path`` 第一段一致）：始终为 ``module_xxx``。
+        """前端页面路由首段（与写入菜单 ``route_path`` 第一段一致）：始终为 ``module_xxx``。
 
         懒加载 ``GenTableService`` 避免与 ``service`` 模块循环依赖。
 
@@ -270,8 +259,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def prepare_sub_render_context(cls, parent: GenTableOutSchema, sub: GenTableOutSchema) -> dict[str, Any]:
-        """
-        子表业务代码渲染上下文（与主表同模块、独立业务目录）。
+        """子表业务代码渲染上下文（与主表同模块、独立业务目录）。
 
         参数:
         - parent (GenTableOutSchema): 主表配置。
@@ -296,8 +284,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_template_list(cls):
-        """
-        获取主表模板列表。
+        """获取主表模板列表。
 
         参数:
         - 无
@@ -318,8 +305,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_sub_table_template_list(cls):
-        """
-        获取子表模板列表（仅 model / schema / __init__，不含 controller/service/crud/vue/api）。
+        """获取子表模板列表（仅 model / schema / __init__，不含 controller/service/crud/vue/api）。
 
         参数:
         - 无
@@ -335,8 +321,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_file_name(cls, template: str, gen_table: GenTableOutSchema):
-        """
-        根据模板生成文件名。
+        """根据模板生成文件名。
 
         参数:
         - template (str): 模板路径字符串。
@@ -386,8 +371,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_package_prefix(cls, package_name: str) -> str:
-        """
-        获取包前缀。
+        """获取包前缀。
 
         参数:
         - package_name (str): 包名。
@@ -400,8 +384,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_schema_import_list(cls, gen_table: GenTableOutSchema):
-        """
-        获取 schema 模板所需的 Python 导入语句集合。
+        """获取 schema 模板所需的 Python 导入语句集合。
 
         参数:
         - gen_table (GenTableOutSchema): 生成表配置（含主子表列）。
@@ -453,8 +436,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_model_import_list(cls, gen_table: GenTableOutSchema, *, is_sub_entity: bool = False) -> list[str]:
-        """
-        获取 model 模板所需的 Python 导入语句列表（含合并后的 sqlalchemy 导入）。
+        """获取 model 模板所需的 Python 导入语句列表（含合并后的 sqlalchemy 导入）。
 
         参数:
         - gen_table (GenTableOutSchema): 生成表配置。
@@ -471,9 +453,16 @@ class Jinja2TemplateUtil:
 
         # 基类 ModelMixin/TenantMixin/UserMixin 已定义的列，无需导入 SQLAlchemy 类型
         _BASE_MODEL_COLUMNS = {
-            'id', 'uuid', 'tenant_id',
-            'created_time', 'updated_time', 'created_id', 'updated_id',
-            'is_deleted', 'deleted_time', 'deleted_id',
+            "id",
+            "uuid",
+            "tenant_id",
+            "created_time",
+            "updated_time",
+            "created_id",
+            "updated_id",
+            "is_deleted",
+            "deleted_time",
+            "deleted_id",
         }
 
         for column in columns:
@@ -530,8 +519,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
-        """
-        获取数据库字段类型。
+        """获取数据库字段类型。
 
         参数:
         - column_type (str): 字段类型字符串。
@@ -560,8 +548,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def merge_same_imports(cls, imports: list[str], import_start: str) -> list[str]:
-        """
-        合并相同的导入语句。
+        """合并相同的导入语句。
 
         参数:
         - imports (list[str]): 导入语句列表。
@@ -590,8 +577,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_dicts(cls, gen_table: GenTableOutSchema):
-        """
-        获取字典列表。
+        """获取字典列表。
 
         参数:
         - gen_table (GenTableOutSchema): 生成表的配置信息。
@@ -611,8 +597,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def add_dicts(cls, dicts: set[str], columns: list[GenTableColumnOutSchema]) -> None:
-        """
-        添加字典类型到集合。
+        """添加字典类型到集合。
 
         参数:
         - dicts (set[str]): 字典类型集合。
@@ -642,8 +627,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_permission_prefix(cls, module_name: str | None, business_name: str | None) -> str:
-        """
-        获取权限前缀。
+        """获取权限前缀。
 
         参数:
         - module_name (str | None): 模块名。
@@ -660,8 +644,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def python_type_to_ts_type(cls, python_type: str | None) -> str:
-        """
-        将列上的 Python 类型（`get_db_type` + `DB_TO_PYTHON` 映射结果）转为前端 TS 类型片段。
+        """将列上的 Python 类型（`get_db_type` + `DB_TO_PYTHON` 映射结果）转为前端 TS 类型片段。
 
         与 JSON 序列化习惯一致：Decimal、日期时间多为字符串；dict/list 用宽松类型。
 
@@ -692,8 +675,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_api_route_prefix(cls, module_name: str | None) -> str:
-        """
-        获取前端 API 路径首段，与 `discover` 中插件路由前缀一致（`module_xxx` → `xxx`）。
+        """获取前端 API 路径首段，与 `discover` 中插件路由前缀一致（`module_xxx` → `xxx`）。
 
         参数:
         - module_name (str | None): 模块名，如 ``module_example``。
@@ -709,8 +691,7 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_sqlalchemy_type(cls, column: Any) -> str:
-        """
-        获取 SQLAlchemy 类型。
+        """获取 SQLAlchemy 类型。
 
         参数:
         - column (Any): 列对象或列类型字符串。
@@ -743,17 +724,15 @@ class Jinja2TemplateUtil:
         if settings.DATABASE_TYPE == "postgres":
             if column_type.upper() == "BOOLEAN":
                 return "Boolean"
-            elif column_type.upper() == "REAL":
+            if column_type.upper() == "REAL" or column_type.upper() == "DOUBLE PRECISION":
                 return "Float"
-            elif column_type.upper() == "DOUBLE PRECISION":
-                return "Float"
-            elif column_type.upper() == "TIMESTAMP":
+            if column_type.upper() == "TIMESTAMP":
                 return "DateTime"
-            elif column_type.upper() == "JSONB":
+            if column_type.upper() == "JSONB":
                 return "JSONB"
-            elif column_type.upper() == "UUID":
+            if column_type.upper() == "UUID":
                 return "Uuid"
-            elif column_type.upper() == "BYTEA":
+            if column_type.upper() == "BYTEA":
                 return "LargeBinary"
 
         # get_mapping_value_by_key_ignore_case 未命中时返回 ""，须与 None 同样视为未匹配
@@ -766,10 +745,7 @@ class Jinja2TemplateUtil:
                 col_type = "char"
             sqlalchemy_type = StringUtil.get_mapping_value_by_key_ignore_case(GenConstant.DB_TO_SQLALCHEMY, col_type)
             # 如果是字符串类型且包含括号参数，保持原参数
-            if sqlalchemy_type in ["String", "CHAR"]:
-                sqlalchemy_type += "(" + column_type_list[1]
-            # 如果是Numeric或DECIMAL类型且包含括号参数，保持原参数
-            elif sqlalchemy_type in ["Numeric", "DECIMAL"]:
+            if sqlalchemy_type in ["String", "CHAR"] or sqlalchemy_type in ["Numeric", "DECIMAL"]:
                 sqlalchemy_type += "(" + column_type_list[1]
         elif not sqlalchemy_type:
             # 处理没有括号的类型
@@ -782,12 +758,11 @@ class Jinja2TemplateUtil:
             if sqlalchemy_type in ["String", "CHAR"]:
                 length = column_length if column_length and column_length.isdigit() else "255"
                 sqlalchemy_type += f"({length})"
-        else:
-            # 对于已经匹配到的类型，如果是字符串类型且column有长度信息，添加长度
-            if sqlalchemy_type in ["String", "CHAR"] and "(" not in sqlalchemy_type:
-                # 检查column_length是否有效
-                length = column_length if column_length and column_length.isdigit() else "255"
-                sqlalchemy_type += f"({length})"
+        # 对于已经匹配到的类型，如果是字符串类型且column有长度信息，添加长度
+        elif sqlalchemy_type in ["String", "CHAR"] and "(" not in sqlalchemy_type:
+            # 检查column_length是否有效
+            length = column_length if column_length and column_length.isdigit() else "255"
+            sqlalchemy_type += f"({length})"
 
         # 如果没有找到匹配的类型，使用String(column_length)或String(255)作为默认类型
         if not sqlalchemy_type:

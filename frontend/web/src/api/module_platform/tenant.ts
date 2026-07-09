@@ -177,15 +177,6 @@ const TenantAPI = {
       method: "get",
     });
   },
-
-  /** 购买付费插件 */
-  purchasePlugin(body: { plugin_id: number; pay_method?: string }) {
-    return request<ApiResponse<{ id: number; order_no: string }>>({
-      url: `${API_PATH}/plugin/purchase`,
-      method: "post",
-      data: body,
-    });
-  },
 };
 
 export default TenantAPI;

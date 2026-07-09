@@ -52,6 +52,21 @@
         </ul>
       </ElScrollbar>
 
+      <!-- 工作区模式指示器 -->
+      <div class="workspace-indicator" :class="{ 'is-collapsed': !menuOpen }">
+        <FaSvgIcon
+          :icon="isPlatformMode ? 'ri:shield-user-fill' : 'ri:building-2-fill'"
+          class="indicator-icon"
+        />
+        <span v-show="menuOpen" class="indicator-label">
+          {{
+            isPlatformMode
+              ? "平台管理"
+              : workspaceTenant?.name || currentTenant?.name || sidebarTitle
+          }}
+        </span>
+      </div>
+
       <FaIconButton
         class="switch-btn size-10"
         icon="ri:arrow-left-right-fill"
@@ -126,7 +141,7 @@
 
 <script setup lang="ts">
 import AppConfig from "@/config";
-import { useConfigStore, useSettingsStore, useMenuStore } from "@stores";
+import { useConfigStore, useSettingsStore, useMenuStore, useUserStore } from "@stores";
 import { MenuTypeEnum, MenuWidth } from "@/enums/appEnum";
 import { isIframe, handleMenuJump } from "@utils";
 import SidebarSubmenu from "./widgets/FaSidebarSubmenu.vue";
@@ -143,6 +158,7 @@ const route = useRoute();
 const router = useRouter();
 const settingStore = useSettingsStore();
 const configStore = useConfigStore();
+const userStore = useUserStore();
 
 /** 租户配置：tenant_logo / tenant_name */
 const sidebarLogoSrc = computed(() => {
@@ -165,6 +181,8 @@ const {
   getMenuTheme,
   showAppLogo,
 } = storeToRefs(settingStore);
+
+const { isPlatformMode, workspaceTenant, currentTenant } = storeToRefs(userStore);
 
 // 组件内部状态
 const defaultOpenedMenus = ref<string[]>([]);
@@ -193,12 +211,12 @@ const routerPath = computed(() => String(route.meta.activePath || route.path));
 
 // 菜单数据
 const firstLevelMenus = computed(() => {
-  return useMenuStore().menuList.filter((menu) => !menu.meta.isHide);
+  return useMenuStore().visibleMenus.filter((menu) => !menu.meta.isHide);
 });
 
 const menuList = computed(() => {
   const menuStore = useMenuStore();
-  const allMenus = menuStore.menuList;
+  const allMenus = menuStore.visibleMenus;
 
   // 如果不是顶部左侧菜单或双列菜单，直接返回完整菜单列表
   if (!isTopLeftMenu.value && !isDualMenu.value) {
@@ -541,6 +559,34 @@ watch(menuOpen, (isMenuOpen: boolean) => {
 
   .menu-model {
     display: none;
+  }
+
+  .workspace-indicator {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 40px;
+    padding: 0 20px;
+    color: var(--el-text-color-secondary);
+    border-top: 1px solid var(--fa-card-border);
+
+    .indicator-icon {
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+
+    .indicator-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    &.is-collapsed {
+      justify-content: center;
+      padding: 0;
+    }
   }
 }
 

@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
-from app.common.constant import RET
+from app.common.enums import RET
 from app.common.response import ErrorResponse
 from app.core.logger import logger
 
@@ -47,8 +47,11 @@ def handle_exception(app: FastAPI) -> None:
     async def custom_exception_handler(request: Request, exc: CustomException) -> JSONResponse:
         logger.error(
             "[自定义异常] {} {} | code={} | msg={} | data={}",
-            request.method, request.url.path,
-            exc.code, exc.msg, exc.data,
+            request.method,
+            request.url.path,
+            exc.code,
+            exc.msg,
+            exc.data,
         )
         return ErrorResponse(msg=exc.msg, code=exc.code, status_code=exc.status_code, data=exc.data)
 
@@ -56,7 +59,10 @@ def handle_exception(app: FastAPI) -> None:
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         logger.error(
             "[HTTP异常] {} {} | status_code={} | detail={}",
-            request.method, request.url.path, exc.status_code, exc.detail,
+            request.method,
+            request.url.path,
+            exc.status_code,
+            exc.detail,
         )
         return ErrorResponse(msg=exc.detail, status_code=exc.status_code)
 
@@ -68,7 +74,9 @@ def handle_exception(app: FastAPI) -> None:
             msg = msg[11:].lstrip(" ,")
         logger.error(
             "[参数验证异常] {} {} | errors={}",
-            request.method, request.url.path, errors,
+            request.method,
+            request.url.path,
+            errors,
         )
         return ErrorResponse(msg=str(msg), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, data=errors)
 
@@ -76,7 +84,9 @@ def handle_exception(app: FastAPI) -> None:
     async def response_validation_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
         logger.error(
             "[响应验证异常] {} {} | errors={}",
-            request.method, request.url.path, exc.errors(),
+            request.method,
+            request.url.path,
+            exc.errors(),
         )
         return ErrorResponse(msg="服务器响应格式错误", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, data=exc.body)
 
@@ -85,7 +95,10 @@ def handle_exception(app: FastAPI) -> None:
         exc_type = type(exc).__name__
         logger.error(
             "[数据库异常] %s %s | type=%s | detail=%s",
-            request.method, request.url.path, exc_type, exc,
+            request.method,
+            request.url.path,
+            exc_type,
+            exc,
         )
 
         if isinstance(exc, IntegrityError):
@@ -113,6 +126,9 @@ def handle_exception(app: FastAPI) -> None:
         exc_type = type(exc).__name__
         logger.error(
             "[未捕获异常] {} {} | type={} | detail={}",
-            request.method, request.url.path, exc_type, exc,
+            request.method,
+            request.url.path,
+            exc_type,
+            exc,
         )
         return ErrorResponse(msg="服务器内部错误", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

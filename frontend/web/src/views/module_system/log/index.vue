@@ -219,12 +219,14 @@ const activeTab = ref<"operation" | "login">("operation");
 
 type OpSearchForm = {
   request_path?: string;
+  request_ip?: string;
   created_id?: number;
   created_time?: string[];
 };
 
 const opSearchForm = ref<OpSearchForm>({
   request_path: undefined,
+  request_ip: undefined,
   created_id: undefined,
   created_time: undefined,
 });
@@ -241,11 +243,20 @@ const opSearchItems = computed<SearchFormItem[]>(() => [
     clearable: true,
     span: 6,
   },
+  {
+    label: "请求IP",
+    key: "request_ip",
+    type: "input",
+    placeholder: "请输入请求IP",
+    clearable: true,
+    span: 6,
+  },
 ]);
 
 function buildOpReplaceParams(p: OpSearchForm): Record<string, unknown> {
   return {
     request_path: p.request_path,
+    request_ip: p.request_ip,
     created_id: p.created_id,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
@@ -302,6 +313,7 @@ const {
             label: String(row.response_code ?? ""),
           }),
       },
+      { prop: "request_ip", label: "请求IP", minWidth: 140, showOverflowTooltip: true },
       { prop: "process_time", label: "处理时间", minWidth: 120 },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
       { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
@@ -353,6 +365,7 @@ const opDetailItems: import("@/components/others/fa-descriptions/index.vue").Des
   { label: "请求路径", prop: "request_path" },
   { label: "请求方法", prop: "request_method", slot: "request_method" },
   { label: "响应状态码", prop: "response_code", slot: "response_code" },
+  { label: "请求IP", prop: "request_ip" },
   { label: "处理时间", prop: "process_time" },
   { label: "请求参数", prop: "request_payload", slot: "request_payload", span: 8 },
   { label: "响应数据", prop: "response_json", slot: "response_json", span: 8 },
@@ -369,7 +382,12 @@ async function handleOpSearch(params: OpSearchForm) {
 }
 
 function onOpResetSearch() {
-  opSearchForm.value = { request_path: undefined, created_id: undefined, created_time: undefined };
+  opSearchForm.value = {
+    request_path: undefined,
+    request_ip: undefined,
+    created_id: undefined,
+    created_time: undefined,
+  };
   void opResetSearchParams();
 }
 

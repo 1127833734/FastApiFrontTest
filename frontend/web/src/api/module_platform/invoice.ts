@@ -1,33 +1,8 @@
 import { request } from "@utils";
 
-const API_PATH = "/invoice";
+const API_PATH = "/platform/invoice";
 
 const InvoiceAPI = {
-  // ─── 平台端 ───
-  listInvoices(query?: InvoicePageQuery) {
-    return request<ApiResponse<{ list: InvoiceTable[]; total: number }>>({
-      url: `${API_PATH}/list`,
-      method: "get",
-      params: query,
-    });
-  },
-
-  issueInvoice(invoiceId: number, body: { pdf_url?: string; api_response?: string }) {
-    return request<ApiResponse>({
-      url: `${API_PATH}/issue/${invoiceId}`,
-      method: "put",
-      data: body,
-    });
-  },
-
-  voidInvoice(invoiceId: number, reason?: string) {
-    return request<ApiResponse>({
-      url: `${API_PATH}/void/${invoiceId}`,
-      method: "put",
-      data: { description: reason },
-    });
-  },
-
   // ─── 租户端 ───
   tenantListInvoices(query?: InvoicePageQuery) {
     return request<ApiResponse<{ list: InvoiceTable[]; total: number }>>({
@@ -74,8 +49,6 @@ export interface InvoiceTable {
   bank_info?: string;
   address_info?: string;
   pdf_url?: string;
-  oss_license_pdf_url?: string;
-  api_response?: string;
   description?: string;
   created_time?: string;
 }

@@ -44,14 +44,6 @@ export const UserAPI = {
     });
   },
 
-  registerUser(body: RegisterForm) {
-    return request<ApiResponse<UserInfo>>({
-      url: `${API_PATH}/register`,
-      method: "post",
-      data: body,
-    });
-  },
-
   forgetPassword(body: ForgetPasswordForm) {
     return request<ApiResponse>({
       url: `${API_PATH}/password/forget`,
@@ -139,6 +131,7 @@ export const UserAPI = {
 export default UserAPI;
 
 export interface ForgetPasswordForm {
+  tenant_name: string;
   username: string;
   new_password: string;
   mobile?: string;
@@ -146,6 +139,7 @@ export interface ForgetPasswordForm {
 }
 
 export interface RegisterForm {
+  tenant_name: string;
   username: string;
   password: string;
   confirmPassword: string;
@@ -184,12 +178,12 @@ export interface UserInfo extends BaseType {
   position_names?: positionSelectorType["name"][];
   position_ids?: positionSelectorType["id"][];
   is_superuser?: boolean;
+  is_impersonate?: boolean;
   last_login?: string;
   created_by?: CommonType;
   updated_by?: CommonType;
   deleted_by?: CommonType;
-  tenant_id?: number;
-  tenant_name?: string;
+  tenant_by?: CommonType;
   gitee_login?: string;
   github_login?: string;
   wx_login?: string;
@@ -237,7 +231,7 @@ export interface InfoFormState {
   updated_time?: string;
   status?: number;
   description?: string;
-  tenant_by?: { id?: number; name?: string };
+  tenant_by?: CommonType;
   gitee_login?: string;
   github_login?: string;
   wx_login?: string;

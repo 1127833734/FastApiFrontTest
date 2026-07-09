@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from redis.asyncio.client import Redis
 
@@ -18,31 +18,16 @@ ParamsRouter = APIRouter(route_class=OperationLogRoute, prefix="/param", tags=["
 
 @ParamsRouter.get("/detail/{id}", summary="获取参数详情", response_model=ResponseSchema[ParamsOutSchema])
 async def get_param_detail_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:detail"]))],
-    id: Annotated[int, Path(description="参数ID")],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:detail"]))],
+    id: Annotated[int, Path(description="参数ID", ge=1)],
 ) -> JSONResponse:
     result_dict = await ParamsService(auth).detail(id=id)
     return SuccessResponse(data=result_dict, msg="获取参数详情成功")
 
-@ParamsRouter.get("/key/{config_key}", summary="根据配置键获取参数详情", response_model=ResponseSchema[ParamsOutSchema])
-async def get_param_by_key_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:query"]))],
-    config_key: Annotated[str, Path(description="配置键")],
-) -> JSONResponse:
-    result_dict = await ParamsService(auth).get_by_key(config_key=config_key)
-    return SuccessResponse(data=result_dict, msg="根据配置键获取参数详情成功")
-
-@ParamsRouter.get("/value/{config_key}", summary="根据配置键获取参数值", response_model=ResponseSchema[ParamsOutSchema])
-async def get_config_value_by_key_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:query"]))],
-    config_key: Annotated[str, Path(description="配置键")],
-) -> JSONResponse:
-    result_value = await ParamsService(auth).get_config_value_by_key(config_key=config_key)
-    return SuccessResponse(data=result_value, msg="根据配置键获取参数值成功")
 
 @ParamsRouter.get("/list", summary="获取参数列表", response_model=ResponseSchema[PageResultSchema[ParamsOutSchema]])
 async def get_param_list_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:query"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[ParamsQueryParam, Query(description="参数查询参数")],
 ) -> JSONResponse:
@@ -54,47 +39,52 @@ async def get_param_list_controller(
     )
     return SuccessResponse(data=result_dict, msg="查询参数列表成功")
 
-@ParamsRouter.post("/create", summary="创建参数", response_model=ResponseSchema[ParamsOutSchema])
+
+@ParamsRouter.post("/create", status_code=status.HTTP_201_CREATED, summary="创建参数", response_model=ResponseSchema[ParamsOutSchema])
 async def create_param_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:create"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:create"]))],
     data: Annotated[ParamsCreateSchema, Body(description="参数创建参数")],
 ) -> JSONResponse:
     result_dict = await ParamsService(auth).create(redis=redis, data=data)
     return SuccessResponse(data=result_dict, msg="创建参数成功")
 
+
 @ParamsRouter.put("/update/{id}", summary="修改参数", response_model=ResponseSchema[ParamsOutSchema])
 async def update_param_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:update"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:update"]))],
     id: Annotated[int, Path(description="参数ID")],
     data: Annotated[ParamsUpdateSchema, Body(description="参数修改参数")],
 ) -> JSONResponse:
     result_dict = await ParamsService(auth).update(redis=redis, id=id, data=data)
     return SuccessResponse(data=result_dict, msg="更新参数成功")
 
+
 @ParamsRouter.delete("/delete", summary="删除参数", response_model=ResponseSchema[ParamsOutSchema])
 async def delete_param_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:delete"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
 ) -> JSONResponse:
     await ParamsService(auth).delete(redis=redis, ids=ids)
     return SuccessResponse(msg="删除参数成功")
 
+
 @ParamsRouter.patch("/status/batch", summary="批量设置参数状态", response_model=ResponseSchema)
 async def batch_set_status_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:patch"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:patch"]))],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await ParamsService(auth).batch_set_status(ids=data.ids, status=data.status)
     return SuccessResponse(msg="批量设置参数状态成功")
 
+
 @ParamsRouter.get("/export", summary="导出参数")
 async def export_param_list_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:param:export"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:export"]))],
     search: Annotated[ParamsQueryParam, Query(description="参数查询参数")],
-) -> StreamingResponse[bytes]:
+) -> StreamingResponse:
     result_dict_list = await ParamsService(auth).get_list(search=search)
     export_data = [item.model_dump() for item in result_dict_list]
     export_result = ParamsService.export(data_list=export_data)
@@ -105,7 +95,8 @@ async def export_param_list_controller(
         headers={"Content-Disposition": "attachment; filename=params.xlsx"},
     )
 
-@ParamsRouter.get( "/info", summary="获取初始化缓存参数", response_model=ResponseSchema[list[ParamsOutSchema]])
+
+@ParamsRouter.get("/info", summary="获取初始化缓存参数", response_model=ResponseSchema[list[ParamsOutSchema]])
 async def get_init_config_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
 ) -> JSONResponse:

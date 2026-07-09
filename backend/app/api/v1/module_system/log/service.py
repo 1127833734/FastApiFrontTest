@@ -1,15 +1,12 @@
-
-from app.core.base_schema import AuthSchema
+from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 
 from .crud import LoginLogCRUD, OperationLogCRUD
 from .schema import (
-    LoginLogCreateSchema,
     LoginLogDetailOutSchema,
     LoginLogOutSchema,
     LoginLogQueryParam,
-    OperationLogCreateSchema,
     OperationLogDetailOutSchema,
     OperationLogOutSchema,
     OperationLogQueryParam,
@@ -23,7 +20,8 @@ class LoginLogService:
         self.auth = auth
 
     async def detail(self, id: int) -> LoginLogDetailOutSchema:
-        return await LoginLogCRUD(self.auth).get_or_404(id=id, out_schema=LoginLogDetailOutSchema)
+        obj = await LoginLogCRUD(self.auth).get_or_404(id=id)
+        return LoginLogDetailOutSchema.model_validate(obj)
 
     async def page(
         self,
@@ -31,7 +29,7 @@ class LoginLogService:
         page_size: int,
         search: LoginLogQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[LoginLogOutSchema]:
         return await LoginLogCRUD(self.auth).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
@@ -39,12 +37,6 @@ class LoginLogService:
             search=vars(search) if search else None,
             out_schema=LoginLogOutSchema,
         )
-
-    async def create(self, data: LoginLogCreateSchema) -> LoginLogDetailOutSchema:
-        obj = await LoginLogCRUD(self.auth).create(data=data)
-        if not obj:
-            raise CustomException(msg="创建失败")
-        return LoginLogDetailOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
         if len(ids) < 1:
@@ -66,8 +58,9 @@ class OperationLogService:
         self.auth = auth
 
     @staticmethod
-    async def cleanup_operation_log() -> None:
+    async def cleanup_operation_log() -> bool:
         from datetime import datetime, timedelta
+        from typing import Any
 
         from sqlalchemy import delete
 
@@ -90,21 +83,14 @@ class OperationLogService:
         cutoff = datetime.now() - timedelta(days=retention_days)
         async with async_db_session() as session:
             op_stmt = delete(OperationLogModel).where(OperationLogModel.created_time < cutoff)
-            op_result = await session.execute(op_stmt)
+            op_result: Any = await session.execute(op_stmt)
 
             login_stmt = delete(LoginLogModel).where(LoginLogModel.created_time < cutoff)
-            login_result = await session.execute(login_stmt)
+            login_result: Any = await session.execute(login_stmt)
 
             await session.commit()
             logger.info(f"操作日志清理完成: 操作日志 {op_result.rowcount} 条, 登录日志 {login_result.rowcount} 条")
             return True
-
-    async def create(self, data: OperationLogCreateSchema) -> OperationLogDetailOutSchema:
-        crud = OperationLogCRUD(self.auth)
-        obj = await crud.create(data=data)
-        if not obj:
-            raise CustomException(msg="创建失败")
-        return OperationLogDetailOutSchema.model_validate(obj)
 
     async def page(
         self,
@@ -112,7 +98,7 @@ class OperationLogService:
         page_size: int,
         search: OperationLogQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[OperationLogOutSchema]:
         crud = OperationLogCRUD(self.auth)
         return await crud.page(
             offset=(page_no - 1) * page_size,
@@ -124,7 +110,8 @@ class OperationLogService:
 
     async def detail(self, id: int) -> OperationLogDetailOutSchema:
         crud = OperationLogCRUD(self.auth)
-        return await crud.get_or_404(id=id, out_schema=OperationLogDetailOutSchema)
+        obj = await crud.get_or_404(id=id)
+        return OperationLogDetailOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
         if len(ids) < 1:

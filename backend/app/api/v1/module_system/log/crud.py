@@ -2,7 +2,7 @@ from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
 from .model import LoginLogModel, OperationLogModel
-from .schema import LoginLogCreateSchema
+from .schema import LoginLogCreateSchema, OperationLogCreateSchema
 
 
 class LoginLogCRUD(CRUDBase[LoginLogModel, LoginLogCreateSchema, None]):
@@ -12,7 +12,7 @@ class LoginLogCRUD(CRUDBase[LoginLogModel, LoginLogCreateSchema, None]):
         super().__init__(model=LoginLogModel, auth=auth)
 
 
-class OperationLogCRUD(CRUDBase[OperationLogModel, None, None]):
+class OperationLogCRUD(CRUDBase[OperationLogModel, OperationLogCreateSchema, None]):
     """操作日志 CRUD"""
 
     def __init__(self, auth: AuthSchema):

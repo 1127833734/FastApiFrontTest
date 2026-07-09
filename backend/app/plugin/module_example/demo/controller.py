@@ -1,7 +1,7 @@
 import urllib.parse
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Path, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Path, Query, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
@@ -42,7 +42,7 @@ async def get_obj_list_controller(
     return SuccessResponse(data=result_dict, msg="查询示例列表成功")
 
 
-@DemoRouter.post("/create", summary="创建示例", response_model=ResponseSchema[DemoOutSchema])
+@DemoRouter.post("/create", status_code=status.HTTP_201_CREATED, summary="创建示例", response_model=ResponseSchema[DemoOutSchema])
 async def create_obj_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_example:demo:create"]))],
     data: Annotated[DemoCreateSchema, Body(description="创建参数")],
@@ -87,10 +87,10 @@ async def batch_set_available_obj_controller(
 async def export_obj_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_example:demo:export"]))],
     search: Annotated[DemoQueryParam, Query(description="查询参数")],
-) -> StreamingResponse[bytes]:
+) -> StreamingResponse:
     service = DemoService(auth)
     result_dict_list = await service.get_list(search=search)
-    export_result = DemoService.batch_export(obj_list=result_dict_list)
+    export_result = DemoService.batch_export(obj_list=[item.model_dump() for item in result_dict_list])
 
     return StreamResponse(
         data=bytes2file_response(export_result),
@@ -105,14 +105,12 @@ async def import_obj_list_controller(
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_example:demo:import"]))],
 ) -> JSONResponse:
     service = DemoService(auth)
-    batch_import_result = await service.batch_import(
-        file=file, update_support=True
-    )
+    batch_import_result = await service.batch_import(file=file, update_support=True)
     return SuccessResponse(data=batch_import_result, msg="导入示例成功")
 
 
 @DemoRouter.post("/download/template", summary="获取示例导入模板", dependencies=[Depends(AuthPermission(["module_example:demo:download"]))])
-async def export_obj_template_controller() -> StreamingResponse[bytes]:
+async def export_obj_template_controller() -> StreamingResponse:
     import_template_result = DemoService.import_template_download()
 
     return StreamResponse(

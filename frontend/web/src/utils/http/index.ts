@@ -355,6 +355,10 @@ request.interceptors.response.use(
     }
 
     // ── 业务错误（按 code 分类） ──
+    if (status === 403) {
+      ElMessage.error(data?.msg || "暂无权限操作");
+      return Promise.reject(new HttpError(data?.msg || "暂无权限操作", ApiStatus.forbidden));
+    }
     if (data?.code === ResultEnum.ERROR) {
       ElMessage.error(data.msg || "请求错误");
       return Promise.reject(new HttpError(data.msg || "请求错误", ApiStatus.error));

@@ -13,7 +13,6 @@ _PBKDF2_PREFIX = "$pbkdf2-sha256$"
 
 
 class PwdUtil:
-
     @staticmethod
     def hash_password(password: str) -> str:
         salt = os.urandom(_PBKDF2_SALT_LEN)

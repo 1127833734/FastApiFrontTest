@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.utils.excel_util import ExcelUtil
 
@@ -15,8 +15,7 @@ from .schema import (
 
 
 class RoleService:
-    """
-    角色管理服务
+    """角色管理服务
 
     提供角色 CRUD、权限配置、数据权限范围设置、批量启/禁用、Excel 导出等业务能力。
     """
@@ -25,8 +24,7 @@ class RoleService:
         self.auth = auth
 
     async def detail(self, id: int) -> RoleOutSchema:
-        """
-        获取角色详情
+        """获取角色详情
 
         参数:
         - id (int): 角色ID
@@ -34,15 +32,19 @@ class RoleService:
         返回:
         - RoleOutSchema: 角色详情响应模型
         """
-        return await RoleCRUD(self.auth).get_or_404(id=id, out_schema=RoleOutSchema)
+        obj = await RoleCRUD(self.auth).get_or_404(id=id)
+        return RoleOutSchema.model_validate(obj)
+
+    async def get_options(self) -> list[dict[str, Any]]:
+        """获取角色下拉选项，委托给 RoleCRUD"""
+        return await RoleCRUD(self.auth).get_options()
 
     async def get_list(
         self,
         search: RoleQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> list[RoleOutSchema]:
-        """
-        获取角色列表
+        """获取角色列表
 
         参数:
         - search (RoleQueryParam | None): 查询参数模型
@@ -60,9 +62,8 @@ class RoleService:
         page_size: int,
         search: RoleQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
-        """
-        分页查询角色（数据库 OFFSET/LIMIT）。
+    ) -> PageResultSchema[RoleOutSchema]:
+        """分页查询角色（数据库 OFFSET/LIMIT）。
 
         参数:
         - page_no (int): 页码（从 1 开始）
@@ -102,14 +103,13 @@ class RoleService:
             raise CustomException(msg="创建失败，编码已存在")
 
         # 检查租户配额
-        await TenantService(self.auth).check_quota(self.auth.tenant_id, "role")
+        await TenantService(self.auth).check_quota(self.auth.user.tenant_id, "role")
 
         new_role = await RoleCRUD(self.auth).create(data=data)
         return RoleOutSchema.model_validate(new_role)
 
     async def update(self, id: int, data: RoleUpdateSchema) -> RoleOutSchema:
-        """
-        更新角色
+        """更新角色
 
         参数:
         - id (int): 角色ID
@@ -129,8 +129,7 @@ class RoleService:
         return RoleOutSchema.model_validate(updated_role)
 
     async def delete(self, ids: list[int]) -> None:
-        """
-        删除角色
+        """删除角色
 
         参数:
         - ids (list[int]): 角色ID列表
@@ -149,8 +148,7 @@ class RoleService:
         await RoleCRUD(self.auth).delete(ids=ids)
 
     async def set_permission(self, data: RolePermissionSettingSchema) -> None:
-        """
-        设置角色权限
+        """设置角色权限
 
         参数:
         - data (RolePermissionSettingSchema): 角色权限设置模型
@@ -171,8 +169,7 @@ class RoleService:
             await RoleCRUD(self.auth).set_role_depts_crud(role_ids=data.role_ids, dept_ids=[])
 
     async def set_available(self, data: BatchSetAvailable) -> None:
-        """
-        设置角色可用状态
+        """设置角色可用状态
 
         参数:
         - data (BatchSetAvailable): 批量设置可用状态模型
@@ -189,8 +186,7 @@ class RoleService:
 
     @staticmethod
     def export_list(role_list: list[dict[str, Any]]) -> bytes:
-        """
-        导出角色列表
+        """导出角色列表
 
         参数:
         - role_list (list[dict[str, Any]]): 角色详情字典列表

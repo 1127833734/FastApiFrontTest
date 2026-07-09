@@ -1,10 +1,11 @@
 import json
 import time
+from collections.abc import Sequence
 
 from redis.asyncio.client import Redis
 
 from app.common.enums import RedisInitKeyConfig
-from app.core.base_schema import AuthSchema
+from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -30,7 +31,7 @@ MIDDLEWARE_CONFIG_KEYS: tuple[str, ...] = (
 
 # 内存缓存（按租户隔离）
 _MID_CONFIG_TTL: float = 60.0
-_mid_config_cache: dict[int, dict] = {}
+_mid_config_cache: dict[int, tuple[float, dict]] = {}
 
 
 def _parse_bool(value: object) -> bool:
@@ -98,15 +99,14 @@ def _parse_value(key: str, value: object) -> object:
         if value is None:
             return 90
         try:
-            return int(value)
+            return int(str(value))
         except (TypeError, ValueError):
             return 90
     return value
 
 
 class ParamsService:
-    """
-    参数管理服务
+    """参数管理服务
 
     设计：实例方法承载「当前用户上下文 (auth)」，``redis`` 仍是方法参数
     （因为不是每个端点都用到）。调用方写法由
@@ -117,8 +117,7 @@ class ParamsService:
         self.auth = auth
 
     async def detail(self, id: int) -> ParamsOutSchema:
-        """
-        获取参数详情
+        """获取参数详情
 
         参数:
         - id (int): 参数ID
@@ -126,11 +125,11 @@ class ParamsService:
         返回:
         - ParamsOutSchema: 参数响应模型
         """
-        return await ParamsCRUD(self.auth).get_or_404(id=id, out_schema=ParamsOutSchema)
+        obj = await ParamsCRUD(self.auth).get_or_404(id=id)
+        return ParamsOutSchema.model_validate(obj)
 
     async def get_by_key(self, config_key: str) -> ParamsOutSchema:
-        """
-        根据配置键获取参数详情
+        """根据配置键获取参数详情
 
         参数:
         - config_key (str): 参数键名
@@ -143,28 +142,12 @@ class ParamsService:
             raise CustomException(msg="该数据不存在")
         return ParamsOutSchema.model_validate(obj)
 
-    async def get_config_value_by_key(self, config_key: str) -> str | None:
-        """
-        根据配置键获取参数值
-
-        参数:
-        - config_key (str): 参数键名
-
-        返回:
-        - str | None: 参数键值字符串或 None
-        """
-        obj = await ParamsCRUD(self.auth).get(config_key=config_key)
-        if not obj:
-            raise CustomException(msg="该数据不存在")
-        return obj.config_value
-
     async def get_list(
         self,
         search: ParamsQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[ParamsOutSchema]:
-        """
-        获取配置管理型列表
+        """获取配置管理型列表
 
         参数:
         - search (ParamsQueryParam | None): 查询参数对象
@@ -182,9 +165,8 @@ class ParamsService:
         page_size: int,
         search: ParamsQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
-        """
-        分页查询系统参数（数据库 OFFSET/LIMIT）。
+    ) -> PageResultSchema[ParamsOutSchema]:
+        """分页查询系统参数（数据库 OFFSET/LIMIT）。
 
         参数:
         - page_no (int): 页码（从 1 开始）
@@ -193,7 +175,7 @@ class ParamsService:
         - order_by (list[dict[str, str]] | None): 排序字段列表
 
         返回:
-        - dict: 分页结果（结构由 ``CRUD.page`` 返回约定）
+        - PageResultSchema[ParamsOutSchema]: 分页结果
         """
         offset = (page_no - 1) * page_size
         return await ParamsCRUD(self.auth).page(
@@ -205,8 +187,7 @@ class ParamsService:
         )
 
     async def create(self, redis: Redis, data: ParamsCreateSchema) -> ParamsOutSchema:
-        """
-        创建配置管理型
+        """创建配置管理型
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -223,7 +204,10 @@ class ParamsService:
         out = ParamsOutSchema.model_validate(obj)
 
         # 同步redis
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{self.auth.user.tenant_id}:{data.config_key}"
+        user = self.auth.user
+        if not user:
+            raise CustomException(msg="未登录")
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{data.config_key}"
         try:
             redis_payload = out.model_dump(mode="json")
             value = json.dumps(redis_payload, ensure_ascii=False)
@@ -242,8 +226,7 @@ class ParamsService:
         return out
 
     async def update(self, redis: Redis, id: int, data: ParamsUpdateSchema) -> ParamsOutSchema:
-        """
-        更新参数
+        """更新参数
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -264,7 +247,10 @@ class ParamsService:
         redis_payload = out.model_dump(mode="json")
 
         # 同步redis
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{self.auth.user.tenant_id}:{new_obj.config_key}"
+        user = self.auth.user
+        if not user:
+            raise CustomException(msg="未登录")
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{new_obj.config_key}"
         try:
             value = json.dumps(redis_payload, ensure_ascii=False)
             result = await RedisCURD(redis).set(
@@ -280,13 +266,12 @@ class ParamsService:
             raise CustomException(msg="同步配置到缓存失败") from e
 
         # 失效中间件内存缓存，让下次请求重新加载
-        _invalidate_mid_config_cache(self.auth.user.tenant_id)
+        _invalidate_mid_config_cache(user.tenant_id)
 
         return out
 
     async def delete(self, redis: Redis, ids: list[int]) -> None:
-        """
-        删除配置管理型
+        """删除配置管理型
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -310,8 +295,11 @@ class ParamsService:
         await ParamsCRUD(self.auth).delete(ids=ids)
 
         # 同步删除Redis缓存（使用删除前已获取的对象信息）
+        user = self.auth.user
+        if not user:
+            raise CustomException(msg="未登录")
         for obj in objs:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{self.auth.user.tenant_id}:{obj.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{obj.config_key}"
             try:
                 await RedisCURD(redis).delete(redis_key)
             except Exception as e:
@@ -319,11 +307,10 @@ class ParamsService:
                 raise CustomException(msg="同步删除缓存失败") from e
 
         # 失效中间件内存缓存
-        _invalidate_mid_config_cache(self.auth.user.tenant_id)
+        _invalidate_mid_config_cache(user.tenant_id)
 
     async def batch_set_status(self, ids: list[int], status: int) -> None:
-        """
-        批量设置系统参数状态
+        """批量设置系统参数状态
 
         参数:
         - ids (list[int]): 系统参数ID列表
@@ -339,8 +326,7 @@ class ParamsService:
 
     @staticmethod
     def export(data_list: list[dict]) -> bytes:
-        """
-        导出参数列表（无状态工具方法）
+        """导出参数列表（无状态工具方法）
 
         参数:
         - data_list (list[dict]): 参数字典列表
@@ -370,14 +356,13 @@ class ParamsService:
         return ExcelUtil.export_list2excel(list_data=data, mapping_dict=mapping_dict)
 
     @staticmethod
-    async def _load_all_configs_from_db() -> list:
-        async with async_db_session() as session:
-            async with session.begin():
-                init_auth = AuthSchema(db=session, check_data_scope=False)
-                return await ParamsCRUD(init_auth).get_list()
+    async def _load_all_configs_from_db() -> Sequence[object]:
+        async with async_db_session() as session, session.begin():
+            init_auth = AuthSchema.anonymous(db=session)
+            return await ParamsCRUD(init_auth).get_list()
 
     @staticmethod
-    async def _sync_configs_to_redis(redis: Redis, config_obj: list) -> list[dict]:
+    async def _sync_configs_to_redis(redis: Redis, config_obj: Sequence) -> list[dict]:
         """将 DB 配置写入 Redis，返回对应的 dict 列表。"""
         configs: list[dict] = []
         for config in config_obj:
@@ -421,8 +406,7 @@ class ParamsService:
 
     @staticmethod
     async def get_system_config_for_middleware(redis: Redis, tenant_id: int = 1) -> dict:
-        """
-        获取中间件 / 调度器所需的系统配置（带 60 秒内存缓存，按租户隔离）。
+        """获取中间件 / 调度器所需的系统配置（带 60 秒内存缓存，按租户隔离）。
 
         参数:
         - redis (Redis): Redis 客户端实例
@@ -445,10 +429,7 @@ class ParamsService:
 
         停用（status=1）的配置视为未配置，使用默认值。
         """
-        config_keys = [
-            f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{tenant_id}:{key}"
-            for key in MIDDLEWARE_CONFIG_KEYS
-        ]
+        config_keys = [f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{tenant_id}:{key}" for key in MIDDLEWARE_CONFIG_KEYS]
         config_values = await RedisCURD(redis).mget(config_keys)
 
         result: dict[str, object] = {}

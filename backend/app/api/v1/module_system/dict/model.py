@@ -1,12 +1,11 @@
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base_model import ModelMixin, TenantMixin
+from app.core.base_model import ModelMixin, TenantMixin, UserMixin
 
 
-class DictTypeModel(ModelMixin, TenantMixin):
-    """
-    字典类型表
+class DictTypeModel(ModelMixin, TenantMixin, UserMixin):
+    """字典类型表
 
     __platform_data_shared__ = True 表示 tenant_id=1 的平台字典对
     所有租户可读，但只有平台管理员可写。
@@ -14,7 +13,7 @@ class DictTypeModel(ModelMixin, TenantMixin):
 
     __tablename__: str = "sys_dict_type"
     __table_args__ = (UniqueConstraint("tenant_id", "dict_type"), {"comment": "字典类型表"})
-    __loader_options__: list[str] = ["dict_data_list"]
+    __loader_options__: list[str] = ["dict_data_list", "created_by", "updated_by", "deleted_by", "tenant_by"]
     __platform_data_shared__: bool = True
 
     dict_name: Mapped[str] = mapped_column(String(64), nullable=False, comment="字典名称")
@@ -28,9 +27,8 @@ class DictTypeModel(ModelMixin, TenantMixin):
     )
 
 
-class DictDataModel(ModelMixin, TenantMixin):
-    """
-    字典数据表
+class DictDataModel(ModelMixin, TenantMixin, UserMixin):
+    """字典数据表
 
     与 DictTypeModel 相同：tenant_id=1 的平台字典数据对
     所有租户可读，但只有平台管理员可写。
@@ -41,7 +39,7 @@ class DictDataModel(ModelMixin, TenantMixin):
         UniqueConstraint("tenant_id", "dict_type_id", "dict_value", name="uq_dict_data_value"),
         {"comment": "字典数据表"},
     )
-    __loader_options__: list[str] = ["dict_type_obj"]
+    __loader_options__: list[str] = ["dict_type_obj", "created_by", "updated_by", "deleted_by", "tenant_by"]
     __platform_data_shared__: bool = True
 
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)

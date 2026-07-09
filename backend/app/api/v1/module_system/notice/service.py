@@ -1,32 +1,23 @@
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
-from app.core.logger import logger
 from app.utils.excel_util import ExcelUtil
 
 from .crud import NoticeCRUD
-from .model import NoticeModel, NoticeReadModel
-from .schema import (
-    NoticeCreateSchema,
-    NoticeOutSchema,
-    NoticeQueryParam,
-    NoticeUpdateSchema,
-    PanelDataOut,
-    PanelMessageItem,
-)
+from .schema import NoticeCreateSchema, NoticeOutSchema, NoticeQueryParam, NoticeUpdateSchema
 
 
 class NoticeService:
-    """
-    公告管理服务
+    """公告管理服务
 
-    提供公告 CRUD、状态切换、已启用公告分页查询、消息面板、Excel 导出等业务能力。
+    提供公告 CRUD、状态切换、已启用公告分页查询、Excel 导出等业务能力。
     """
 
     def __init__(self, auth: AuthSchema) -> None:
         self.auth = auth
 
     async def detail(self, id: int) -> NoticeOutSchema:
-        return await NoticeCRUD(self.auth).get_or_404(id=id, out_schema=NoticeOutSchema)
+        obj = await NoticeCRUD(self.auth).get_or_404(id=id)
+        return NoticeOutSchema.model_validate(obj)
 
     async def get_list(
         self,
@@ -42,7 +33,7 @@ class NoticeService:
         page_size: int,
         search: NoticeQueryParam | None = None,
         order_by: list[dict] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[NoticeOutSchema]:
         offset = (page_no - 1) * page_size
         return await NoticeCRUD(self.auth).page(
             offset=offset,
@@ -52,12 +43,12 @@ class NoticeService:
             out_schema=NoticeOutSchema,
         )
 
-    async def available_page(self) -> dict:
+    async def available_page(self) -> PageResultSchema[NoticeOutSchema]:
         return await NoticeCRUD(self.auth).page(
             offset=0,
             limit=10,
             order_by=[{"id": "asc"}],
-            search={"status": 0},
+            search={"status": ("eq", 0)},
             out_schema=NoticeOutSchema,
         )
 
@@ -108,108 +99,3 @@ class NoticeService:
             item["status"] = "启用" if item.get("status") == 0 else "停用"
             item["notice_type"] = "通知" if item.get("notice_type") == "1" else "公告"
         return ExcelUtil.export_list2excel(list_data=data, mapping_dict=mapping_dict)
-
-    async def latest(self, limit: int = 5) -> list[NoticeOutSchema]:
-        from sqlalchemy import desc, select
-
-        stmt = select(NoticeModel).where(NoticeModel.status == 0).order_by(desc(NoticeModel.created_time)).limit(limit)
-        result = await self.auth.db.execute(stmt)
-        notices = result.scalars().all()
-        return [NoticeOutSchema.model_validate(n) for n in notices]
-
-    async def mark_read(self, notice_id: int) -> None:
-        from datetime import datetime
-
-        from sqlalchemy import select
-
-        notice = await NoticeCRUD(self.auth).get(id=notice_id)
-        if not notice:
-            raise CustomException(msg="该公告不存在")
-
-        exist_stmt = select(NoticeReadModel).where(
-            NoticeReadModel.user_id == self.auth.user.id,
-            NoticeReadModel.notice_id == notice_id,
-        )
-        result = await self.auth.db.execute(exist_stmt)
-        if result.scalar_one_or_none():
-            return
-
-        read_record = NoticeReadModel(
-            user_id=self.auth.user.id,
-            notice_id=notice_id,
-            read_time=datetime.now(),
-        )
-        self.auth.db.add(read_record)
-        await self.auth.db.flush()
-
-    async def mark_all_read(self) -> int:
-        from datetime import datetime
-
-        from sqlalchemy import insert, select
-
-        read_ids_stmt = select(NoticeReadModel.notice_id).where(NoticeReadModel.user_id == self.auth.user.id)
-        read_ids_result = await self.auth.db.execute(read_ids_stmt)
-        read_ids = {row[0] for row in read_ids_result.fetchall()}
-
-        notices_stmt = select(NoticeModel.id).where(NoticeModel.status == 0)
-        notices_result = await self.auth.db.execute(notices_stmt)
-        all_ids = {row[0] for row in notices_result.fetchall()}
-
-        unread_ids = all_ids - read_ids
-        if not unread_ids:
-            return 0
-
-        now = datetime.now()
-        if unread_ids:
-            await self.auth.db.execute(
-                insert(NoticeReadModel),
-                [{"user_id": self.auth.user.id, "notice_id": nid, "read_time": now} for nid in unread_ids],
-            )
-        await self.auth.db.flush()
-        return len(unread_ids)
-
-    async def get_unread_count(self) -> int:
-        from sqlalchemy import func, select
-
-        total_stmt = select(func.count()).select_from(NoticeModel).where(NoticeModel.status == 0)
-        total_result = await self.auth.db.execute(total_stmt)
-        total_count = total_result.scalar() or 0
-
-        read_stmt = select(func.count()).select_from(NoticeReadModel).where(NoticeReadModel.user_id == self.auth.user.id)
-        read_result = await self.auth.db.execute(read_stmt)
-        read_count = read_result.scalar() or 0
-
-        return max(0, total_count - read_count)
-
-    async def panel_data(self) -> PanelDataOut:
-        from sqlalchemy import desc, select
-
-        notices = await self.latest(limit=5)
-
-        messages = []
-        try:
-            from app.api.v1.module_system.log.model import OperationLogModel
-
-            stmt = select(OperationLogModel).order_by(desc(OperationLogModel.created_time)).limit(5)
-            result = await self.auth.db.execute(stmt)
-            logs = result.scalars().all()
-            for log_entry in logs:
-                messages.append(
-                    PanelMessageItem(
-                        id=log_entry.id,
-                        title=log_entry.request_path or "系统操作",
-                        content=f"{log_entry.request_method} {log_entry.request_path}",
-                        time=log_entry.created_time.strftime("%Y-%m-%d %H:%M") if log_entry.created_time else "",
-                        type="system",
-                    )
-                )
-        except Exception as e:
-            logger.warning(f"获取面板消息数据失败（操作日志表可能不存在），已跳过: {e}")
-
-        pendings: list[dict] = []
-
-        return PanelDataOut(
-            notices=notices,
-            messages=messages,
-            pendings=pendings,
-        )

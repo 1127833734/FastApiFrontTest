@@ -61,18 +61,9 @@ const OrderAPI = {
     });
   },
 
-  // ─── 支付记录 ───
-  listPaymentRecords(query?: PageQuery) {
-    return request<ApiResponse<{ items: PaymentRecordTable[]; total: number }>>({
-      url: `${API_PATH}/record/list`,
-      method: "get",
-      params: query,
-    });
-  },
-
   // ─── 退款管理 ───
   listRefunds(query?: RefundPageQuery) {
-    return request<ApiResponse<{ items: RefundTable[]; total: number }>>({
+    return request<ApiResponse<{ items: OrderTable[]; total: number }>>({
       url: `${API_PATH}/refund/list`,
       method: "get",
       params: query,
@@ -98,7 +89,6 @@ const OrderAPI = {
   tenantCreateOrder(body: {
     tenant_id: number;
     package_id?: number;
-    plugin_id?: number;
     order_type: string;
     pay_method?: string;
   }) {
@@ -125,6 +115,7 @@ export default OrderAPI;
 export interface OrderPageQuery extends PageQuery, TenantByQueryParams {
   order_type?: string;
   status?: number;
+  refund_status?: number;
 }
 
 export interface OrderTable {
@@ -132,7 +123,6 @@ export interface OrderTable {
   order_no: string;
   tenant_id: number;
   package_id?: number;
-  plugin_id?: number;
   order_type: string;
   amount: number;
   period_count: number;
@@ -141,45 +131,31 @@ export interface OrderTable {
   pay_time?: string;
   expire_time: string;
   created_time?: string;
+
+  // 支付信息
+  transaction_id?: string;
+  raw_response?: string;
+
+  // 退款信息
+  refund_no?: string;
+  refund_amount?: number;
+  refund_reason?: string;
+  refund_transaction_id?: string;
+  reviewer_id?: number;
+  review_time?: string;
+  reject_reason?: string;
+  refund_status?: number;
 }
 
 export interface OrderCreateForm {
   tenant_id: number;
   package_id?: number;
-  plugin_id?: number;
-  order_type: "new" | "renew" | "upgrade" | "downgrade" | "plugin";
+  order_type: "new" | "renew" | "upgrade" | "downgrade";
   pay_method?: string;
 }
 
-// ─── Payment 类型 ────────────────────────────────────────
+// ─── Refund 类型（复用 OrderTable 的退款字段）─────────────
 
-export interface PaymentRecordTable {
-  id: number;
-  order_id: number;
-  transaction_id?: string;
-  pay_method: string;
-  amount: number;
-  status: number;
-  pay_time?: string;
-  created_time?: string;
-}
-
-// ─── Refund 类型 ─────────────────────────────────────────
-
-export interface RefundPageQuery extends PageQuery, UserByQueryParams, TenantByQueryParams {
+export interface RefundPageQuery extends PageQuery {
   status?: number;
-}
-
-export interface RefundTable {
-  id: number;
-  order_id: number;
-  refund_no: string;
-  amount: number;
-  reason: string;
-  status: number;
-  refund_transaction_id?: string;
-  reviewer_id?: number;
-  review_time?: string;
-  reject_reason?: string;
-  created_time?: string;
 }

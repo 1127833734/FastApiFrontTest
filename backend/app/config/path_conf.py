@@ -30,5 +30,8 @@ SCRIPT_DIR: Path = BASE_DIR / "app" / "scripts" / "data"
 # 模版文件配置（统一管理代码生成模板 + HTML 模板）
 TEMPLATE_DIR: Path = BASE_DIR / "templates"
 
+# 前端构建输出目录
+FRONTEND_DIST_DIR: Path = BASE_DIR / "dist"
+
 # banner.txt 文件路径
 BANNER_FILE = BASE_DIR / "banner.txt"

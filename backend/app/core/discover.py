@@ -1,5 +1,4 @@
-"""
-简化的动态路由发现与注册。
+"""简化的动态路由发现与注册。
 
 目录与命名规范（不满足则无法注册或导入失败）：
 - 插件必须放在 ``app/plugin`` 下，且**顶级目录名**必须以 ``module_`` 开头，例如
@@ -63,13 +62,7 @@ class DynamicRouterRegistry:
         # ── 1. 从运行中的 app 移除旧的插件路由 ──
         if self._registered_prefixes:
             before = len(self._app.routes)
-            self._app.routes = [
-                r for r in self._app.routes
-                if not any(
-                    getattr(r, "path", "").startswith(p)
-                    for p in self._registered_prefixes
-                )
-            ]
+            self._app.router.routes = [r for r in self._app.routes if not any(getattr(r, "path", "").startswith(p) for p in self._registered_prefixes)]
             removed = before - len(self._app.routes)
             logger.info(f"🧹 已移除 {removed} 条旧插件路由（前缀: {self._registered_prefixes}）")
 
@@ -110,10 +103,7 @@ class DynamicRouterRegistry:
 
                 suffix = top_module[7:] if top_module.startswith("module_") else ""
                 if not suffix:
-                    logger.error(
-                        f"❌ 跳过异常顶级目录名（须为 module_ 前缀且后面还有名称）: {top_module!r}，"
-                        f"文件: {file}"
-                    )
+                    logger.error(f"❌ 跳过异常顶级目录名（须为 module_ 前缀且后面还有名称）: {top_module!r}，文件: {file}")
                     continue
                 prefix = f"/{suffix}"
 
@@ -141,7 +131,7 @@ class DynamicRouterRegistry:
                             f"   原因：该文件中未找到**顶层** APIRouter 实例。\n"
                             f"   规范：在 controller.py 模块顶层定义，例如 "
                             f"`XxxRouter = APIRouter(route_class=..., prefix=..., tags=[...])`，"
-                            f"不要仅在函数内创建 APIRouter。"
+                            f"不要仅在函数内创建 APIRouter。",
                         )
 
                 except Exception as e:
@@ -152,9 +142,7 @@ class DynamicRouterRegistry:
                 route_count = len(container_router.routes)
                 root_router.include_router(container_router)
                 if route_count == 0:
-                    logger.warning(
-                        f"⚠️ 容器前缀 {prefix} 下未挂载任何子路由（可能该 module 下所有 controller 均未导出 APIRouter）"
-                    )
+                    logger.warning(f"⚠️ 容器前缀 {prefix} 下未挂载任何子路由（可能该 module 下所有 controller 均未导出 APIRouter）")
                 logger.info(f"✅ 注册容器: {prefix} (子路由数: {route_count})")
 
             self._registered_prefixes = set(container_routers.keys())
@@ -197,22 +185,14 @@ def _import_failure_hint(exc: BaseException) -> str:
             "③ 磁盘路径与 import 路径不一致（大小写、子目录名拼写）。"
         )
     if isinstance(exc, ImportError):
-        return (
-            "导入失败（ImportError）。常见原因：controller 或其依赖模块循环导入、"
-            "第三方依赖未安装、或相对导入路径错误。"
-        )
+        return "导入失败（ImportError）。常见原因：controller 或其依赖模块循环导入、第三方依赖未安装、或相对导入路径错误。"
     if isinstance(exc, SyntaxError):
         return f"controller.py 存在语法错误：{exc.msg}（约第 {exc.lineno} 行）。"
     if isinstance(exc, PermissionError):
         return (
-            "权限错误（PermissionError）。多见于受限环境（沙箱、部分 CI）："
-            "import 链上某模块初始化时调用了被禁止的系统能力（如进程池），与目录命名无关。"
-            "在完整操作系统下重试；若仍失败再结合堆栈排查。"
+            "权限错误（PermissionError）。多见于受限环境（沙箱、部分 CI）：import 链上某模块初始化时调用了被禁止的系统能力（如进程池），与目录命名无关。在完整操作系统下重试；若仍失败再结合堆栈排查。"
         )
-    return (
-        f"未分类异常（{type(exc).__name__}）。请查看下方堆栈；"
-        "若与命名/包结构无关，可能是 controller 顶层 import 的依赖在加载时失败。"
-    )
+    return f"未分类异常（{type(exc).__name__}）。请查看下方堆栈；若与命名/包结构无关，可能是 controller 顶层 import 的依赖在加载时失败。"
 
 
 # 重新导出函数供外部使用

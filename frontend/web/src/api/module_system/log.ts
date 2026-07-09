@@ -44,6 +44,7 @@ export interface OperationLogPageQuery extends PageQuery, UserByQueryParams, Ten
   request_path?: string;
   creator_name?: string;
   status?: number;
+  request_ip?: string;
 }
 
 export interface OperationLogTable {
@@ -56,6 +57,7 @@ export interface OperationLogTable {
   response_json?: Record<string, unknown> | string;
   process_time?: string;
   created_time?: string;
+  request_ip?: string;
 }
 
 // ==================== 登录日志 ====================

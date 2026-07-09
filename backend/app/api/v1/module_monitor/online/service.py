@@ -27,9 +27,7 @@ class OnlineService:
                 session_id = payload.sub
 
                 # 从 Redis 读取完整会话信息
-                raw = await RedisCURD(redis).get(
-                    f"{RedisInitKeyConfig.USER_SESSION.key}:{session_id}"
-                )
+                raw = await RedisCURD(redis).get(f"{RedisInitKeyConfig.USER_SESSION.key}:{session_id}")
                 if not raw:
                     continue
                 session_info = json.loads(raw)
@@ -70,4 +68,3 @@ class OnlineService:
         await RedisCURD(redis).clear(f"{RedisInitKeyConfig.REFRESH_TOKEN.key}:*")
         await RedisCURD(redis).clear(f"{RedisInitKeyConfig.USER_SESSION.key}:*")
         logger.info("清除所有在线用户会话成功")
-

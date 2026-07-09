@@ -21,6 +21,7 @@ class CommonSchema(BaseModel):
 
     id: int = Field(description="编号ID")
     name: str = Field(description="名称")
+    status: int = Field(description="状态")
 
 
 class BaseSchema(BaseModel):
@@ -84,26 +85,19 @@ class DownloadFileSchema(BaseModel):
 
 
 class AuthSchema(BaseModel):
-    """权限认证模型
-
-    ``user`` 字段运行时为 ``Any``（避免与 SQLAlchemy 懒加载冲突，也避免
-    循环依赖）。通过 ``get_user()`` 方法获得 IDE 类型推断。
-    """
+    """权限认证模型"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    user: UserT | None = Field(default=None, description="用户信息（UserModel 实例）", exclude=True)
+    user: "UserModel" = Field(..., description="用户信息（UserModel 实例）", exclude=True)
     check_data_scope: bool = Field(default=True, description="是否检查数据权限")
-    db: AsyncSession | None = Field(default=None, description="数据库会话", exclude=True)
-    tenant_id: int | None = Field(default=None, description="租户ID,用于用户认证前查询")
+    db: AsyncSession = Field(..., description="数据库会话", exclude=True)
+    session_info: dict | None = Field(default=None, description="会话信息（含 is_impersonate 等）")
 
-    def get_user(self) -> "UserModel | None":
-        """类型化的用户访问方法。
-
-        业务方 ``auth.get_user()`` 由 IDE 推断为 ``UserModel | None``，
-        享受自动补全。``auth.user`` 仍可用但无类型补全。
-        """
-        return self.user  # type: ignore[return-value]
+    @classmethod
+    def anonymous(cls, db: AsyncSession, check_data_scope: bool = False, session_info: dict | None = None) -> "AuthSchema":
+        """创建匿名认证模型（用于登录、支付回调等无用户场景）"""
+        return cls(db=db, check_data_scope=check_data_scope, session_info=session_info, user=None)  # type: ignore[arg-type]
 
 
 class JWTPayloadSchema(BaseModel):
@@ -129,18 +123,6 @@ class JWTOutSchema(BaseModel):
     refresh_token: str = Field(..., min_length=1, description="刷新token")
     token_type: str = Field(default="Bearer", description="token类型")
     expires_in: int = Field(..., gt=0, description="过期时间(秒)")
-
-
-class RefreshTokenPayloadSchema(BaseModel):
-    """刷新Token载荷模型"""
-
-    refresh_token: str = Field(..., min_length=1, description="刷新token")
-
-
-class LogoutPayloadSchema(BaseModel):
-    """退出登录载荷模型"""
-
-    token: str = Field(..., min_length=1, description="token")
 
 
 class PageResultSchema[T](BaseModel):
@@ -175,18 +157,20 @@ class PaginationQueryParam(BaseModel):
                 return json.loads(v)
             except (ValueError, json.JSONDecodeError):
                 return [{"id": "desc"}]
-        return v
+        if isinstance(v, list):
+            return v
+        return [{"id": "desc"}]
 
 
 class BaseQueryParam(BaseModel):
     """created_time + updated_time —— 子类自动继承"""
 
-    created_time: list[DateTimeStr] | None = Field(
+    created_time: list[DateTimeStr] | tuple[str, tuple[DateTimeStr, DateTimeStr]] | None = Field(
         None,
         description="创建时间范围",
         examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
     )
-    updated_time: list[DateTimeStr] | None = Field(
+    updated_time: list[DateTimeStr] | tuple[str, tuple[DateTimeStr, DateTimeStr]] | None = Field(
         None,
         description="更新时间范围",
         examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
@@ -206,8 +190,8 @@ class BaseQueryParam(BaseModel):
 class UserByQueryParam(BaseModel):
     """created_id + updated_id —— 子类自动继承"""
 
-    created_id: int | None = Field(None, description="创建人")
-    updated_id: int | None = Field(None, description="更新人")
+    created_id: int | tuple[str, int] | None = Field(None, description="创建人")
+    updated_id: int | tuple[str, int] | None = Field(None, description="更新人")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "UserByQueryParam":
@@ -221,10 +205,17 @@ class UserByQueryParam(BaseModel):
 class TenantByQueryParam(BaseModel):
     """tenant_id —— 子类自动继承"""
 
-    tenant_id: int | None = Field(None, description="租户ID")
+    tenant_id: int | tuple[str, int] | None = Field(None, description="租户ID")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "TenantByQueryParam":
         if isinstance(self.tenant_id, int):
             self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
         return self
+
+
+class OptionSchema(BaseModel):
+    """通用下拉选项 Schema，返回 [{value, label}]"""
+
+    value: int
+    label: str

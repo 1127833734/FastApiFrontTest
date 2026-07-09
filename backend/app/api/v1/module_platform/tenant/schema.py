@@ -3,12 +3,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import OrderTypeEnum, QueueEnum
-from app.core.base_schema import BaseQueryParam, BaseSchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema
 from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
 OrderType = OrderTypeEnum  # 兼容旧代码的类型别名
 PackageAction = Literal["buy", "renew", "upgrade", "downgrade"]
 PayMethod = Literal["alipay", "wxpay", "free"]
+
 
 class TenantCreateSchema(BaseModel):
     """新增租户"""
@@ -155,15 +156,15 @@ class TenantOutSchema(TenantCreateSchema, BaseSchema):
 class TenantQueryParam(BaseQueryParam):
     """租户查询参数"""
 
-    name: str | None = Field(None, description="租户名称")
-    code: str | None = Field(None, description="租户编码")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | tuple[str, str] | None = Field(None, description="租户名称")
+    code: str | tuple[str, str] | None = Field(None, description="租户编码")
+    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "TenantQueryParam":
-        if self.name:
+        if isinstance(self.name, str):
             self.name = (QueueEnum.like.value, self.name)
-        if self.code:
+        if isinstance(self.code, str):
             self.code = (QueueEnum.like.value, self.code)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
@@ -250,8 +251,7 @@ class PackageChangePreviewOut(BaseModel):
 
 
 class PackageAvailableItem(BaseModel):
-    """
-    可选套餐项
+    """可选套餐项
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -271,8 +271,7 @@ class PackageAvailableItem(BaseModel):
 
 
 class PackageAvailableOut(BaseModel):
-    """
-    可选套餐列表
+    """可选套餐列表
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -282,8 +281,7 @@ class PackageAvailableOut(BaseModel):
 
 
 class PackagePreviewOut(BaseModel):
-    """
-    套餐变更预览结果
+    """套餐变更预览结果
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -300,26 +298,15 @@ class PackagePreviewOut(BaseModel):
 
 
 class SelfOrderCreate(BaseModel):
-    """
-    自助订单创建
+    """自助订单创建
     """
 
     package_id: int = Field(..., ge=1, description="套餐ID")
     order_type: PackageAction = Field(..., description="订单类型(buy/renew/upgrade/downgrade)")
 
 
-class PluginPurchaseCreate(BaseModel):
-    """
-    插件购买
-    """
-
-    plugin_id: int = Field(..., ge=1, description="插件ID")
-    pay_method: PayMethod | None = Field(default=None, description="支付方式(alipay/wxpay/free)")
-
-
 class SelfOrderOut(BaseModel):
-    """
-    自助订单创建结果
+    """自助订单创建结果
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -331,8 +318,7 @@ class SelfOrderOut(BaseModel):
 
 
 class SelfOrderListItem(BaseModel):
-    """
-    我的订单列表项
+    """我的订单列表项
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -349,8 +335,7 @@ class SelfOrderListItem(BaseModel):
 
 
 class SelfOrderListOut(BaseModel):
-    """
-    我的订单列表
+    """我的订单列表
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -362,8 +347,7 @@ class SelfOrderListOut(BaseModel):
 
 
 class SelfOrderDetailOut(BaseModel):
-    """
-    订单详情
+    """订单详情
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -381,8 +365,7 @@ class SelfOrderDetailOut(BaseModel):
 
 
 class WorkspaceTenantInfo(BaseModel):
-    """
-    工作台-租户信息
+    """工作台-租户信息
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -398,8 +381,7 @@ class WorkspaceTenantInfo(BaseModel):
 
 
 class WorkspacePackageInfo(BaseModel):
-    """
-    工作台-套餐信息
+    """工作台-套餐信息
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -414,8 +396,7 @@ class WorkspacePackageInfo(BaseModel):
 
 
 class WorkspaceUsagePercent(BaseModel):
-    """
-    工作台-用量百分比
+    """工作台-用量百分比
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -426,8 +407,7 @@ class WorkspaceUsagePercent(BaseModel):
 
 
 class WorkspaceQuotaInfo(BaseModel):
-    """
-    工作台-配额用量
+    """工作台-配额用量
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -442,8 +422,7 @@ class WorkspaceQuotaInfo(BaseModel):
 
 
 class WorkspaceOrderItem(BaseModel):
-    """
-    工作台-近期订单项
+    """工作台-近期订单项
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -457,8 +436,7 @@ class WorkspaceOrderItem(BaseModel):
 
 
 class WorkspaceOut(BaseModel):
-    """
-    工作台概览
+    """工作台概览
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -467,3 +445,6 @@ class WorkspaceOut(BaseModel):
     package: WorkspacePackageInfo | None = Field(default=None, description="当前套餐信息")
     quota: WorkspaceQuotaInfo = Field(..., description="配额用量")
     recent_orders: list[WorkspaceOrderItem] = Field(default_factory=list, description="近期订单(最多5条)")
+
+
+TenantBySchema.model_rebuild()

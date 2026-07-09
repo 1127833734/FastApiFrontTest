@@ -1,4 +1,3 @@
-
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.common_util import (
@@ -19,8 +18,7 @@ from .schema import (
 
 
 class DeptService:
-    """
-    部门管理服务
+    """部门管理服务
 
     提供部门 CRUD、树形结构查询、级联启/禁用、租户配额检查等业务能力。
     """
@@ -57,7 +55,10 @@ class DeptService:
         # 检查租户配额
         from app.api.v1.module_platform.tenant.service import TenantService
 
-        await TenantService(self.auth).check_quota(self.auth.tenant_id, "dept")
+        user = self.auth.user
+        if not user:
+            raise CustomException(msg="未登录")
+        await TenantService(self.auth).check_quota(user.tenant_id, "dept")
 
         dept = await DeptCRUD(self.auth).create(data=data)
         return DeptOutSchema.model_validate(dept)
@@ -90,7 +91,7 @@ class DeptService:
         child_id_map = get_child_id_map(model_list=all_depts)
 
         for pid in ids:
-            if pid in child_id_map and child_id_map[pid]:
+            if child_id_map.get(pid):
                 raise CustomException(msg="存在子部门，不允许删除父部门")
 
         await DeptCRUD(self.auth).delete(ids=ids)

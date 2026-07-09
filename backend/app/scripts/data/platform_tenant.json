@@ -22,29 +22,5 @@
     "privacy": "https://fastapiadmin.com/privacy",
     "clause": "https://fastapiadmin.com/clause",
     "git_code": "https://github.com/fastapi-admin/fastapi-admin"
-  },
-  {
-    "name": "测试租户",
-    "code": "test",
-    "contact_name": "测试管理员",
-    "contact_phone": "13800138001",
-    "contact_email": "test@fastapiadmin.com",
-    "address": "上海市浦东新区",
-    "domain": "test.fastapiadmin.com",
-    "logo_url": "https://service.fastapiadmin.com/api/v1/static/image/logo.png",
-    "sort": 1,
-    "package_id": 2,
-    "start_time": "2024-01-01 00:00:00",
-    "end_time": "2027-12-31 23:59:59",
-    "description": "测试租户，用于功能测试",
-    "version": "1.0.0",
-    "favicon": "https://service.fastapiadmin.com/api/v1/static/image/favicon.ico",
-    "login_bg": "https://service.fastapiadmin.com/api/v1/static/image/background.svg",
-    "copyright": "Copyright © 2024 Test Tenant 版权所有",
-    "keep_record": "陕ICP备2024000000号",
-    "help_doc": "https://docs.fastapiadmin.com",
-    "privacy": "https://fastapiadmin.com/privacy",
-    "clause": "https://fastapiadmin.com/clause",
-    "git_code": null
   }
 ]

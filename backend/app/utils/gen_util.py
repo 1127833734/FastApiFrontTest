@@ -14,8 +14,7 @@ class GenUtils:
 
     @classmethod
     def init_table(cls, gen_table: GenTableSchema) -> None:
-        """
-        初始化表信息
+        """初始化表信息
 
         参数:
         - gen_table (GenTableSchema): 业务表对象。
@@ -53,8 +52,7 @@ class GenUtils:
 
     @classmethod
     def init_column_field(cls, column: GenTableColumnSchema, table: GenTableOutSchema) -> None:
-        """
-        初始化列属性字段
+        """初始化列属性字段
 
         参数:
         - column (GenTableColumnSchema): 业务表字段对象。
@@ -68,7 +66,7 @@ class GenUtils:
         if table.id is None:
             raise ValueError("业务表ID不能为空")
         column.table_id = table.id
-        column.python_field = cls.to_camel_case(column_name)
+        column.python_field = StringUtil.to_lower_camel_case(column_name)
 
         # 特殊处理几何类型，根据数据库类型选择不同的映射
         from app.config.setting import settings
@@ -160,8 +158,7 @@ class GenUtils:
 
     @classmethod
     def arrays_contains(cls, arr: list, target_value: str) -> bool:
-        """
-        检查目标值是否在数组中
+        """检查目标值是否在数组中
 
         注意：从根本上解决问题，现在确保传入的参数都是正确的类型：
         - arr 是列表类型，且在GenConstant中定义
@@ -207,8 +204,7 @@ class GenUtils:
 
     @classmethod
     def convert_class_name(cls, table_name: str) -> str:
-        """
-        表名转换成 Python 类名
+        """表名转换成 Python 类名
 
         参数:
         - table_name (str): 业务表名。
@@ -220,8 +216,7 @@ class GenUtils:
 
     @classmethod
     def replace_first(cls, input_string: str, search_list: list[str]) -> str:
-        """
-        批量替换前缀
+        """批量替换前缀
 
         参数:
         - input_string (str): 需要被替换的字符串。
@@ -237,8 +232,7 @@ class GenUtils:
 
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
-        """
-        获取数据库类型字段
+        """获取数据库类型字段
 
         参数:
         - column_type (str): 字段类型。
@@ -276,8 +270,7 @@ class GenUtils:
 
     @classmethod
     def get_column_length(cls, column_type: str) -> int:
-        """
-        获取字段长度
+        """获取字段长度
 
         参数:
         - column_type (str): 字段类型，例如 'varchar(255)' 或 'decimal(10,2)'
@@ -303,8 +296,7 @@ class GenUtils:
 
     @classmethod
     def split_column_type(cls, column_type: str) -> list[str]:
-        """
-        拆分列类型
+        """拆分列类型
 
         参数:
         - column_type (str): 字段类型。
@@ -315,17 +307,3 @@ class GenUtils:
         if "(" in column_type and ")" in column_type:
             return column_type.split("(")[1].split(")")[0].split(",")
         return []
-
-    @classmethod
-    def to_camel_case(cls, text: str) -> str:
-        """
-        将字符串转换为驼峰命名
-
-        参数:
-        - text (str): 需要转换的字符串
-
-        返回:
-        - str: 驼峰命名
-        """
-        parts = text.split("_")
-        return parts[0] + "".join(word.capitalize() for word in parts[1:])

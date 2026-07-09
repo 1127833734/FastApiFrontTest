@@ -1,4 +1,3 @@
-"""限流依赖（基于 slowapi）"""
 from math import ceil
 from typing import NoReturn
 

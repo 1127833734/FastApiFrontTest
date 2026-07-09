@@ -15,15 +15,17 @@ class ExcelUtil:
         """读取 Excel 文件字节，返回字典列表（首行为列名）。"""
         wb = load_workbook(io.BytesIO(contents), read_only=True, data_only=True)
         ws = wb.active
+        if not ws:
+            raise ValueError("工作簿没有活动工作表")
         headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
         result: list[dict[str, Any]] = []
         for row in ws.iter_rows(min_row=2, values_only=True):
             if all(cell is None for cell in row):
                 continue
-            row_dict = {}
+            row_dict: dict[str, Any] = {}
             for i, val in enumerate(row):
                 if i < len(headers) and headers[i] is not None:
-                    row_dict[headers[i]] = val
+                    row_dict[str(headers[i])] = val
             if row_dict:
                 result.append(row_dict)
         wb.close()
@@ -31,8 +33,7 @@ class ExcelUtil:
 
     @classmethod
     def __mapping_list(cls, list_data: list[dict[str, Any]], mapping_dict: dict) -> list[dict[str, Any]]:
-        """
-        将列表数据中的字段名映射为对应的中文字段名。
+        """将列表数据中的字段名映射为对应的中文字段名。
 
         参数:
         - list_data: 数据列表。
@@ -41,7 +42,7 @@ class ExcelUtil:
         返回:
         - list[dict]: 映射后的数据列表 [{中文表头: value}]。
         """
-        return [{mapping_dict.get(key): item.get(key) for key in mapping_dict} for item in list_data]
+        return [{str(mapping_dict.get(key)): item.get(key) for key in mapping_dict} for item in list_data]
 
     @classmethod
     def get_excel_template(
@@ -50,8 +51,7 @@ class ExcelUtil:
         selector_header_list: list[str],
         option_list: list[dict[str, list[str]]],
     ) -> bytes:
-        """
-        生成 Excel 模板文件。
+        """生成 Excel 模板文件。
 
         参数:
         - header_list: 表头列表。
@@ -93,8 +93,7 @@ class ExcelUtil:
 
     @classmethod
     def export_list2excel(cls, list_data: list[dict[str, Any]], mapping_dict: dict) -> bytes:
-        """
-        将列表数据导出为 Excel 文件。
+        """将列表数据导出为 Excel 文件。
 
         参数:
         - list_data: 要导出的数据列表。
@@ -102,7 +101,14 @@ class ExcelUtil:
 
         返回:
         - bytes: Excel 文件的二进制数据。
+
+        限制:
+        - 最多导出 100000 条记录，超出部分截断。
         """
+        max_rows = 100000
+        if len(list_data) > max_rows:
+            list_data = list_data[:max_rows]
+
         mapping_data = cls.__mapping_list(list_data, mapping_dict)
         headers = list(mapping_dict.values())
 

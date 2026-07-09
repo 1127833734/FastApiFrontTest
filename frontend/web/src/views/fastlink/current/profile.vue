@@ -242,6 +242,12 @@
               </ElButton>
             </div>
           </ElForm>
+
+          <div class="px-5 pb-4">
+            <ElButton text size="small" @click="router.push('/module_system/log')">
+              <FaSvgIcon icon="ri:history-line" class="mr-1" />查看登录日志
+            </ElButton>
+          </div>
         </div>
 
         <div class="fa-card-sm my-5">
@@ -308,11 +314,13 @@ import { useUserStore, useDictStore } from "@stores";
 import { Camera } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { redirectToLogin, dataURLToFile } from "@utils";
 
 defineOptions({ name: "UserProfile" });
 
 const { t } = useI18n();
+const router = useRouter();
 const userStore = useUserStore();
 const dictStore = useDictStore();
 const infoFormRef = ref<FormInstance>();

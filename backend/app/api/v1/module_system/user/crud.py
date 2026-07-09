@@ -19,8 +19,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         super().__init__(model=UserModel, auth=auth)
 
     async def update_last_login(self, id: int) -> None:
-        """
-        更新用户最后登录时间
+        """更新用户最后登录时间
 
         参数:
         - id (int): 用户ID
@@ -28,8 +27,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         await self.set([id], last_login=datetime.now())
 
     async def set_user_roles(self, user_ids: list[int], role_ids: list[int]) -> None:
-        """
-        批量设置用户角色
+        """批量设置用户角色（带租户隔离验证）
 
         参数:
         - user_ids (list[int]): 用户ID列表
@@ -38,9 +36,16 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         返回:
         - None
         """
+        from app.core.exceptions import CustomException
+
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if role_ids:
             role_objs = await RoleCRUD(self.auth).get_list(search={"id": ("in", role_ids)})
+            auth_user = self.auth.user
+            if auth_user and not auth_user.is_superuser:
+                for role in role_objs:
+                    if role.tenant_id != auth_user.tenant_id:
+                        raise CustomException(msg=f"角色 {role.name} 不属于当前租户")
         else:
             role_objs = []
 
@@ -51,8 +56,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         await self.auth.db.flush()
 
     async def set_user_positions(self, user_ids: list[int], position_ids: list[int]) -> None:
-        """
-        批量设置用户岗位
+        """批量设置用户岗位（带租户隔离验证）
 
         参数:
         - user_ids (list[int]): 用户ID列表
@@ -61,9 +65,16 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         返回:
         - None
         """
+        from app.core.exceptions import CustomException
+
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if position_ids:
             position_objs = await PositionCRUD(self.auth).get_list(search={"id": ("in", position_ids)})
+            auth_user = self.auth.user
+            if auth_user and not auth_user.is_superuser:
+                for position in position_objs:
+                    if position.tenant_id != auth_user.tenant_id:
+                        raise CustomException(msg=f"岗位 {position.name} 不属于当前租户")
         else:
             position_objs = []
 
@@ -74,8 +85,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         await self.auth.db.flush()
 
     async def change_password(self, id: int, password_hash: str) -> UserModel:
-        """
-        修改用户密码
+        """修改用户密码
 
         参数:
         - id (int): 用户ID

@@ -62,12 +62,12 @@ class DeptTreeOutSchema(DeptOutSchema):
 class DeptQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """部门管理查询参数"""
 
-    name: str | None = Field(None, description="部门名称")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | tuple[str, str] | None = Field(None, description="部门名称")
+    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
     @model_validator(mode="after")
     def validate_query_params(self) -> "DeptQueryParam":
-        if self.name:
+        if isinstance(self.name, str):
             self.name = (QueueEnum.like.value, self.name)
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)

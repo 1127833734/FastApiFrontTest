@@ -14,8 +14,7 @@ if TYPE_CHECKING:
 
 
 class UserRolesModel(MappedBase):
-    """
-    用户角色关联表
+    """用户角色关联表
 
     定义用户与角色的多对多关系
     """
@@ -38,8 +37,7 @@ class UserRolesModel(MappedBase):
 
 
 class UserPositionsModel(MappedBase):
-    """
-    用户岗位关联表
+    """用户岗位关联表
 
     定义用户与岗位的多对多关系
     """
@@ -62,8 +60,7 @@ class UserPositionsModel(MappedBase):
 
 
 class UserModel(ModelMixin, TenantMixin, UserMixin):
-    """
-    用户模型
+    """用户模型
     """
 
     __tablename__: str = "sys_user"

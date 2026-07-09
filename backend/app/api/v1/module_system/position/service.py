@@ -1,4 +1,6 @@
-from app.core.base_schema import AuthSchema, BatchSetAvailable
+from typing import Any
+
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.utils.excel_util import ExcelUtil
 
@@ -12,8 +14,7 @@ from .schema import (
 
 
 class PositionService:
-    """
-    岗位管理服务
+    """岗位管理服务
 
     提供岗位 CRUD、批量启/禁用、Excel 导出等业务能力。
     """
@@ -22,7 +23,12 @@ class PositionService:
         self.auth = auth
 
     async def detail(self, id: int) -> PositionOutSchema:
-        return await PositionCRUD(self.auth).get_or_404(id=id, out_schema=PositionOutSchema)
+        obj = await PositionCRUD(self.auth).get_or_404(id=id)
+        return PositionOutSchema.model_validate(obj)
+
+    async def get_options(self) -> list[dict[str, Any]]:
+        """获取岗位下拉选项，委托给 PositionCRUD"""
+        return await PositionCRUD(self.auth).get_options()
 
     async def get_list(
         self,
@@ -38,7 +44,7 @@ class PositionService:
         page_size: int,
         search: PositionQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[PositionOutSchema]:
         offset = (page_no - 1) * page_size
         return await PositionCRUD(self.auth).page(
             offset=offset,

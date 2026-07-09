@@ -1,20 +1,20 @@
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import func, select
 
 from app.api.v1.module_platform.tenant.model import TenantModel
-from app.core.base_schema import AuthSchema
+from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.dependencies import require_superadmin
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 
 from .crud import PackageCRUD
-from .model import PackageMenuModel, PackageModel, PackagePluginModel
+from .model import PackageMenuModel, PackageModel
 from .schema import (
     PackageCreateSchema,
     PackageMenuSetSchema,
     PackageOutSchema,
-    PackagePluginSetSchema,
     PackageQueryParam,
     PackageUpdateSchema,
 )
@@ -27,8 +27,14 @@ class PackageService:
         self.auth = auth
 
     @require_superadmin
+    async def get_options(self) -> list[dict[str, Any]]:
+        """获取套餐下拉选项，委托给 PackageCRUD"""
+        return await PackageCRUD(self.auth).get_options()
+
+    @require_superadmin
     async def detail(self, id: int) -> PackageOutSchema:
-        return await PackageCRUD(self.auth).get_or_404(id=id, out_schema=PackageOutSchema, msg="该数据不存在")
+        obj = await PackageCRUD(self.auth).get_or_404(id=id)
+        return PackageOutSchema.model_validate(obj)
 
     @require_superadmin
     async def page(
@@ -37,7 +43,7 @@ class PackageService:
         page_size: int,
         search: PackageQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
-    ) -> dict:
+    ) -> PageResultSchema[PackageOutSchema]:
         return await PackageCRUD(self.auth).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
@@ -146,33 +152,3 @@ class PackageService:
         menu_stmt = select(PackageMenuModel.menu_id).where(PackageMenuModel.package_id == tenant.package_id)
         result = await self.auth.db.execute(menu_stmt)
         return [row[0] for row in result.all()]
-
-    async def get_tenant_available_plugin_ids(self, tenant_id: int) -> list[int]:
-        from app.api.v1.module_platform.tenant.model import TenantModel
-
-        stmt = select(TenantModel).where(TenantModel.id == tenant_id).limit(1)
-        result = await self.auth.db.execute(stmt)
-        tenant = result.scalar_one_or_none()
-        if not tenant or not tenant.package_id:
-            return []
-
-        pkg_stmt = select(PackageModel.status).where(PackageModel.id == tenant.package_id).limit(1)
-        pkg_result = await self.auth.db.execute(pkg_stmt)
-        pkg_status = pkg_result.scalar_one_or_none()
-        if pkg_status != 0:
-            return []
-
-        plugin_stmt = select(PackagePluginModel.plugin_id).where(PackagePluginModel.plugin_id == tenant.package_id)
-        result = await self.auth.db.execute(plugin_stmt)
-        return [row[0] for row in result.all()]
-
-    async def get_plugins(self, package_id: int) -> list[int]:
-        stmt = select(PackagePluginModel.plugin_id).where(PackagePluginModel.plugin_id == package_id)
-        result = await self.auth.db.execute(stmt)
-        return [row[0] for row in result.all()]
-
-    async def set_plugins(self, package_id: int, data: PackagePluginSetSchema) -> None:
-        await self.auth.db.execute(sa.delete(PackagePluginModel).where(PackagePluginModel.package_id == package_id))
-        for plugin_id in data.plugin_ids:
-            self.auth.db.add(PackagePluginModel(package_id=package_id, plugin_id=plugin_id))
-        await self.auth.db.flush()

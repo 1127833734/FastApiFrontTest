@@ -1,13 +1,15 @@
 import asyncio
 import shutil
 import time
+from collections.abc import AsyncIterable
 from datetime import datetime
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from fastapi.sse import EventSourceResponse, ServerSentEvent
 from sqlalchemy import text
 
-from app.common.constant import RET
+from app.common.enums import RET
 from app.common.response import ErrorResponse, ResponseSchema, SuccessResponse
 from app.config.setting import settings
 from app.core.database import async_db_session
@@ -17,6 +19,9 @@ from app.core.router_class import OperationLogRoute
 from .schema import DependencyStatus, HealthOut, ReadinessOut
 
 HealthRouter = APIRouter(route_class=OperationLogRoute, prefix="/health", tags=["健康检查"])
+
+# ── 健康检查时间间隔 ──
+_HEALTH_STREAM_INTERVAL = 30  # 秒
 
 
 async def _check_database() -> DependencyStatus:
@@ -69,8 +74,7 @@ _start_time = datetime.now()
 
 @HealthRouter.get("/check", summary="健康检查", response_model=ResponseSchema[HealthOut])
 async def health_check() -> JSONResponse:
-    """
-    基础健康检查
+    """基础健康检查
 
     参数:
     - 无
@@ -92,8 +96,7 @@ async def health_check() -> JSONResponse:
 
 @HealthRouter.get("/live", summary="存活探针", response_model=ResponseSchema[HealthOut])
 async def liveness_check() -> JSONResponse:
-    """
-    存活探针
+    """存活探针
 
     参数:
     - 无
@@ -115,8 +118,7 @@ async def liveness_check() -> JSONResponse:
 
 @HealthRouter.get("/ready", summary="就绪探针", response_model=ResponseSchema[ReadinessOut])
 async def readiness_check(request: Request) -> JSONResponse:
-    """
-    就绪探针
+    """就绪探针
 
     参数:
     - request (Request): FastAPI 请求对象，用于获取 Redis 客户端。
@@ -161,3 +163,36 @@ async def readiness_check(request: Request) -> JSONResponse:
         status_code=503,
         success=False,
     )
+
+
+# ============================================================
+# SSE 健康状态实时推送
+# ============================================================
+
+
+async def _build_health_payload(request: Request) -> dict:
+    """采集当前健康状态"""
+    db_status, redis_status = await asyncio.gather(
+        _check_database(),
+        _check_redis(request),
+    )
+    return {
+        "status": 1 if db_status.status and redis_status.status else 0,
+        "dependencies": {
+            "database": db_status.model_dump(),
+            "redis": redis_status.model_dump(),
+        },
+        "disk_usage": _get_disk_usage(),
+        "uptime_seconds": (datetime.now() - _start_time).total_seconds(),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@HealthRouter.get("/stream", summary="健康状态实时推送", response_class=EventSourceResponse)
+async def health_stream(request: Request) -> AsyncIterable[ServerSentEvent]:
+    """SSE 实时推送健康状态，每 30 秒推送一次，客户端无需轮询 /ready。"""
+    yield ServerSentEvent(data=await _build_health_payload(request), event="health")
+
+    while True:
+        await asyncio.sleep(_HEALTH_STREAM_INTERVAL)
+        yield ServerSentEvent(data=await _build_health_payload(request), event="health")

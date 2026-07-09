@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi import APIRouter, Body, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 
 from app.common.response import ResponseSchema, SuccessResponse
@@ -8,14 +8,15 @@ from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryPa
 from app.core.dependencies import AuthPermission
 from app.core.router_class import OperationLogRoute
 
-from .schema import TicketBatchSchema, TicketCreateSchema, TicketOutSchema, TicketQueryParam, TicketUpdateSchema
-from .service import TicketService
+from .schema import TicketBatchSchema, TicketCommentCreateSchema, TicketCommentOutSchema, TicketCreateSchema, TicketOutSchema, TicketQueryParam, TicketUpdateSchema
+from .service import TicketCommentService, TicketService
 
 TicketRouter = APIRouter(route_class=OperationLogRoute, prefix="/ticket", tags=["工单管理"])
 
+
 @TicketRouter.get("/list", summary="工单列表", response_model=ResponseSchema[PageResultSchema[TicketOutSchema]])
 async def ticket_list_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:list"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[TicketQueryParam, Query(description="工单查询参数")],
 ) -> JSONResponse:
@@ -27,43 +28,68 @@ async def ticket_list_controller(
     )
     return SuccessResponse(data=result, msg="查询成功")
 
+
 @TicketRouter.get("/detail/{id}", summary="获取工单详情", response_model=ResponseSchema[TicketOutSchema])
 async def ticket_detail_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:detail"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:detail"]))],
     id: Annotated[int, Path(description="工单ID")],
 ) -> JSONResponse:
     result = await TicketService(auth).detail(id=id)
     return SuccessResponse(data=result, msg="查询成功")
 
-@TicketRouter.post("/create", summary="创建工单", response_model=ResponseSchema[TicketOutSchema])
+
+@TicketRouter.post("/create", status_code=status.HTTP_201_CREATED, summary="创建工单", response_model=ResponseSchema[TicketOutSchema])
 async def ticket_create_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:create"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:create"]))],
     data: Annotated[TicketCreateSchema, Body(description="工单创建参数")],
 ) -> JSONResponse:
     result = await TicketService(auth).create(data=data)
     return SuccessResponse(data=result, msg="创建成功")
 
+
 @TicketRouter.put("/update/{id}", summary="更新工单", response_model=ResponseSchema[TicketOutSchema])
 async def ticket_update_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:update"]))],
-    id: Annotated[int, Path(description="工单ID")],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:update"]))],
+    id: Annotated[int, Path(description="工单ID", ge=1)],
     data: Annotated[TicketUpdateSchema, Body(description="工单更新参数")],
 ) -> JSONResponse:
     result = await TicketService(auth).update(id=id, data=data)
     return SuccessResponse(data=result, msg="更新成功")
 
+
 @TicketRouter.put("/batch", summary="批量更新工单", response_model=ResponseSchema)
 async def ticket_batch_update_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:update"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:update"]))],
     data: Annotated[TicketBatchSchema, Body(description="工单批量更新参数")],
 ) -> JSONResponse:
     await TicketService(auth).batch(data=data)
     return SuccessResponse(msg="批量操作成功")
 
+
 @TicketRouter.delete("/delete", summary="删除工单", response_model=ResponseSchema[None])
 async def ticket_delete_controller(
-    auth: Annotated[AuthSchema, Depends(AuthPermission(["module_system:ticket:delete"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:delete"]))],
     ids: Annotated[list[int], Body(description="工单ID列表")],
 ) -> JSONResponse:
     await TicketService(auth).delete(ids=ids)
     return SuccessResponse(msg="删除成功")
+
+
+@TicketRouter.get("/{ticket_id}/comments", summary="工单评论列表", response_model=ResponseSchema[PageResultSchema[TicketCommentOutSchema]])
+async def ticket_comment_list_controller(
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:detail"]))],
+    ticket_id: Annotated[int, Path(description="工单ID")],
+    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+) -> JSONResponse:
+    result = await TicketCommentService(auth).page(ticket_id=ticket_id, page_no=page.page_no, page_size=page.page_size)
+    return SuccessResponse(data=result, msg="查询成功")
+
+
+@TicketRouter.post("/{ticket_id}/comments", status_code=status.HTTP_201_CREATED, summary="创建评论", response_model=ResponseSchema[TicketCommentOutSchema])
+async def ticket_comment_create_controller(
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:detail"]))],
+    ticket_id: Annotated[int, Path(description="工单ID")],
+    data: Annotated[TicketCommentCreateSchema, Body(description="评论内容")],
+) -> JSONResponse:
+    result = await TicketCommentService(auth).create(ticket_id=ticket_id, data=data)
+    return SuccessResponse(data=result, msg="评论成功")

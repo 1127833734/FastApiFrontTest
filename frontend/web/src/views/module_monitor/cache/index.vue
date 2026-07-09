@@ -277,6 +277,8 @@ defineOptions({ name: "CacheMonitor" });
 const { width: winWidth } = useWindowSize();
 const descColumns = computed(() => (winWidth.value < 768 ? 2 : 6));
 
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+
 const cacheNames = ref<CacheInfo[]>([]);
 const cacheKeys = ref<string[]>([]);
 const loading = ref(true);
@@ -452,9 +454,15 @@ const initCharts = () => {
 onMounted(() => {
   getCacheNameList();
   getInfo();
+  // Redis 监控信息自动刷新（30 秒轮询）
+  refreshTimer = setInterval(() => {
+    getInfo();
+    getCacheNameList();
+  }, 30000);
 });
 
 onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
   commandstatsInstance?.dispose();
   usedmemoryInstance?.dispose();
 });

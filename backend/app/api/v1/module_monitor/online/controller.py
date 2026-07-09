@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, Security
 from fastapi.responses import JSONResponse
 from redis.asyncio.client import Redis
 
@@ -16,7 +16,7 @@ from .service import OnlineService
 OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=["在线用户"])
 
 
-@OnlineRouter.get("/list", summary="获取在线用户列表", response_model=ResponseSchema[list[OnlineOutSchema]], dependencies=[Depends(AuthPermission(["module_monitor:online:query"]))])
+@OnlineRouter.get("/list", summary="获取在线用户列表", response_model=ResponseSchema[list[OnlineOutSchema]], dependencies=[Security(AuthPermission(["module_monitor:online:query"]))])
 async def get_online_list_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
@@ -31,7 +31,7 @@ async def get_online_list_controller(
     return SuccessResponse(data=result_dict, msg="获取成功")
 
 
-@OnlineRouter.delete("/delete", summary="强制下线", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:online:delete"]))])
+@OnlineRouter.delete("/delete", summary="强制下线", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:online:delete"]))])
 async def delete_online_controller(
     session_id: Annotated[str, Body(description="会话编号")],
     redis: Annotated[Redis, Depends(redis_getter)],
@@ -40,7 +40,7 @@ async def delete_online_controller(
     return SuccessResponse(msg="强制下线成功")
 
 
-@OnlineRouter.delete("/clear", summary="清除所有在线用户", response_model=ResponseSchema[None], dependencies=[Depends(AuthPermission(["module_monitor:online:delete"]))])
+@OnlineRouter.delete("/clear", summary="清除所有在线用户", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_monitor:online:delete"]))])
 async def clear_online_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
 ) -> JSONResponse:
