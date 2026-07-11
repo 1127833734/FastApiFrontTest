@@ -1,4 +1,5 @@
 from apscheduler.jobstores.base import JobLookupError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ap_scheduler import SchedulerUtil
 from app.core.base_schema import AuthSchema, PageResultSchema
@@ -18,11 +19,12 @@ from .schema import (
 class NodeService:
     """节点管理模块服务层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     async def options(self) -> list[dict]:
-        obj_list = await NodeCRUD(self.auth).get_obj_list_crud()
+        obj_list = await NodeCRUD(self.auth, self.db).get_obj_list_crud()
         return [
             {
                 "id": obj.id,
@@ -36,7 +38,7 @@ class NodeService:
         ]
 
     async def detail(self, id: int) -> NodeOutSchema:
-        obj = await NodeCRUD(self.auth).get_obj_by_id_crud(id=id)
+        obj = await NodeCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         return NodeOutSchema.model_validate(obj)
 
     async def get_list(
@@ -44,7 +46,7 @@ class NodeService:
         search: NodeQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> list[NodeOutSchema]:
-        obj_list = await NodeCRUD(self.auth).get_obj_list_crud(search=vars(search) if search else {}, order_by=order_by)
+        obj_list = await NodeCRUD(self.auth, self.db).get_obj_list_crud(search=vars(search) if search else {}, order_by=order_by)
         return [NodeOutSchema.model_validate(obj) for obj in obj_list]
 
     async def page(
@@ -55,7 +57,7 @@ class NodeService:
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[NodeOutSchema]:
         offset = (page_no - 1) * page_size
-        return await NodeCRUD(self.auth).page(
+        return await NodeCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
@@ -64,21 +66,21 @@ class NodeService:
         )
 
     async def create(self, data: NodeCreateSchema) -> NodeOutSchema:
-        exist_obj = await NodeCRUD(self.auth).get(name=data.name)
+        exist_obj = await NodeCRUD(self.auth, self.db).get(name=data.name)
         if exist_obj:
             raise CustomException(msg="创建失败，该节点已存在")
 
-        obj = await NodeCRUD(self.auth).create_obj_crud(data=data)
+        obj = await NodeCRUD(self.auth, self.db).create_obj_crud(data=data)
         if not obj:
             raise CustomException(msg="创建失败")
         return NodeOutSchema.model_validate(obj)
 
     async def update(self, id: int, data: NodeUpdateSchema) -> NodeOutSchema:
-        exist_obj = await NodeCRUD(self.auth).get_obj_by_id_crud(id=id)
+        exist_obj = await NodeCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not exist_obj:
             raise CustomException(msg="更新失败，该节点不存在")
 
-        obj = await NodeCRUD(self.auth).update_obj_crud(id=id, data=data)
+        obj = await NodeCRUD(self.auth, self.db).update_obj_crud(id=id, data=data)
         if not obj:
             raise CustomException(msg="更新失败")
         return NodeOutSchema.model_validate(obj)
@@ -87,21 +89,21 @@ class NodeService:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
         for mid in ids:
-            exist_obj = await NodeCRUD(self.auth).get_obj_by_id_crud(id=mid)
+            exist_obj = await NodeCRUD(self.auth, self.db).get_obj_by_id_crud(id=mid)
             if not exist_obj:
                 raise CustomException(msg="删除失败，该节点不存在")
             try:
                 SchedulerUtil.remove_job(job_id=mid)
             except JobLookupError:
                 pass
-        await NodeCRUD(self.auth).delete_obj_crud(ids=ids)
+        await NodeCRUD(self.auth, self.db).delete_obj_crud(ids=ids)
 
     async def clear(self) -> None:
         SchedulerUtil.clear_jobs()
-        await NodeCRUD(self.auth).clear_obj_crud()
+        await NodeCRUD(self.auth, self.db).clear_obj_crud()
 
     async def execute(self, id: int, execute_data: NodeExecuteSchema) -> dict:
-        obj = await NodeCRUD(self.auth).get_obj_by_id_crud(id=id)
+        obj = await NodeCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not obj:
             raise CustomException(msg="调试失败，该节点不存在")
 
@@ -145,7 +147,7 @@ class NodeService:
         if not ids:
             raise CustomException(msg="请选择要操作的数据")
 
-        await NodeCRUD(self.auth).set(
+        await NodeCRUD(self.auth, self.db).set(
             ids=ids,
             status=status,
         )

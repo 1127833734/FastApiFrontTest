@@ -2,8 +2,23 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.core.base_schema import JWTOutSchema
+from app.core.base_schema import AuthSchema, CoreUserSchema, JWTOutSchema
 
+__all__ = [
+    "AuthSchema",
+    "CoreUserSchema",
+    "CaptchaOutSchema",
+    "TenantOptionSchema",
+    "SelectTenantSchema",
+    "SelectTenantOutSchema",
+    "LoginWithTenantsSchema",
+    "TenantRegisterSchema",
+    "TenantRegisterOutSchema",
+    "EnterPlatformOutSchema",
+    "TenantLookupOutSchema",
+    "ImpersonateSchema",
+    "ImpersonateOutSchema",
+]
 
 class CaptchaOutSchema(BaseModel):
     """验证码响应模型"""

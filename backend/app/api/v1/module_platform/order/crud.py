@@ -1,5 +1,7 @@
 """订单与支付 CRUD"""
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
@@ -10,8 +12,8 @@ from .schema import OrderCreateInternalSchema, OrderUpdateInternalSchema
 class OrderCRUD(CRUDBase[OrderModel, OrderCreateInternalSchema, OrderUpdateInternalSchema]):
     """订单 CRUD"""
 
-    def __init__(self, auth: AuthSchema) -> None:
-        super().__init__(model=OrderModel, auth=auth)
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
+        super().__init__(model=OrderModel, auth=auth, db=db)
 
     async def get_by_order_no(self, order_no: str) -> OrderModel | None:
         return await self.get(order_no=order_no)

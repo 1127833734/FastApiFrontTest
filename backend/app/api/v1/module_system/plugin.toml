@@ -1,8 +1,8 @@
 # 见 docs/PLUGIN_ARCHITECTURE.md
 
-name = "platform"
-title = "平台"
+name = "system"
+title = "系统"
 version = "1.0.0"
-description = "平台功能；路由由 module_platform/**/controller 动态注册。"
+description = "系统核心功能（用户/角色/权限/部门/字典/参数/通知/日志等）"
 optional = true
-tags = ["platform"]
+tags = ["system", "auth", "rbac"]

@@ -1,17 +1,9 @@
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.enums import QueueEnum
 from app.core.validator import DateTimeStr
-
-if TYPE_CHECKING:
-    from app.api.v1.module_system.user.model import UserModel
-
-UserT = TypeVar("UserT")
 
 
 class CommonSchema(BaseModel):
@@ -82,22 +74,6 @@ class DownloadFileSchema(BaseModel):
 
     file_path: str = Field(..., description="新文件映射路径")
     file_name: str = Field(..., description="新文件名称")
-
-
-class AuthSchema(BaseModel):
-    """权限认证模型"""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    user: "UserModel" = Field(..., description="用户信息（UserModel 实例）", exclude=True)
-    check_data_scope: bool = Field(default=True, description="是否检查数据权限")
-    db: AsyncSession = Field(..., description="数据库会话", exclude=True)
-    session_info: dict | None = Field(default=None, description="会话信息（含 is_impersonate 等）")
-
-    @classmethod
-    def anonymous(cls, db: AsyncSession, check_data_scope: bool = False, session_info: dict | None = None) -> "AuthSchema":
-        """创建匿名认证模型（用于登录、支付回调等无用户场景）"""
-        return cls(db=db, check_data_scope=check_data_scope, session_info=session_info, user=None)  # type: ignore[arg-type]
 
 
 class JWTPayloadSchema(BaseModel):
@@ -180,10 +156,10 @@ class BaseQueryParam(BaseModel):
     def validate_query_params(self) -> "BaseQueryParam":
         ct = self.created_time
         if isinstance(ct, list) and len(ct) == 2:
-            self.created_time = (QueueEnum.between.value, (ct[0], ct[1]))
+            self.created_time = ("between", (ct[0], ct[1]))
         ut = self.updated_time
         if isinstance(ut, list) and len(ut) == 2:
-            self.updated_time = (QueueEnum.between.value, (ut[0], ut[1]))
+            self.updated_time = ("between", (ut[0], ut[1]))
         return self
 
 
@@ -196,9 +172,9 @@ class UserByQueryParam(BaseModel):
     @model_validator(mode="after")
     def validate_query_params(self) -> "UserByQueryParam":
         if isinstance(self.created_id, int):
-            self.created_id = (QueueEnum.eq.value, self.created_id)
+            self.created_id = ("eq", self.created_id)
         if isinstance(self.updated_id, int):
-            self.updated_id = (QueueEnum.eq.value, self.updated_id)
+            self.updated_id = ("eq", self.updated_id)
         return self
 
 
@@ -210,7 +186,7 @@ class TenantByQueryParam(BaseModel):
     @model_validator(mode="after")
     def validate_query_params(self) -> "TenantByQueryParam":
         if isinstance(self.tenant_id, int):
-            self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
+            self.tenant_id = ("eq", self.tenant_id)
         return self
 
 
@@ -219,3 +195,29 @@ class OptionSchema(BaseModel):
 
     value: int
     label: str
+
+
+class CoreUserSchema(BaseModel):
+    """核心层用户信息 — AuthSchema 使用，不依赖任何业务模块
+
+    业务模块的 UserOutSchema 应继承此类以确保类型兼容。
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(default=0, description="用户ID")
+    tenant_id: int = Field(default=0, description="租户ID")
+    username: str | None = Field(default=None, description="用户名")
+    name: str | None = Field(default=None, description="名称")
+    dept_id: int | None = Field(default=None, description="部门ID")
+    is_superuser: bool = Field(default=False, description="是否超管")
+
+
+class AuthSchema(BaseModel):
+    """权限认证模型"""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    user: CoreUserSchema = Field(default_factory=CoreUserSchema, description="用户信息", exclude=True)
+    check_data_scope: bool = Field(default=True, description="是否检查数据权限")
+    session_info: dict | None = Field(default=None, description="会话信息（含 is_impersonate 等）")

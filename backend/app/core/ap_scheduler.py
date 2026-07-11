@@ -41,10 +41,10 @@ from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from redis.asyncio import Redis
 
+from app.api.v1.module_task.cronjob.node.model import NodeModel
 from app.config.setting import settings
 from app.core.database import engine
 from app.core.logger import logger
-from app.plugin.module_task.cronjob.node.model import NodeModel
 from app.utils.cron_util import CronUtil
 
 # 任务状态常量（与 JobModel.status 注释保持一致：0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消）
@@ -95,6 +95,7 @@ class SchedulerUtil:
     # 临时存储 job_name，用于在 EVENT_JOB_SUBMITTED 时获取
     # 格式可以是: str (任务名称) 或 tuple[str, str] (原任务ID, 任务名称)
     _job_name_cache: dict[str, str | tuple[str, str]] = {}
+    _last_scheduler_status: int = SCHEDULER_STATUS_STOPPED
 
     @classmethod
     def scheduler_event_listener(cls, event: JobEvent | JobExecutionEvent) -> None:
@@ -493,22 +494,6 @@ class SchedulerUtil:
         logger.debug(f"JobStore {alias} {action}")
 
     @classmethod
-    def _clear_all_job_logs(cls) -> None:
-        """清空所有任务日志（仅用于手动清空，不建议使用）
-        """
-        try:
-            from sqlalchemy.orm import Session
-
-            from app.plugin.module_task.cronjob.job.model import JobModel
-
-            with Session(engine) as session:
-                session.query(JobModel).delete()
-                session.commit()
-                logger.info("所有任务日志已清空")
-        except Exception as e:
-            logger.error(f"清空任务日志失败: {e!s}", exc_info=True)
-
-    @classmethod
     def _cancel_all_pending_job_logs(cls) -> None:
         """将所有 pending 状态的执行日志更新为 cancelled
         用于清空调度器任务时，不删除日志而是更新状态
@@ -516,7 +501,7 @@ class SchedulerUtil:
         try:
             from sqlalchemy.orm import Session
 
-            from app.plugin.module_task.cronjob.job.model import JobModel
+            from app.api.v1.module_task.cronjob.job.model import JobModel
 
             with Session(engine) as session:
                 session.query(JobModel).filter(JobModel.status == JOB_STATUS_PENDING).update({"status": JOB_STATUS_CANCELLED})
@@ -756,7 +741,7 @@ class SchedulerUtil:
         """清理该 job_id 的所有旧的 pending 日志，避免重启累积。"""
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         try:
             with Session(engine) as session:
@@ -779,7 +764,7 @@ class SchedulerUtil:
         """
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         try:
             job = cls.get_job(job_id=job_id)
@@ -813,7 +798,7 @@ class SchedulerUtil:
         """
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         job = cls.get_job(job_id=job_id)
         next_run_time = str(job.next_run_time) if job and job.next_run_time else None
@@ -842,7 +827,7 @@ class SchedulerUtil:
         """
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         try:
             job = cls.get_job(job_id=job_id)
@@ -929,7 +914,7 @@ class SchedulerUtil:
         """
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         with Session(engine) as session:
             job_log = session.query(JobModel).filter(JobModel.job_id == job_id, JobModel.status.in_([JOB_STATUS_PENDING, JOB_STATUS_RUNNING])).order_by(JobModel.created_time.desc()).first()
@@ -1311,7 +1296,7 @@ class SchedulerUtil:
         """
         from sqlalchemy.orm import Session
 
-        from app.plugin.module_task.cronjob.job.model import JobModel
+        from app.api.v1.module_task.cronjob.job.model import JobModel
 
         jobs = cls.get_all_jobs()
         sync_count = 0

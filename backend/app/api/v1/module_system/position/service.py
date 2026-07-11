@@ -1,5 +1,7 @@
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.utils.excel_util import ExcelUtil
@@ -19,23 +21,24 @@ class PositionService:
     提供岗位 CRUD、批量启/禁用、Excel 导出等业务能力。
     """
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     async def detail(self, id: int) -> PositionOutSchema:
-        obj = await PositionCRUD(self.auth).get_or_404(id=id)
+        obj = await PositionCRUD(self.auth, self.db).get_or_404(id=id)
         return PositionOutSchema.model_validate(obj)
 
     async def get_options(self) -> list[dict[str, Any]]:
         """获取岗位下拉选项，委托给 PositionCRUD"""
-        return await PositionCRUD(self.auth).get_options()
+        return await PositionCRUD(self.auth, self.db).get_options()
 
     async def get_list(
         self,
         search: PositionQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[PositionOutSchema]:
-        position_list = await PositionCRUD(self.auth).get_list(search=vars(search) if search else None, order_by=order_by)
+        position_list = await PositionCRUD(self.auth, self.db).get_list(search=vars(search) if search else None, order_by=order_by)
         return [PositionOutSchema.model_validate(position) for position in position_list]
 
     async def page(
@@ -46,7 +49,7 @@ class PositionService:
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[PositionOutSchema]:
         offset = (page_no - 1) * page_size
-        return await PositionCRUD(self.auth).page(
+        return await PositionCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
@@ -55,37 +58,37 @@ class PositionService:
         )
 
     async def create(self, data: PositionCreateSchema) -> PositionOutSchema:
-        position = await PositionCRUD(self.auth).get(name=data.name)
+        position = await PositionCRUD(self.auth, self.db).get(name=data.name)
         if position:
             raise CustomException(msg="创建失败，该数据已存在")
-        new_position = await PositionCRUD(self.auth).create(data=data)
+        new_position = await PositionCRUD(self.auth, self.db).create(data=data)
         return PositionOutSchema.model_validate(new_position)
 
     async def update(self, id: int, data: PositionUpdateSchema) -> PositionOutSchema:
-        _ = await PositionCRUD(self.auth).get_or_404(id=id, msg="更新失败，该数据不存在")
-        exist_position = await PositionCRUD(self.auth).get(name=data.name)
+        _ = await PositionCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该数据不存在")
+        exist_position = await PositionCRUD(self.auth, self.db).get(name=data.name)
         if exist_position and exist_position.id != id:
             raise CustomException(msg="更新失败，名称已存在")
-        updated_position = await PositionCRUD(self.auth).update(id=id, data=data)
+        updated_position = await PositionCRUD(self.auth, self.db).update(id=id, data=data)
         return PositionOutSchema.model_validate(updated_position)
 
     async def delete(self, ids: list[int]) -> None:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
-        positions = await PositionCRUD(self.auth).get_list(search={"id": ("in", ids)})
+        positions = await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         position_map = {p.id: p for p in positions}
         for pid in ids:
             if pid not in position_map:
                 raise CustomException(msg="删除失败，该数据不存在")
-        await PositionCRUD(self.auth).delete(ids=ids)
+        await PositionCRUD(self.auth, self.db).delete(ids=ids)
 
     async def set_available(self, data: BatchSetAvailable) -> None:
-        positions = await PositionCRUD(self.auth).get_list(search={"id": ("in", data.ids)})
+        positions = await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", data.ids)})
         position_map = {p.id: p for p in positions}
         for pid in data.ids:
             if pid not in position_map:
                 raise CustomException(msg="该数据不存在")
-        await PositionCRUD(self.auth).set(ids=data.ids, status=data.status)
+        await PositionCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
 
     @staticmethod
     def export_list(position_list: list[dict]) -> bytes:

@@ -6,10 +6,11 @@ from pydantic import BaseModel
 from sqlalchemy import Select, asc, delete, desc, false, func, literal_column, select, update
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.engine import Result
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.core.base_model import MappedBase
+from app.core.base_model import ModelMixin
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.permission import Permission
@@ -19,33 +20,28 @@ CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
-class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
+class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
     """统一数据层基类
 
     核心设计：``auth`` 是必填的 ``AuthSchema``，子类可直接访问 ``self.auth.user.xxx``。
 
     用法:
-        # 认证场景（Controller/Service）—— 自动处理租户/数据权限/审计
         class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
-            def __init__(self, auth: AuthSchema) -> None:
-                super().__init__(model=UserModel, auth=auth)
-
-        # 后台任务场景 —— 构造最小 AuthSchema 即可
-        class OrderCRUD(CRUDBase[OrderModel, Any, Any]):
-            def __init__(self, db: AsyncSession) -> None:
-                super().__init__(model=OrderModel, auth=AuthSchema(db=db))
+            def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
+                super().__init__(model=UserModel, auth=auth, db=db)
     """
 
-    def __init__(self, model: type[ModelType], auth: AuthSchema) -> None:
+    def __init__(self, model: type[ModelType], auth: AuthSchema, db: AsyncSession) -> None:
         """初始化 CRUDBase。
 
         参数:
         - model: 数据模型类
-        - auth: 认证信息（含 db 会话和 user）。后台任务场景下可传入 ``AuthSchema(db=session)``
+        - auth: 认证信息
+        - db: 数据库会话
         """
         self.model = model
         self.auth = auth
-        self.db = auth.db
+        self.db = db
 
     def _get_pk_col(self) -> ColumnElement:
         """获取模型主键列"""
@@ -320,11 +316,11 @@ class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
             if user.id:
                 if hasattr(obj, "tenant_id"):
                     if not user.is_superuser or getattr(obj, "tenant_id", None) is None:
-                        obj.tenant_id = user.tenant_id or user.id
+                        setattr(obj, "tenant_id", user.tenant_id)
                 if hasattr(obj, "created_id"):
-                    obj.created_id = user.id
+                    setattr(obj, "created_id", user.id)
                 if hasattr(obj, "updated_id"):
-                    obj.updated_id = user.id
+                    setattr(obj, "updated_id", user.id)
 
             self.db.add(obj)
             await self.db.flush()
@@ -366,8 +362,8 @@ class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
                         raise CustomException(msg="无权修改其他租户的数据")
 
             # 审计字段
-            if user and user.id and hasattr(obj, "updated_id"):
-                obj.updated_id = user.id
+            if user.id and hasattr(obj, "updated_id"):
+                setattr(obj, "updated_id", user.id)
 
             for key, value in obj_dict.items():
                 if hasattr(obj, key):
@@ -446,7 +442,7 @@ class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
         if getattr(self.model, "__platform_data_shared__", False):
             for condition in self._platform_shared_conditions():
                 sql = sql.where(condition)
-        filter_obj = Permission(model=self.model, auth=self.auth)
+        filter_obj = Permission(model=self.model, auth=self.auth, db=self.db)
         return await filter_obj.filter_query(sql)
 
     def _platform_shared_conditions(self) -> list[ColumnElement]:
@@ -455,7 +451,7 @@ class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
             return []
         tid = user.tenant_id
         if tid is not None and tid != 1:
-            return [(self.model.tenant_id == tid) | (self.model.tenant_id == 1)]
+            return [(getattr(self.model, "tenant_id") == tid) | (getattr(self.model, "tenant_id") == 1)]
         return []
 
     def _tenant_dml_where(self, sql):
@@ -465,21 +461,21 @@ class CRUDBase[ModelType: MappedBase, CreateSchemaType, UpdateSchemaType]:
             if user.id and not user.is_superuser:
                 tid = user.tenant_id
                 if tid is not None:
-                    return sql.where(self.model.tenant_id == tid)
+                    return sql.where(getattr(self.model, "tenant_id") == tid)
         return sql
 
     async def __build_conditions(self, **kwargs) -> list[ColumnElement]:
         conditions: list[ColumnElement] = []
 
         if hasattr(self.model, "is_deleted"):
-            conditions.append(self.model.is_deleted == False)  # noqa: E712
+            conditions.append(getattr(self.model, "is_deleted") == false())
 
         if hasattr(self.model, "tenant_id") and not getattr(self.model, "__platform_data_shared__", False):
             user = self.auth.user
             if user.id and not user.is_superuser:
                 tid = user.tenant_id
                 if tid is not None:
-                    conditions.append(self.model.tenant_id == tid)
+                    conditions.append(getattr(self.model, "tenant_id") == tid)
 
         for key, value in kwargs.items():
             if value is None or value == "":

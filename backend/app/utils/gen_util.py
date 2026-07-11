@@ -1,11 +1,11 @@
 import re
 
-from app.common.constant import GenConstant
-from app.plugin.module_generator.gencode.schema import (
+from app.api.v1.module_generator.gencode.schema import (
     GenTableColumnSchema,
     GenTableOutSchema,
     GenTableSchema,
 )
+from app.common.constant import GenConstant
 from app.utils.string_util import StringUtil
 
 

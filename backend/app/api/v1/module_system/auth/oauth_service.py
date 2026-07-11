@@ -306,9 +306,9 @@ async def ensure_oauth_user(
     unique_id: str,
     display_name: str,
 ) -> UserModel:
-    auth = AuthSchema.anonymous(db=db)
+    auth = AuthSchema(check_data_scope=False)
     username = _username_for_oauth(provider, unique_id)
-    existing = await UserCRUD(auth).get(username=username)
+    existing = await UserCRUD(auth, db).get(username=username)
     if existing:
         return existing
 
@@ -319,14 +319,14 @@ async def ensure_oauth_user(
         role_ids=list(settings.OAUTH_DEFAULT_ROLE_IDS),
     )
     try:
-        await UserService(auth).create(data=reg)
+        await UserService(auth, db).create(data=reg)
     except Exception:
         # 并发创建可能触发唯一约束冲突，回退到再次查询
-        existing = await UserCRUD(auth).get(username=username)
+        existing = await UserCRUD(auth, db).get(username=username)
         if existing:
             return existing
         raise CustomException(msg="OAuth 注册失败")
-    user = await UserCRUD(auth).get(username=username)
+    user = await UserCRUD(auth, db).get(username=username)
     if not user:
         raise CustomException(msg="OAuth 注册失败")
     logger.info(f"OAuth 自动注册用户: {username} ({provider})")
@@ -381,7 +381,7 @@ async def complete_oauth_login(
         if user.status == 1:
             raise CustomException(msg="用户已被停用")
 
-        user = await UserCRUD(AuthSchema.anonymous(db=db)).update_last_login(id=user.id)
+        user = await UserCRUD(AuthSchema(check_data_scope=False), db).update_last_login(id=user.id)
         if not user:
             raise CustomException(msg="用户不存在")
 

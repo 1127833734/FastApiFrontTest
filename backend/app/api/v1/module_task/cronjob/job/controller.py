@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Path, Query, Security
+from fastapi import APIRouter, Body, Depends, Path, Query, Security
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ResponseSchema, SuccessResponse
 from app.core.ap_scheduler import SchedulerUtil
 from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
-from app.core.dependencies import AuthPermission
+from app.core.dependencies import AuthPermission, db_getter
 from app.core.router_class import OperationLogRoute
 
 from .schema import JobOutSchema, JobQueryParam
@@ -106,11 +107,12 @@ async def get_job_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:query"]))],
     page: Annotated[PaginationQueryParam, Query(description="分页参数")],
     search: Annotated[JobQueryParam, Query(description="查询参数")],
+    db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     order_by = [{"created_time": "desc"}]
     if page.order_by:
         order_by = page.order_by
-    result_dict = await JobService(auth).get_job_log_page(
+    result_dict = await JobService(auth, db).get_job_log_page(
         page_no=page.page_no,
         page_size=page.page_size,
         search=search,
@@ -123,8 +125,9 @@ async def get_job_log_list_controller(
 async def get_job_log_detail_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:detail"]))],
     id: Annotated[int, Path(description="日志ID")],
+    db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    result_dict = await JobService(auth).get_job_log_detail(id=id)
+    result_dict = await JobService(auth, db).get_job_log_detail(id=id)
     return SuccessResponse(data=result_dict, msg="获取执行日志详情成功")
 
 
@@ -132,6 +135,7 @@ async def get_job_log_detail_controller(
 async def delete_job_log_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:delete"]))],
     ids: Annotated[list[int], Body(description="ID列表")],
+    db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    await JobService(auth).delete_job_log(ids=ids)
+    await JobService(auth, db).delete_job_log(ids=ids)
     return SuccessResponse(msg="删除执行日志成功")

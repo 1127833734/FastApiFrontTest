@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.module_system.position.crud import PositionCRUD
 from app.api.v1.module_system.role.crud import RoleCRUD
 from app.core.base_crud import CRUDBase
@@ -15,8 +17,8 @@ from .schema import (
 class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
     """用户模块数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
-        super().__init__(model=UserModel, auth=auth)
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
+        super().__init__(model=UserModel, auth=auth, db=db)
 
     async def update_last_login(self, id: int) -> None:
         """更新用户最后登录时间
@@ -40,7 +42,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
 
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if role_ids:
-            role_objs = await RoleCRUD(self.auth).get_list(search={"id": ("in", role_ids)})
+            role_objs = await RoleCRUD(self.auth, self.db).get_list(search={"id": ("in", role_ids)})
             auth_user = self.auth.user
             if auth_user and not auth_user.is_superuser:
                 for role in role_objs:
@@ -53,7 +55,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
             relationship = obj.roles
             relationship.clear()
             relationship.extend(role_objs)
-        await self.auth.db.flush()
+        await self.db.flush()
 
     async def set_user_positions(self, user_ids: list[int], position_ids: list[int]) -> None:
         """批量设置用户岗位（带租户隔离验证）
@@ -69,7 +71,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
 
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if position_ids:
-            position_objs = await PositionCRUD(self.auth).get_list(search={"id": ("in", position_ids)})
+            position_objs = await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", position_ids)})
             auth_user = self.auth.user
             if auth_user and not auth_user.is_superuser:
                 for position in position_objs:
@@ -82,7 +84,7 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
             relationship = obj.positions
             relationship.clear()
             relationship.extend(position_objs)
-        await self.auth.db.flush()
+        await self.db.flush()
 
     async def change_password(self, id: int, password_hash: str) -> UserModel:
         """修改用户密码

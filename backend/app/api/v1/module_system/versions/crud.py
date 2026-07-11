@@ -1,3 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 from app.core.exceptions import CustomException
@@ -9,8 +11,8 @@ from .schema import VersionCreateSchema, VersionUpdateSchema
 class VersionCRUD(CRUDBase[VersionModel, VersionCreateSchema, VersionUpdateSchema]):
     """版本数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
-        super().__init__(model=VersionModel, auth=auth)
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
+        super().__init__(model=VersionModel, auth=auth, db=db)
 
     async def set_status(self, id: int, status: int) -> VersionModel:
         """更新版本状态"""

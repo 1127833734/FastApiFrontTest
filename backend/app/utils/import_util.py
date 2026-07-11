@@ -140,7 +140,9 @@ class ImportUtil:
                         continue
 
                     # 检查表名重复
-                    table_name = obj.__tablename__
+                    table_name = getattr(obj, "__tablename__", None)
+                    if table_name is None:
+                        continue
                     if table_name in seen_tables:
                         continue
 
@@ -191,8 +193,10 @@ class ImportUtil:
                 try:
                     module = importlib.import_module(module_name)
                     for _name, obj in inspect.getmembers(module, inspect.isclass):
-                        if (cls.is_valid_model(obj, base_class) and hasattr(obj, "__tablename__") and obj.__tablename__ == "apscheduler_jobs") and (
-                            obj not in seen_models and "apscheduler_jobs" not in seen_tables
+                        if (cls.is_valid_model(obj, base_class)
+                            and getattr(obj, "__tablename__", None) == "apscheduler_jobs"
+                            and obj not in seen_models
+                            and "apscheduler_jobs" not in seen_tables
                         ):
                             seen_models.add(obj)
                             seen_tables.add("apscheduler_jobs")

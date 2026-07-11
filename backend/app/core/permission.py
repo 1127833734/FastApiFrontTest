@@ -1,6 +1,7 @@
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.common.enums import PermissionFilterStrategy
@@ -21,10 +22,11 @@ class Permission:
     DATA_SCOPE_ALL = 4  # 全部数据
     DATA_SCOPE_CUSTOM = 5  # 自定义数据
 
-    def __init__(self, model: Any, auth: AuthSchema) -> None:
+    def __init__(self, model: Any, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化权限过滤器实例"""
         self.model = model
         self.auth = auth
+        self.db = db
         self.conditions: list[ColumnElement] = []  # 权限条件列表
 
     async def filter_query(self, query: Any) -> Any:
@@ -68,7 +70,7 @@ class Permission:
             if cached is None:
                 from app.api.v1.module_platform.package.service import PackageService
 
-                cached = set[int](await PackageService(self.auth).get_tenant_available_menu_ids(self.auth.user.tenant_id))
+                cached = set[int](await PackageService(self.auth, self.db).get_tenant_available_menu_ids(self.auth.user.tenant_id))
                 object.__setattr__(self.auth, cache_attr, cached)
             menu_ids = menu_ids & cached
 
@@ -168,7 +170,7 @@ class Permission:
             try:
                 from app.api.v1.module_system.dept.model import DeptModel
 
-                dept_objs = (await self.auth.db.execute(select(DeptModel))).scalars().all()
+                dept_objs = (await self.db.execute(select(DeptModel))).scalars().all()
                 id_map = get_child_id_map(dept_objs)
                 accessible_dept_ids.update(get_child_recursion(id=user_dept_id, id_map=id_map))
             except Exception:

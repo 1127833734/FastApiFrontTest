@@ -157,4 +157,5 @@ def register_docs(app: FastAPI) -> None:
 
 
 def register_frontend(app: FastAPI) -> None:
-    app.frontend("/web", directory=str(path_conf.FRONTEND_DIST_DIR), fallback="index.html", check_dir=True)
+    if path_conf.FRONTEND_DIST_DIR.exists():
+        app.mount("/web", StaticFiles(directory=str(path_conf.FRONTEND_DIST_DIR), html=True), name="frontend")

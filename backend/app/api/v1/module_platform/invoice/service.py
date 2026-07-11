@@ -1,6 +1,8 @@
 import random
 from datetime import date, datetime, timedelta
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.module_platform.order.crud import OrderCRUD
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
@@ -35,7 +37,7 @@ class InvoiceTenantService:
     """租户端发票服务"""
 
     @classmethod
-    async def apply(cls, auth: AuthSchema, data: InvoiceApplySchema, tenant_id: int) -> InvoiceOutSchema:
+    async def apply(cls, auth: AuthSchema, db: AsyncSession, data: InvoiceApplySchema, tenant_id: int) -> InvoiceOutSchema:
         """租户申请开票
 
         参数:
@@ -56,7 +58,7 @@ class InvoiceTenantService:
                 raise CustomException(msg="增值税专用发票必须填写注册地址及电话")
 
         # 校验：订单存在且已支付
-        order = await OrderCRUD(auth).get(id=data.order_id)
+        order = await OrderCRUD(auth, db).get(id=data.order_id)
         if not order:
             raise CustomException(msg="订单不存在")
         if order.status != 1:
@@ -66,7 +68,7 @@ class InvoiceTenantService:
         if order.created_time and datetime.now() - order.created_time > timedelta(days=30):
             raise CustomException(msg="订单支付超过 30 天，不可申请开票")
 
-        crud = InvoiceCRUD(auth)
+        crud = InvoiceCRUD(auth, db)
         existing = await crud.get_by_order_id(data.order_id)
         if existing:
             raise CustomException(msg="该订单已申请过发票")
@@ -94,6 +96,7 @@ class InvoiceTenantService:
     async def list_my(
         cls,
         auth: AuthSchema,
+        db: AsyncSession,
         tenant_id: int,
         page_no: int,
         page_size: int,
@@ -118,7 +121,7 @@ class InvoiceTenantService:
             _search["invoice_type"] = search.invoice_type
         if search.status is not None:
             _search["status"] = search.status
-        return await InvoiceCRUD(auth).page(
+        return await InvoiceCRUD(auth, db).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"created_time": "desc"}],
@@ -127,9 +130,9 @@ class InvoiceTenantService:
         )
 
     @classmethod
-    async def download(cls, auth: AuthSchema, invoice_id: int, tenant_id: int) -> str:
+    async def download(cls, auth: AuthSchema, db: AsyncSession, invoice_id: int, tenant_id: int) -> str:
         """获取发票 PDF 下载地址"""
-        crud = InvoiceCRUD(auth)
+        crud = InvoiceCRUD(auth, db)
         invoice = await crud.get_or_404(id=invoice_id, msg="发票不存在")
         if hasattr(invoice, "tenant_id") and invoice.tenant_id != tenant_id:
             raise CustomException(msg="发票不存在")

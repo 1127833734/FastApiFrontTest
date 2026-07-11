@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.module_system.dict.model import DictDataModel, DictTypeModel
 from app.api.v1.module_system.dict.schema import (
     DictDataCreateSchema,
@@ -15,31 +17,33 @@ from app.core.base_schema import AuthSchema
 class DictTypeCRUD(CRUDBase[DictTypeModel, DictTypeCreateSchema, DictTypeUpdateSchema]):
     """数据字典类型数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化数据字典类型数据层。
 
         参数:
         - auth (AuthSchema): 认证信息模型（含 DB 会话等上下文）。
+        - db (AsyncSession): 数据库会话。
 
         返回:
         - None
         """
-        super().__init__(model=DictTypeModel, auth=auth)
+        super().__init__(model=DictTypeModel, auth=auth, db=db)
 
 
 class DictDataCRUD(CRUDBase[DictDataModel, DictDataCreateSchema, DictDataUpdateSchema]):
     """数据字典数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化数据字典项数据层。
 
         参数:
         - auth (AuthSchema): 认证信息模型（含 DB 会话等上下文）。
+        - db (AsyncSession): 数据库会话。
 
         返回:
         - None
         """
-        super().__init__(model=DictDataModel, auth=auth)
+        super().__init__(model=DictDataModel, auth=auth, db=db)
 
     async def batch_delete(self, ids: list[int], exclude_system: bool = True) -> int:
         """批量删除数据字典数据

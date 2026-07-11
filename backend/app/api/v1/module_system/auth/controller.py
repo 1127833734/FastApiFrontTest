@@ -11,10 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ErrorResponse, RedirectContentResponse, ResponseSchema, SuccessResponse
 from app.config.setting import settings
-from app.core.base_schema import (
-    AuthSchema,
-    JWTOutSchema,
-)
+from app.core.base_schema import AuthSchema, JWTOutSchema
 from app.core.dependencies import db_getter, get_current_user, redis_getter
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -128,9 +125,10 @@ async def select_tenant_controller(
     request: Request,
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     redis: Annotated[Redis, Depends(redis_getter)],
+    db: Annotated[AsyncSession, Depends(db_getter)],
     data: Annotated[SelectTenantSchema, Body(description="租户选择参数")],
 ) -> JSONResponse:
-    result = await LoginService(auth).select_tenant(request=request, redis=redis, tenant_id=data.tenant_id)
+    result = await LoginService(auth, db).select_tenant(request=request, redis=redis, tenant_id=data.tenant_id)
     await FastAPICache.clear(namespace=_AUTH_TENANTS_NS)
     return SuccessResponse(data=result, msg="租户切换成功")
 
@@ -140,8 +138,9 @@ async def enter_platform_controller(
     request: Request,
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     redis: Annotated[Redis, Depends(redis_getter)],
+    db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    result = await LoginService(auth).enter_platform(request=request, redis=redis)
+    result = await LoginService(auth, db).enter_platform(request=request, redis=redis)
     await FastAPICache.clear(namespace=_AUTH_TENANTS_NS)
     return SuccessResponse(data=result, msg="已返回平台管理模式")
 
@@ -150,8 +149,9 @@ async def enter_platform_controller(
 @cache(expire=120, namespace=_AUTH_TENANTS_NS)
 async def get_user_tenants_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    service = LoginService(auth)
+    service = LoginService(auth, db)
     tenants = await service.get_user_tenants()
     return SuccessResponse(data=tenants, msg="获取租户列表成功")
 
@@ -161,9 +161,10 @@ async def impersonate_controller(
     request: Request,
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     redis: Annotated[Redis, Depends(redis_getter)],
+    db: Annotated[AsyncSession, Depends(db_getter)],
     data: Annotated[ImpersonateSchema, Body(description="代签入参数")],
 ) -> JSONResponse:
-    result = await LoginService(auth).impersonate(request=request, redis=redis, tenant_id=data.tenant_id)
+    result = await LoginService(auth, db).impersonate(request=request, redis=redis, tenant_id=data.tenant_id)
     await FastAPICache.clear(namespace=_AUTH_TENANTS_NS)
     return SuccessResponse(data=result, msg="代签入成功")
 

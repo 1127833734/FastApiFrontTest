@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Inspector, inspect, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.setting import settings
 from app.core.base_crud import CRUDBase
@@ -25,13 +26,14 @@ if TYPE_CHECKING:
 class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
     """代码生成业务表模块数据库操作层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化CRUD操作层
 
         参数:
         - auth (AuthSchema): 认证信息模型
+        - db (AsyncSession): 数据库会话
         """
-        super().__init__(model=GenTableModel, auth=auth)
+        super().__init__(model=GenTableModel, auth=auth, db=db)
 
     async def get_gen_table_by_id(self, table_id: int, preload: list | None = None) -> GenTableModel | None:
         """根据业务表ID获取需要生成的业务表信息。
@@ -224,9 +226,9 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
 
             count_sql = text(f"SELECT COUNT(1) AS cnt FROM information_schema.tables {where_sql}")
             rows_sql = text(f"SELECT table_name, table_comment FROM information_schema.tables {where_sql} ORDER BY table_name ASC LIMIT :limit OFFSET :offset")
-            total_res = await self.auth.db.execute(count_sql, params)
+            total_res = await self.db.execute(count_sql, params)
             total = int(total_res.scalar() or 0)
-            res = await self.auth.db.execute(rows_sql, params)
+            res = await self.db.execute(rows_sql, params)
             items: list[dict] = []
             for r in res.fetchall():
                 # r may be Row/tuple depending on driver
@@ -257,9 +259,9 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
             base_from = "FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace LEFT JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = 0 "
             count_sql = text(f"SELECT COUNT(1) AS cnt {base_from} {where_sql}")
             rows_sql = text(f"SELECT c.relname AS table_name, COALESCE(d.description,'') AS table_comment {base_from} {where_sql} ORDER BY c.relname ASC LIMIT :limit OFFSET :offset")
-            total_res = await self.auth.db.execute(count_sql, params)
+            total_res = await self.db.execute(count_sql, params)
             total = int(total_res.scalar() or 0)
-            res = await self.auth.db.execute(rows_sql, params)
+            res = await self.db.execute(rows_sql, params)
             items = []
             for r in res.fetchall():
                 table_name = r[0]
@@ -368,7 +370,7 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         """
         try:
             # 执行SQL但不手动提交事务，由框架管理事务生命周期
-            await self.auth.db.execute(text(sql))
+            await self.db.execute(text(sql))
             return True
         except Exception as e:
             logger.error(f"执行SQL时发生错误: {e}")
@@ -378,13 +380,14 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
 class GenTableColumnCRUD(CRUDBase[GenTableColumnModel, GenTableColumnSchema, GenTableColumnSchema]):
     """代码生成业务表字段模块数据库操作层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化CRUD操作层
 
         参数:
         - auth (AuthSchema): 认证信息模型
+        - db (AsyncSession): 数据库会话
         """
-        super().__init__(model=GenTableColumnModel, auth=auth)
+        super().__init__(model=GenTableColumnModel, auth=auth, db=db)
 
     @staticmethod
     def _sync_get_table_columns(database_type: str, table_name: str) -> list[dict]:
@@ -580,7 +583,7 @@ class GenTableColumnCRUD(CRUDBase[GenTableColumnModel, GenTableColumnSchema, Gen
         """
         # 先查询出这些表ID对应的所有字段ID
         query = select(GenTableColumnModel.id).where(GenTableColumnModel.table_id.in_(table_ids))
-        result = await self.auth.db.execute(query)
+        result = await self.db.execute(query)
         column_ids = [row[0] for row in result.fetchall()]
 
         # 如果有字段ID，则删除这些字段

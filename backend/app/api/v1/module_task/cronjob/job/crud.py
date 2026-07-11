@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
@@ -11,14 +13,14 @@ from .schema import JobCreateSchema, JobUpdateSchema
 class JobCRUD(CRUDBase[JobModel, JobCreateSchema, JobUpdateSchema]):
     """任务执行日志数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化任务执行日志CRUD
 
         参数:
         - auth (AuthSchema): 认证信息模型
+        - db (AsyncSession): 数据库会话
         """
-        self.auth = auth
-        super().__init__(model=JobModel, auth=auth)
+        super().__init__(model=JobModel, auth=auth, db=db)
 
     async def get_obj_by_id_crud(self, id: int, preload: list[str | Any] | None = None) -> JobModel | None:
         """获取执行日志详情

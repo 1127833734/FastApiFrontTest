@@ -27,7 +27,7 @@ class TenantCreateSchema(BaseModel):
     domain: str | None = Field(default=None, max_length=255, description="域名")
     logo_url: str | None = Field(default=None, max_length=500, description="Logo URL")
     sort: int = Field(default=0, ge=0, description="排序")
-    package_id: int | None = Field(default=None, gt=0, description="关联套餐ID")
+    package_id: int = Field(..., gt=0, description="关联套餐ID（必选，决定租户可用的菜单与配额）")
     version: str | None = Field(default=None, max_length=20, description="版本号")
     favicon: str | None = Field(default=None, max_length=500, description="favicon地址")
     login_bg: str | None = Field(default=None, max_length=500, description="登录背景地址")
@@ -151,6 +151,23 @@ class TenantOutSchema(TenantCreateSchema, BaseSchema):
     """租户响应"""
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TenantAdminInfo(BaseModel):
+    """租户初始化管理员账号信息（密码仅在创建租户时一次性返回）"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str = Field(..., description="初始管理员用户名")
+    initial_password: str = Field(..., description="初始明文密码（仅此一次返回，调用方需妥善保管）")
+    must_change_password: bool = Field(default=True, description="是否必须修改初始密码（首次登录强制改密）")
+
+
+class TenantCreateResult(BaseModel):
+    """创建租户响应：租户基础信息 + 初始化管理员账号信息"""
+
+    tenant: TenantOutSchema
+    admin: TenantAdminInfo
 
 
 class TenantQueryParam(BaseQueryParam):

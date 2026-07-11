@@ -8,6 +8,7 @@ from agno.run.team import TeamRunOutput
 from agno.session.team import TeamSession
 from agno.team.team import Team
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.module_platform.tenant.service import TenantService
 from app.common.enums import RedisInitKeyConfig
@@ -28,7 +29,7 @@ from .schema import (
 from .utils import AgnoFactory
 
 
-async def _format_session_data(session: TeamSession, auth: AuthSchema | None = None) -> dict[str, Any]:
+async def _format_session_data(session: TeamSession, auth: AuthSchema | None = None, db: AsyncSession | None = None) -> dict[str, Any]:
     """格式化会话数据，添加前端需要的字段"""
     if hasattr(session, "to_dict"):
         session_dict = session.to_dict()
@@ -67,13 +68,13 @@ async def _format_session_data(session: TeamSession, auth: AuthSchema | None = N
         "messages": messages,
     }
 
-    # 如果有 auth，查询部门名称
-    if auth and session_dict.get("team_id"):
+    # 如果有 auth 和 db，查询部门名称
+    if auth and db and session_dict.get("team_id"):
         try:
             team_id_str = session_dict.get("team_id")
             if team_id_str:
                 team_id = int(team_id_str)
-                tenant = await TenantService(auth).detail(id=team_id)
+                tenant = await TenantService(auth, db).detail(id=team_id)
             result["team_name"] = tenant.name
         except Exception:
             result["team_name"] = None

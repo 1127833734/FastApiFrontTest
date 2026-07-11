@@ -12,7 +12,7 @@ from pydantic import (
 from app.api.v1.module_platform.menu.schema import MenuOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
 from app.common.enums import QueueEnum
-from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import email_validator, mobile_validator
 
 
@@ -219,11 +219,13 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
         return v
 
 
-class UserOutSchema(BaseSchema, UserBySchema, TenantBySchema):
+class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema, TenantBySchema):
     """响应"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
+    id: int = Field(default=0, description="主键ID")
+    tenant_id: int = Field(default=0, description="租户ID")
     username: str | None = Field(default=None, max_length=32, description="用户名")
     name: str | None = Field(default=None, max_length=32, description="名称")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
@@ -245,6 +247,8 @@ class UserOutSchema(BaseSchema, UserBySchema, TenantBySchema):
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuOutSchema] | None = Field(default=[], description="菜单")
     is_impersonate: bool = Field(default=False, description="是否为平台管理员代签入")
+    is_superuser: bool = Field(default=False, description="是否超管")
+    tenant: CommonSchema | None = Field(default=None, description="租户")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):

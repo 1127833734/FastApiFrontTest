@@ -3,6 +3,7 @@ import time
 from collections.abc import Sequence
 
 from redis.asyncio.client import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.enums import RedisInitKeyConfig
 from app.core.base_schema import AuthSchema, PageResultSchema
@@ -113,8 +114,9 @@ class ParamsService:
     ``ParamsService.method_service(auth=...)`` 改为 ``ParamsService(auth).method(...)``。
     """
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     async def detail(self, id: int) -> ParamsOutSchema:
         """获取参数详情
@@ -125,7 +127,7 @@ class ParamsService:
         返回:
         - ParamsOutSchema: 参数响应模型
         """
-        obj = await ParamsCRUD(self.auth).get_or_404(id=id)
+        obj = await ParamsCRUD(self.auth, self.db).get_or_404(id=id)
         return ParamsOutSchema.model_validate(obj)
 
     async def get_by_key(self, config_key: str) -> ParamsOutSchema:
@@ -137,7 +139,7 @@ class ParamsService:
         返回:
         - ParamsOutSchema: 参数响应模型
         """
-        obj = await ParamsCRUD(self.auth).get(config_key=config_key)
+        obj = await ParamsCRUD(self.auth, self.db).get(config_key=config_key)
         if not obj:
             raise CustomException(msg="该数据不存在")
         return ParamsOutSchema.model_validate(obj)
@@ -156,7 +158,7 @@ class ParamsService:
         返回:
         - list[ParamsOutSchema]: 参数响应模型列表
         """
-        obj_list = await ParamsCRUD(self.auth).get_list(search=vars(search) if search else None, order_by=order_by)
+        obj_list = await ParamsCRUD(self.auth, self.db).get_list(search=vars(search) if search else None, order_by=order_by)
         return [ParamsOutSchema.model_validate(obj) for obj in obj_list]
 
     async def page(
@@ -178,7 +180,7 @@ class ParamsService:
         - PageResultSchema[ParamsOutSchema]: 分页结果
         """
         offset = (page_no - 1) * page_size
-        return await ParamsCRUD(self.auth).page(
+        return await ParamsCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
@@ -196,10 +198,10 @@ class ParamsService:
         返回:
         - ParamsOutSchema: 新创建的参数响应模型
         """
-        exist_obj = await ParamsCRUD(self.auth).get(config_key=data.config_key)
+        exist_obj = await ParamsCRUD(self.auth, self.db).get(config_key=data.config_key)
         if exist_obj:
             raise CustomException(msg="创建失败，该数据已存在")
-        obj = await ParamsCRUD(self.auth).create(data=data)
+        obj = await ParamsCRUD(self.auth, self.db).create(data=data)
 
         out = ParamsOutSchema.model_validate(obj)
 
@@ -236,11 +238,11 @@ class ParamsService:
         返回:
         - ParamsOutSchema: 更新后的参数响应模型
         """
-        exist_obj = await ParamsCRUD(self.auth).get_or_404(id=id, msg="更新失败，该数据不存在")
+        exist_obj = await ParamsCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该数据不存在")
         if exist_obj.config_key != data.config_key:
             raise CustomException(msg="更新失败，系统配置key不允许修改")
 
-        new_obj = await ParamsCRUD(self.auth).update(id=id, data=data)
+        new_obj = await ParamsCRUD(self.auth, self.db).update(id=id, data=data)
         if not new_obj:
             raise CustomException(msg="更新失败，系统配置不存在")
         out = ParamsOutSchema.model_validate(new_obj)
@@ -283,7 +285,7 @@ class ParamsService:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
         # 批量校验参数存在性
-        objs = await ParamsCRUD(self.auth).get_list(search={"id": ("in", ids)})
+        objs = await ParamsCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         obj_map = {o.id: o for o in objs}
         for pid in ids:
             obj = obj_map.get(pid)
@@ -292,7 +294,7 @@ class ParamsService:
             if obj.config_type:
                 raise CustomException(msg=f"{obj.config_name} 删除失败，系统初始化配置不可以删除")
 
-        await ParamsCRUD(self.auth).delete(ids=ids)
+        await ParamsCRUD(self.auth, self.db).delete(ids=ids)
 
         # 同步删除Redis缓存（使用删除前已获取的对象信息）
         user = self.auth.user
@@ -322,7 +324,7 @@ class ParamsService:
         if not ids:
             raise CustomException(msg="请选择要操作的数据")
 
-        await ParamsCRUD(self.auth).set(ids=ids, status=status)
+        await ParamsCRUD(self.auth, self.db).set(ids=ids, status=status)
 
     @staticmethod
     def export(data_list: list[dict]) -> bytes:
@@ -358,8 +360,8 @@ class ParamsService:
     @staticmethod
     async def _load_all_configs_from_db() -> Sequence[object]:
         async with async_db_session() as session, session.begin():
-            init_auth = AuthSchema.anonymous(db=session)
-            return await ParamsCRUD(init_auth).get_list()
+            init_auth = AuthSchema(check_data_scope=False)
+            return await ParamsCRUD(init_auth, session).get_list()
 
     @staticmethod
     async def _sync_configs_to_redis(redis: Redis, config_obj: Sequence) -> list[dict]:

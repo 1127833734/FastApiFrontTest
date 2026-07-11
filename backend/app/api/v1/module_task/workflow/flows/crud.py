@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
@@ -11,16 +13,17 @@ from .schema import WorkflowCreateSchema, WorkflowUpdateSchema
 class WorkflowCRUD(CRUDBase[WorkflowModel, WorkflowCreateSchema, WorkflowUpdateSchema]):
     """工作流数据层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         """初始化工作流 CRUD。
 
         参数:
         - auth (AuthSchema): 认证信息。
+        - db (AsyncSession): 数据库会话。
 
         返回:
         - None
         """
-        super().__init__(model=WorkflowModel, auth=auth)
+        super().__init__(model=WorkflowModel, auth=auth, db=db)
 
     async def get_obj_by_id_crud(self, id: int, preload: list[str | Any] | None = None) -> WorkflowModel | None:
         """按主键查询工作流。

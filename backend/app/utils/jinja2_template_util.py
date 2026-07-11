@@ -4,13 +4,13 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
 
-from app.common.constant import GenConstant
-from app.config.path_conf import TEMPLATE_DIR
-from app.config.setting import settings
-from app.plugin.module_generator.gencode.schema import (
+from app.api.v1.module_generator.gencode.schema import (
     GenTableColumnOutSchema,
     GenTableOutSchema,
 )
+from app.common.constant import GenConstant
+from app.config.path_conf import TEMPLATE_DIR
+from app.config.setting import settings
 from app.utils.common_util import CamelCaseUtil, SnakeCaseUtil
 from app.utils.gen_util import GenUtils
 from app.utils.string_util import StringUtil
@@ -248,7 +248,7 @@ class Jinja2TemplateUtil:
         返回:
         - str: 路由首段（module_xxx）。
         """
-        from app.plugin.module_generator.gencode.service import GenTableService
+        from app.api.v1.module_generator.gencode.service import GenTableService
 
         pid = int(gen_table.parent_menu_id) if gen_table.parent_menu_id is not None else None
         return GenTableService._menu_route_first_segment(

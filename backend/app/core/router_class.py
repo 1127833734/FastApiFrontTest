@@ -23,8 +23,8 @@ async def _write_operation_log_async(log_data: dict) -> None:
 
     try:
         async with async_db_session() as _session, _session.begin():
-            _auth = AuthSchema.anonymous(db=_session)
-            await OperationLogCRUD(_auth).create(data=OperationLogCreateSchema(**log_data))
+            auth = AuthSchema(check_data_scope=False)
+            await OperationLogCRUD(auth, _session).create(data=OperationLogCreateSchema(**log_data))
     except Exception:
         logger.exception("操作日志写入失败: path={}", log_data.get("request_path"))
 

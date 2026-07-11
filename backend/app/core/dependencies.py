@@ -10,6 +10,7 @@ from redis.asyncio.client import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_system.user.schema import UserOutSchema
 from app.common.enums import RET, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema
@@ -244,11 +245,11 @@ async def _authenticate(
     if not user:
         raise CustomException(msg="用户不存在", code=RET.NOT_FOUND.code, status_code=401)
 
-    auth = AuthSchema(db=db, check_data_scope=False, session_info=user_info, user=user)
+    auth = AuthSchema(check_data_scope=False, session_info=user_info, user=UserOutSchema.model_validate(user))
     return auth
 
 
-async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int) -> list[int]:
+async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int, db: AsyncSession) -> list[int]:
     """获取租户可用菜单 ID，带 60s 进程级缓存
 
     套餐菜单变更频率极低，缓存可大幅减少 AuthPermission 的 DB 查询次数。
@@ -256,6 +257,7 @@ async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int) -> list[
     参数:
         auth: 认证信息
         tenant_id: 租户 ID
+        db: 数据库会话
 
     返回:
         可用菜单 ID 列表
@@ -266,7 +268,7 @@ async def _get_cached_tenant_menu_ids(auth: AuthSchema, tenant_id: int) -> list[
 
     from app.api.v1.module_platform.package.service import PackageService
 
-    result = await PackageService(auth).get_tenant_available_menu_ids(tenant_id)
+    result = await PackageService(auth, db).get_tenant_available_menu_ids(tenant_id)
     _package_menu_cache[tenant_id] = (time.time(), result)
     return result
 
@@ -288,7 +290,7 @@ class AuthPermission:
         self.permissions = permissions or []
         self.check_data_scope = check_data_scope
 
-    async def __call__(self, auth: AuthSchema = Depends(get_current_user)) -> AuthSchema:
+    async def __call__(self, auth: AuthSchema = Depends(get_current_user), db: AsyncSession = Depends(db_getter)) -> AuthSchema:
         """调用权限验证
 
         参数:
@@ -300,7 +302,7 @@ class AuthPermission:
         auth = auth.model_copy(update={"check_data_scope": self.check_data_scope})
 
         user = auth.user
-        if not user or not user.is_superuser:
+        if user.id is None or not user.is_superuser:
             return auth
 
         if not self.permissions:
@@ -315,7 +317,7 @@ class AuthPermission:
             raise CustomException(msg="无权限操作", code=RET.FORBIDDEN.code, status_code=403)
 
         if user.tenant_id:
-            allowed_ids = set[int](await _get_cached_tenant_menu_ids(auth, user.tenant_id))
+            allowed_ids = set[int](await _get_cached_tenant_menu_ids(auth, user.tenant_id, db))
             cached_perms = auth.session_info.get("permissions_with_menu", {}) if auth.session_info else {}
             user_permissions = {p for p, mid in cached_perms.items() if mid in allowed_ids}
         else:
@@ -363,18 +365,20 @@ class RequireTenantWrite:
     - 平台管理员代签入模式（session_info.is_impersonate=True）
     """
 
-    async def __call__(self, auth: AuthSchema = Depends(get_current_user)) -> AuthSchema:
-        if not auth.user or auth.user.is_superuser:
+    async def __call__(self, auth: AuthSchema = Depends(get_current_user), db: AsyncSession = Depends(db_getter)) -> AuthSchema:
+        if auth.user.id is None or auth.user.is_superuser:
             return auth
 
         is_impersonate = auth.session_info.get("is_impersonate", False) if auth.session_info else False
         if is_impersonate:
             return auth
 
+        from app.api.v1.module_platform.tenant.model import TenantModel
         from app.common.enums import TenantStatusEnum
 
         user = auth.user
-        tenant_status = user.tenant.status if user.tenant else 0
+        tenant = await db.get(TenantModel, user.tenant_id) if user.tenant_id else None
+        tenant_status = tenant.status if tenant else 0
         if tenant_status in (TenantStatusEnum.ARREARS, TenantStatusEnum.TRIAL):
             if tenant_status == TenantStatusEnum.ARREARS:
                 raise CustomException(msg="租户已欠费，仅允许查看操作，请联系平台管理员续费", code=RET.FORBIDDEN.code, status_code=423)

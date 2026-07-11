@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # ================================================= #
     # ******************* 登录认证配置 ****************** #
     # ================================================= #
-    SECRET_KEY: str = "vgb0tnl9d58+6n-6h-ea&u^1#s0ccp!794=krylxcjq75vzps$"  # JWT密钥
+    SECRET_KEY: str = ""  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
     ALGORITHM: str = "HS256"  # JWT算法
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # access_token过期时间(秒)12 小时
     REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # refresh_token过期时间(秒)12 小时

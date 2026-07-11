@@ -177,7 +177,7 @@ async def _test_lifespan(app) -> AsyncGenerator[Any, None]:
 
     from app.api.v1.module_system.user.model import UserModel
     from app.core.database import async_db_session
-    from app.utils.hash_bcrpy_util import PwdUtil
+    from app.utils.password_util import PwdUtil
 
     async with async_db_session() as db:
         await db.execute(update(UserModel).where(UserModel.username == "admin").values(password=PwdUtil.hash_password("admin123")))

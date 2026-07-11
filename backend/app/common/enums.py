@@ -99,14 +99,14 @@ class QueueEnum(str, Enum):
     date = "date"
     month = "month"
     like = "like"
-    eq = "eq" or "=="
+    eq = "eq"
     in_ = "in"
     between = "between"
-    ne = "!=" or "ne"
-    gt = ">" or "gt"
-    ge = ">=" or "ge"
-    lt = "<" or "lt"
-    le = "<=" or "le"
+    ne = "!="
+    gt = ">"
+    ge = ">="
+    lt = "<"
+    le = "<="
 
 
 class PermissionFilterStrategy(str, Enum):

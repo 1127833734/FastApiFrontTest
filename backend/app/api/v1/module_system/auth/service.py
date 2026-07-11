@@ -10,13 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.module_system.user.crud import UserCRUD
 from app.api.v1.module_system.user.model import UserModel
+from app.api.v1.module_system.user.schema import UserOutSchema
 from app.common.enums import RedisInitKeyConfig
 from app.config.setting import settings
-from app.core.base_schema import (
-    AuthSchema,
-    JWTOutSchema,
-    JWTPayloadSchema,
-)
+from app.core.base_schema import AuthSchema, JWTOutSchema, JWTPayloadSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
@@ -27,7 +24,7 @@ from app.core.security import (
 )
 from app.utils.captcha_util import CaptchaUtil
 from app.utils.common_util import get_random_character
-from app.utils.hash_bcrpy_util import PwdUtil
+from app.utils.password_util import PwdUtil
 from app.utils.ip_local_util import IpLocalUtil, get_client_ip
 
 from .schema import (
@@ -60,8 +57,8 @@ async def _write_login_log(
 
     try:
         async with async_db_session() as session, session.begin():
-            _auth = AuthSchema.anonymous(db=session)
-            obj = await LoginLogCRUD(_auth).create(
+            _auth = AuthSchema(check_data_scope=False)
+            obj = await LoginLogCRUD(_auth, session).create(
                 data=LoginLogCreateSchema(
                     username=username,
                     status=status,
@@ -101,8 +98,9 @@ async def _async_fill_login_location(redis, login_log_id: int, ip: str | None) -
 class LoginService:
     """登录认证服务"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     @classmethod
     async def authenticate_user(
@@ -133,8 +131,8 @@ class LoginService:
                 captcha=login_form.captcha,
             )
 
-        auth = AuthSchema.anonymous(db=db)
-        user = await UserCRUD(auth).get(username=login_form.username)
+        auth = AuthSchema(check_data_scope=False)
+        user = await UserCRUD(auth, db).get(username=login_form.username)
 
         if not user:
             await _write_login_log(
@@ -176,7 +174,7 @@ class LoginService:
         from app.api.v1.module_platform.tenant.model import TenantModel
 
         tenant_stmt = select(TenantModel).where(TenantModel.id == user.tenant_id, TenantModel.status == 0, TenantModel.is_deleted.is_(False)).limit(1)
-        tenant_result = await auth.db.execute(tenant_stmt)
+        tenant_result = await db.execute(tenant_stmt)
         if not tenant_result.scalar_one_or_none():
             await _write_login_log(
                 username=_login_username,
@@ -189,7 +187,7 @@ class LoginService:
             )
             raise CustomException(msg="所属租户已被禁用，请联系平台管理员")
 
-        await UserCRUD(auth).update_last_login(id=user.id)
+        await UserCRUD(auth, db).update_last_login(id=user.id)
 
         if not user:
             raise CustomException(msg="用户不存在")
@@ -203,8 +201,8 @@ class LoginService:
             login_type=login_form.login_type,
         )
 
-        tenants_auth = AuthSchema(db=db, user=user, check_data_scope=False)
-        tenants = await LoginService(tenants_auth).get_user_tenants(user_id=user.id)
+        tenants_auth = AuthSchema(user=UserOutSchema.model_validate(user), check_data_scope=False)
+        tenants = await LoginService(tenants_auth, db).get_user_tenants(user_id=user.id)
 
         user_info = {
             "id": user.id,
@@ -376,8 +374,8 @@ class LoginService:
         if not session_id or not user_id:
             raise CustomException(msg="非法凭证,无法获取会话编号或用户ID")
 
-        auth = AuthSchema.anonymous(db=db)
-        user = await UserCRUD(auth).get(id=user_id)
+        auth = AuthSchema(check_data_scope=False)
+        user = await UserCRUD(auth, db).get(id=user_id)
         if not user:
             raise CustomException(msg="刷新token失败，用户不存在")
         if user.status == 1:
@@ -464,7 +462,7 @@ class LoginService:
 
         if user.is_superuser:
             stmt = select(TenantModel).where(TenantModel.status == 0, TenantModel.is_deleted.is_(False)).order_by(TenantModel.sort, TenantModel.id)
-            result = await self.auth.db.execute(stmt)
+            result = await self.db.execute(stmt)
             tenant_objs = result.scalars().all()
             return [TenantOptionSchema(id=t.id, name=t.name, code=t.code) for t in tenant_objs]
 
@@ -478,7 +476,7 @@ class LoginService:
             )
             .order_by(TenantUserModel.is_default.desc(), TenantModel.sort, TenantModel.id)
         )
-        result = await self.auth.db.execute(stmt)
+        result = await self.db.execute(stmt)
         tenant_objs = result.scalars().all()
         return [TenantOptionSchema(id=t.id, name=t.name, code=t.code) for t in tenant_objs]
 
@@ -506,12 +504,12 @@ class LoginService:
                 )
                 .limit(1)
             )
-            result = await self.auth.db.execute(exist_stmt)
+            result = await self.db.execute(exist_stmt)
             if not result.scalar_one_or_none():
                 raise CustomException(msg="您不属于该租户，无法切换")
 
         tenant_stmt = select(TenantModel).where(TenantModel.id == tenant_id, TenantModel.status == 0).limit(1)
-        result = await self.auth.db.execute(tenant_stmt)
+        result = await self.db.execute(tenant_stmt)
         tenant = result.scalar_one_or_none()
         if not tenant:
             raise CustomException(msg="租户不存在或已被禁用")
@@ -661,7 +659,7 @@ class LoginService:
             raise CustomException(msg="仅平台管理员可执行代签入")
 
         tenant_stmt = select(TenantModel).where(TenantModel.id == tenant_id, TenantModel.is_deleted.is_(False)).limit(1)
-        result = await self.auth.db.execute(tenant_stmt)
+        result = await self.db.execute(tenant_stmt)
         tenant = result.scalar_one_or_none()
         if not tenant:
             raise CustomException(msg="租户不存在")

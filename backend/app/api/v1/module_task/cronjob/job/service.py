@@ -1,3 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.ap_scheduler import SchedulerUtil
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
@@ -9,11 +11,12 @@ from .schema import JobCreateSchema, JobOutSchema, JobQueryParam, JobUpdateSchem
 class JobService:
     """调度器监控模块服务层"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     async def get_job_log_detail(self, id: int) -> JobOutSchema:
-        obj = await JobCRUD(self.auth).get_obj_by_id_crud(id=id)
+        obj = await JobCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not obj:
             raise CustomException(msg="执行日志不存在")
         return JobOutSchema.model_validate(obj)
@@ -25,7 +28,7 @@ class JobService:
     ) -> list[JobOutSchema]:
         if order_by is None:
             order_by = [{"created_time": "desc"}]
-        obj_list = await JobCRUD(self.auth).get_obj_list_crud(search=vars(search) if search else {}, order_by=order_by)
+        obj_list = await JobCRUD(self.auth, self.db).get_obj_list_crud(search=vars(search) if search else {}, order_by=order_by)
         return [JobOutSchema.model_validate(obj) for obj in obj_list]
 
     async def get_job_log_page(
@@ -37,7 +40,7 @@ class JobService:
     ) -> PageResultSchema[JobOutSchema]:
         offset = (page_no - 1) * page_size
         ob = order_by or [{"created_time": "desc"}]
-        return await JobCRUD(self.auth).page(
+        return await JobCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=ob,
@@ -57,7 +60,7 @@ class JobService:
             trigger_type=trigger_type,
             status=1,  # 执行中
         )
-        obj = await JobCRUD(self.auth).create_obj_crud(data=data)
+        obj = await JobCRUD(self.auth, self.db).create_obj_crud(data=data)
         if not obj:
             raise CustomException(msg="创建执行日志失败")
         return JobOutSchema.model_validate(obj)
@@ -74,7 +77,7 @@ class JobService:
             result=result,
             error=error,
         )
-        obj = await JobCRUD(self.auth).update_obj_crud(id=id, data=data)
+        obj = await JobCRUD(self.auth, self.db).update_obj_crud(id=id, data=data)
         if not obj:
             raise CustomException(msg="更新执行日志失败")
         return JobOutSchema.model_validate(obj)
@@ -82,10 +85,10 @@ class JobService:
     async def delete_job_log(self, ids: list[int]) -> None:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
-        await JobCRUD(self.auth).delete_obj_crud(ids=ids)
+        await JobCRUD(self.auth, self.db).delete_obj_crud(ids=ids)
 
     async def clear_job_log(self) -> None:
-        await JobCRUD(self.auth).clear_obj_crud()
+        await JobCRUD(self.auth, self.db).clear_obj_crud()
 
     @staticmethod
     def get_scheduler_status() -> dict:

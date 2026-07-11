@@ -1,3 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -16,11 +18,12 @@ from .schema import (
 class LoginLogService:
     """登录日志管理服务"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     async def detail(self, id: int) -> LoginLogDetailOutSchema:
-        obj = await LoginLogCRUD(self.auth).get_or_404(id=id)
+        obj = await LoginLogCRUD(self.auth, self.db).get_or_404(id=id)
         return LoginLogDetailOutSchema.model_validate(obj)
 
     async def page(
@@ -30,7 +33,7 @@ class LoginLogService:
         search: LoginLogQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[LoginLogOutSchema]:
-        return await LoginLogCRUD(self.auth).page(
+        return await LoginLogCRUD(self.auth, self.db).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"updated_time": "desc"}],
@@ -42,20 +45,21 @@ class LoginLogService:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
-        existing = await LoginLogCRUD(self.auth).get_list(search={"id": ("in", ids)})
+        existing = await LoginLogCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         existing_map = {obj.id for obj in existing}
         for nid in ids:
             if nid not in existing_map:
                 raise CustomException(msg=f"删除失败，ID为{nid}的数据不存在")
 
-        await LoginLogCRUD(self.auth).delete(ids=ids)
+        await LoginLogCRUD(self.auth, self.db).delete(ids=ids)
 
 
 class OperationLogService:
     """操作日志管理服务"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     @staticmethod
     async def cleanup_operation_log() -> bool:
@@ -99,7 +103,7 @@ class OperationLogService:
         search: OperationLogQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[OperationLogOutSchema]:
-        crud = OperationLogCRUD(self.auth)
+        crud = OperationLogCRUD(self.auth, self.db)
         return await crud.page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
@@ -109,17 +113,17 @@ class OperationLogService:
         )
 
     async def detail(self, id: int) -> OperationLogDetailOutSchema:
-        crud = OperationLogCRUD(self.auth)
+        crud = OperationLogCRUD(self.auth, self.db)
         obj = await crud.get_or_404(id=id)
         return OperationLogDetailOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
         if len(ids) < 1:
             raise CustomException(msg="删除失败，删除对象不能为空")
-        existing = await OperationLogCRUD(self.auth).get_list(search={"id": ("in", ids)})
+        existing = await OperationLogCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         existing_map = {obj.id for obj in existing}
         for nid in ids:
             if nid not in existing_map:
                 raise CustomException(msg="删除失败，该数据不存在")
-        crud = OperationLogCRUD(self.auth)
+        crud = OperationLogCRUD(self.auth, self.db)
         await crud.delete(ids=ids)

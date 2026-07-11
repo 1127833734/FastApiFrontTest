@@ -1,10 +1,12 @@
 import asyncio
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 
-from ..nodes.crud import WorkflowNodeTypeCRUD
+from ..node_type.crud import WorkflowNodeTypeCRUD
 from .crud import WorkflowCRUD
 from .handlers.workflow_engine import run_workflow_sync, utc_now_iso, validate_workflow_graph
 from .schema import (
@@ -29,14 +31,15 @@ WORKFLOW_EXEC_STATUS_COMPLETED = 1
 class WorkflowService:
     """工作流：画布存储 + 发布校验 + 分层并行执行"""
 
-    def __init__(self, auth: AuthSchema) -> None:
+    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
+        self.db = db
 
     def _out(self, obj: Any) -> WorkflowOutSchema:
         return WorkflowOutSchema.model_validate(obj)
 
     async def get_workflow_detail(self, id: int) -> WorkflowOutSchema:
-        obj = await WorkflowCRUD(self.auth).get_obj_by_id_crud(id=id)
+        obj = await WorkflowCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not obj:
             raise CustomException(msg="工作流不存在")
         return self._out(obj)
@@ -48,7 +51,7 @@ class WorkflowService:
     ) -> list[WorkflowOutSchema]:
         if order_by is None:
             order_by = [{"updated_time": "desc"}]
-        obj_list = await WorkflowCRUD(self.auth).get_obj_list_crud(
+        obj_list = await WorkflowCRUD(self.auth, self.db).get_obj_list_crud(
             search=vars(search) if search else {},
             order_by=order_by,
         )
@@ -63,7 +66,7 @@ class WorkflowService:
     ) -> PageResultSchema[WorkflowOutSchema]:
         offset = (page_no - 1) * page_size
         order = order_by or [{"updated_time": "desc"}]
-        result = await WorkflowCRUD(self.auth).page(
+        result = await WorkflowCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=order,
@@ -73,23 +76,23 @@ class WorkflowService:
         return result
 
     async def create_workflow(self, data: WorkflowCreateSchema) -> WorkflowOutSchema:
-        exist = await WorkflowCRUD(self.auth).get(code=data.code)
+        exist = await WorkflowCRUD(self.auth, self.db).get(code=data.code)
         if exist:
             raise CustomException(msg="流程编码已存在")
-        obj = await WorkflowCRUD(self.auth).create_obj_crud(data=data)
+        obj = await WorkflowCRUD(self.auth, self.db).create_obj_crud(data=data)
         if not obj:
             raise CustomException(msg="创建工作流失败")
         return self._out(obj)
 
     async def update_workflow(self, id: int, data: WorkflowUpdateSchema) -> WorkflowOutSchema:
-        exist = await WorkflowCRUD(self.auth).get_obj_by_id_crud(id=id)
+        exist = await WorkflowCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not exist:
             raise CustomException(msg="工作流不存在")
         if exist.code != data.code:
-            other = await WorkflowCRUD(self.auth).get(code=data.code)
+            other = await WorkflowCRUD(self.auth, self.db).get(code=data.code)
             if other:
                 raise CustomException(msg="流程编码已存在")
-        obj = await WorkflowCRUD(self.auth).update_obj_crud(id=id, data=data)
+        obj = await WorkflowCRUD(self.auth, self.db).update_obj_crud(id=id, data=data)
         if not obj:
             raise CustomException(msg="更新工作流失败")
         return self._out(obj)
@@ -97,10 +100,10 @@ class WorkflowService:
     async def delete_workflow(self, ids: list[int]) -> None:
         if not ids:
             raise CustomException(msg="删除ID不能为空")
-        await WorkflowCRUD(self.auth).delete_obj_crud(ids=ids)
+        await WorkflowCRUD(self.auth, self.db).delete_obj_crud(ids=ids)
 
     async def publish_workflow(self, id: int) -> WorkflowOutSchema:
-        obj = await WorkflowCRUD(self.auth).get_obj_by_id_crud(id=id)
+        obj = await WorkflowCRUD(self.auth, self.db).get_obj_by_id_crud(id=id)
         if not obj:
             raise CustomException(msg="工作流不存在")
         nodes = obj.nodes or []
@@ -119,13 +122,13 @@ class WorkflowService:
             edges=obj.edges,
             workflow_status=WORKFLOW_STATUS_PUBLISHED,
         )
-        updated = await WorkflowCRUD(self.auth).update_obj_crud(id=id, data=data)
+        updated = await WorkflowCRUD(self.auth, self.db).update_obj_crud(id=id, data=data)
         if not updated:
             raise CustomException(msg="发布失败")
         return self._out(updated)
 
     async def execute_workflow(self, body: WorkflowExecuteSchema) -> WorkflowExecuteResultSchema:
-        obj = await WorkflowCRUD(self.auth).get_obj_by_id_crud(id=body.workflow_id)
+        obj = await WorkflowCRUD(self.auth, self.db).get_obj_by_id_crud(id=body.workflow_id)
         if not obj:
             raise CustomException(msg="工作流不存在")
         if obj.status != WORKFLOW_STATUS_PUBLISHED:
@@ -139,7 +142,7 @@ class WorkflowService:
         codes_set = {n.get("type") for n in nodes if n.get("type")}
         code_list = list(codes_set)
         templates: dict[str, dict[str, Any]] = {}
-        type_objs = await WorkflowNodeTypeCRUD(self.auth).get_obj_list_crud(search={"code": ("in", code_list)})
+        type_objs = await WorkflowNodeTypeCRUD(self.auth, self.db).get_obj_list_crud(search={"code": ("in", code_list)})
         type_map = {t.code: t for t in type_objs}
         for code in codes_set:
             node_type = type_map.get(code)
