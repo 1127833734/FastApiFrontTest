@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.module_system.api_token.controller import ApiTokenRouter
 from app.api.v1.module_system.auth.controller import AuthRouter
 from app.api.v1.module_system.dept.controller import DeptRouter
 from app.api.v1.module_system.dict.controller import DictRouter
@@ -25,3 +26,4 @@ system_router.include_router(RoleRouter)
 system_router.include_router(TicketRouter)
 system_router.include_router(UserRouter)
 system_router.include_router(VersionRouter)
+system_router.include_router(ApiTokenRouter)

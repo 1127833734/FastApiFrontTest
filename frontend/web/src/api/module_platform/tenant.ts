@@ -68,62 +68,12 @@ const TenantAPI = {
     });
   },
 
-  /** 套餐变更影响预览 */
-  getPackageChangePreview(tenantId: number, newPackageId: number) {
+  /** 套餐变更预览 */
+  previewPackageChange(packageId: number) {
     return request<ApiResponse<PackageChangePreview>>({
-      url: `${API_PATH}/${tenantId}/package-change-preview`,
+      url: `${API_PATH}/package/preview`,
       method: "get",
-      params: { new_package_id: newPackageId },
-    });
-  },
-
-  getTenantUsers(tenantId: number) {
-    return request<ApiResponse<TenantUser[]>>({
-      url: `${API_PATH}/${tenantId}/users`,
-      method: "get",
-    });
-  },
-
-  addTenantUser(tenantId: number, body: TenantUserAddForm) {
-    return request<ApiResponse>({
-      url: `${API_PATH}/${tenantId}/users`,
-      method: "post",
-      data: body,
-    });
-  },
-
-  removeTenantUser(tenantId: number, userId: number) {
-    return request<ApiResponse>({
-      url: `${API_PATH}/${tenantId}/users/${userId}`,
-      method: "delete",
-    });
-  },
-
-  /** 公开接口：无需登录即可获取租户配置（用于登录页等场景） */
-  getTenantConfigInfo(tenantId: number) {
-    return request<ApiResponse<TenantConfigItem[]>>({
-      url: `${API_PATH}/${tenantId}/config/info`,
-      method: "get",
-      headers: {
-        Authorization: NO_AUTH_FLAG,
-      },
-    });
-  },
-
-  /** 获取租户个性化配置 */
-  getTenantConfig(tenantId: number) {
-    return request<ApiResponse<TenantConfigItem[]>>({
-      url: `${API_PATH}/${tenantId}/config`,
-      method: "get",
-    });
-  },
-
-  /** 批量更新租户个性化配置 */
-  updateTenantConfig(tenantId: number, body: TenantConfigItem[]) {
-    return request<ApiResponse<TenantConfigItem[]>>({
-      url: `${API_PATH}/${tenantId}/config`,
-      method: "put",
-      data: body,
+      params: { target_package_id: packageId },
     });
   },
 
@@ -135,12 +85,14 @@ const TenantAPI = {
     });
   },
 
-  /** 套餐变更预览 */
-  previewPackageChange(packageId: number) {
-    return request<ApiResponse<PackageChangePreview>>({
-      url: `${API_PATH}/package/preview`,
+  /** 公开接口：无需登录即可获取租户配置（用于登录页等场景） */
+  getTenantConfigInfo(tenantId: number) {
+    return request<ApiResponse<TenantConfigItem[]>>({
+      url: `${API_PATH}/${tenantId}/config/info`,
       method: "get",
-      params: { target_package_id: packageId },
+      headers: {
+        Authorization: NO_AUTH_FLAG,
+      },
     });
   },
 
@@ -291,40 +243,6 @@ export interface TenantUpdateForm extends BaseFormType {
   description?: string;
 }
 
-/** 套餐变更影响预览 */
-export interface PackageChangePreview {
-  new_package_id: number;
-  new_package_name: string;
-  affected_roles: Record<string, unknown>[];
-  removed_menus: Record<string, unknown>[];
-  added_menus: Record<string, unknown>[];
-  quota_changes: Record<string, unknown>;
-  total_affected_users: number;
-}
-
-export interface TenantUser {
-  id: number;
-  user_id: number;
-  tenant_id: number;
-  role: string;
-  is_default: number;
-  create_time?: string;
-  username: string;
-  name: string;
-}
-
-export interface TenantUserAddForm {
-  user_id: number;
-  role: string;
-  is_default: number;
-}
-
-/** 租户配置项 */
-export interface TenantConfigItem {
-  config_key: string;
-  config_value: string | null;
-}
-
 export interface AvailablePackage {
   id: number;
   name: string;
@@ -338,6 +256,12 @@ export interface AvailablePackage {
   description: string | null;
   is_current: boolean;
   available_actions: string[];
+}
+
+/** 租户配置项 */
+export interface TenantConfigItem {
+  config_key: string;
+  config_value: string | null;
 }
 
 export interface PackageChangePreview {

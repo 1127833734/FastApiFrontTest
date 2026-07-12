@@ -42,12 +42,35 @@ async def websocket_chat_controller(websocket: WebSocket) -> None:
 
     ws://127.0.0.1:8001/api/v1/ai/chat/ws?token=xxx
     """
-    await websocket.accept()
-    token = websocket.query_params.get("token")
+    # 接收客户端 subprotocol：约定客户端在 Sec-WebSocket-Protocol 中以 "access_token.<jwt>" 携带
+    # 推荐方式：subprotocol 不会进 URL，不出现在 Nginx access log / 浏览器历史 / 抓包日志
+    # 同时兼容旧版：用 query_params 传 token（不推荐，仅作向后兼容）
+    #
+    # 浏览器侧示例：
+    #   new WebSocket(url, ["access_token", "access_token." + jwt])
+    # Python websocket-client 示例：
+    #   websockets.connect(url, subprotocols=["access_token", f"access_token.{jwt}"])
+    token = None
+    use_subprotocol = False
+    if websocket.headers.get("sec-websocket-protocol"):
+        for proto in websocket.headers["sec-websocket-protocol"].split(","):
+            proto = proto.strip()
+            if proto.startswith("access_token."):
+                token = proto[len("access_token.") :]
+                use_subprotocol = True
+                break
+    if not token:
+        # 旧版/非浏览器客户端兼容：保留 query ?token=
+        token = websocket.query_params.get("token")
 
     if not token:
         await _send_error_and_close(websocket, "未提供认证token，请重新登录")
         return
+
+    if use_subprotocol:
+        await websocket.accept(subprotocol="access_token")
+    else:
+        await websocket.accept()
 
     # 跨消息循环共享的停止信号：客户端发送 stop 时 set，生成器检测到后退出
     stop_event = asyncio.Event()

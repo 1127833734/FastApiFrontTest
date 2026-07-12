@@ -2,18 +2,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Query, Security
 from fastapi.responses import JSONResponse
+from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 from redis.asyncio.client import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.request import PaginationService
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_schema import PaginationQueryParam
-from app.core.dependencies import AuthPermission, redis_getter
+from app.core.base_schema import AuthSchema, PaginationQueryParam
+from app.core.dependencies import AuthPermission, db_getter, get_current_user, redis_getter
 from app.core.router_class import OperationLogRoute
 
-from .schema import OnlineOutSchema, OnlineQueryParam
+from .schema import DashboardStatsSchema, OnlineOutSchema, OnlineQueryParam
 from .service import OnlineService
 
 OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=["在线用户"])
+
+_STATS_NS = "online_stats"
 
 
 @OnlineRouter.get("/list", summary="获取在线用户列表", response_model=ResponseSchema[list[OnlineOutSchema]], dependencies=[Security(AuthPermission(["module_monitor:online:query"]))])
@@ -37,6 +42,7 @@ async def delete_online_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
 ) -> JSONResponse:
     await OnlineService.delete_online(redis=redis, session_id=session_id)
+    await FastAPICache.clear(namespace=_STATS_NS)
     return SuccessResponse(msg="强制下线成功")
 
 
@@ -45,4 +51,16 @@ async def clear_online_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
 ) -> JSONResponse:
     await OnlineService.clear_online(redis=redis)
+    await FastAPICache.clear(namespace=_STATS_NS)
     return SuccessResponse(msg="清除所有在线用户成功")
+
+
+@OnlineRouter.get("/stats", summary="获取仪表盘统计数据", response_model=ResponseSchema[DashboardStatsSchema])
+@cache(expire=15, namespace=_STATS_NS)
+async def get_dashboard_stats_controller(
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    redis: Annotated[Redis, Depends(redis_getter)],
+    _auth: Annotated[AuthSchema, Depends(get_current_user)],
+) -> JSONResponse:
+    data = await OnlineService.get_dashboard_stats(db=db, redis=redis)
+    return SuccessResponse(data=data, msg="获取仪表盘统计成功")

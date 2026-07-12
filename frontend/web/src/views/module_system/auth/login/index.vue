@@ -2,7 +2,7 @@
 <template>
   <div class="login-page-root flex h-screen w-full flex-col overflow-hidden" :style="loginBgStyle">
     <FaLoginCenterBackdrop v-if="panelAlign === 'center'" viewport-fixed />
-    <FaAuthTopBar v-model:panel-align="panelAlign" />
+    <FaAuthTopBar v-model:panel-align="panelAlign" @tenant-change="handleTopBarTenantChange" />
 
     <div
       class="login-auth-split relative z-1 flex min-h-0 flex-1 overflow-hidden"
@@ -40,92 +40,6 @@
                     <div class="form-intro">
                       <h3 class="title">{{ panelTitle }}</h3>
                       <p class="sub-title">{{ panelSubTitle }}</p>
-                    </div>
-
-                    <!-- 租户品牌卡片（位置在 form-intro 上方） -->
-                    <div
-                      v-if="isTenantResolved"
-                      class="tenant-brand-card mb-5 p-4 rounded-lg border border-(--el-border-color-light) bg-(--el-fill-color-blank)"
-                    >
-                      <div class="flex items-center gap-3">
-                        <img
-                          v-if="tenantLogo"
-                          :src="tenantLogo"
-                          class="size-10 rounded-lg object-contain shrink-0"
-                          alt=""
-                        />
-                        <div class="flex-1 min-w-0">
-                          <div
-                            class="text-sm font-semibold text-(--el-text-color-primary) truncate"
-                          >
-                            {{ tenantDisplayName }}
-                          </div>
-                          <div class="text-xs text-(--el-text-color-secondary) mt-0.5">
-                            当前租户
-                          </div>
-                        </div>
-                        <ElButton text size="small" type="primary" @click="switchTenant">
-                          切换
-                        </ElButton>
-                      </div>
-
-                      <!-- 切换面板 -->
-                      <div
-                        v-if="showTenantInput"
-                        class="mt-3 pt-3 border-t border-(--el-border-color-light)"
-                      >
-                        <div class="flex items-center gap-2">
-                          <ElInput
-                            v-model="tenantCode"
-                            size="default"
-                            placeholder="输入租户编码"
-                            clearable
-                            @keyup.enter="handleLookupTenant"
-                          />
-                          <ElButton
-                            type="primary"
-                            :loading="tenantLookupLoading"
-                            @click="handleLookupTenant"
-                          >
-                            确定
-                          </ElButton>
-                        </div>
-                        <p v-if="tenantLookupError" class="mt-1 text-xs text-danger">
-                          {{ tenantLookupError }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- 未识别租户时显示的小型选择器 -->
-                    <div v-else class="tenant-picker mb-4">
-                      <ElButton
-                        text
-                        size="small"
-                        type="primary"
-                        @click="showTenantInput = !showTenantInput"
-                      >
-                        <template #icon><FaSvgIcon icon="ri:building-line" /></template>
-                        {{ showTenantInput ? "取消" : "选择租户" }}
-                      </ElButton>
-                      <div v-if="showTenantInput" class="flex items-center gap-2 mt-2">
-                        <ElInput
-                          v-model="tenantCode"
-                          size="default"
-                          placeholder="输入租户编码"
-                          clearable
-                          @keyup.enter="handleLookupTenant"
-                        />
-                        <ElButton
-                          type="primary"
-                          :loading="tenantLookupLoading"
-                          @click="handleLookupTenant"
-                        >
-                          确定
-                        </ElButton>
-                      </div>
-                      <p v-if="tenantLookupError" class="mt-1 text-xs text-danger">
-                        {{ tenantLookupError }}
-                      </p>
                     </div>
 
                     <template v-if="authPanel === 'login'">
@@ -350,7 +264,6 @@ function backToAccountLogin() {
   loginFlowMode.value = "account";
   nextTick(() => {
     getCaptcha();
-    loginForm.captcha = "";
     accountFormRef.value?.resetDragVerify?.();
     isPassing.value = false;
     isClickPass.value = false;
@@ -416,7 +329,6 @@ watch(authPanel, (panel) => {
   if (panel !== "login") return;
   if (loginFlowMode.value !== "account") return;
   getCaptcha();
-  loginForm.captcha = "";
   accountFormRef.value?.resetDragVerify?.();
   isPassing.value = false;
   isClickPass.value = false;
@@ -557,23 +469,14 @@ const forgetRules = computed<FormRules<ForgetPasswordForm>>(() => ({
 const loginForm = reactive<LoginFormData>({
   username: "",
   password: "",
-  captcha: "",
   captcha_key: "",
   remember: true,
   login_type: "PC端",
 });
 
 // ── 租户品牌 ──
-const tenantCode = ref("");
-const showTenantInput = ref(false);
-const tenantLookupLoading = ref(false);
-const tenantLookupError = ref("");
-const tenantLogo = computed(() => configStore.configData?.tenant_logo?.config_value?.trim() || "");
-const tenantDisplayName = computed(
-  () => configStore.configData?.tenant_name?.config_value?.trim() || "系统平台"
-);
 const loginBgStyle = computed(() => {
-  const bg = configStore.configData?.tenant_login_bg?.config_value?.trim();
+  const bg = configStore.configData?.login_bg?.config_value?.trim();
   return bg
     ? { backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }
     : {};
@@ -646,8 +549,6 @@ async function autoDetectTenant() {
 
 /** 根据编码查询租户并加载配置 */
 async function loadTenantByCode(code: string, markResolved = true) {
-  tenantLookupLoading.value = true;
-  tenantLookupError.value = "";
   try {
     const { data: res } = await AuthAPI.lookupTenant(code);
     const info = res?.data as Record<string, any> | undefined;
@@ -655,36 +556,12 @@ async function loadTenantByCode(code: string, markResolved = true) {
       currentTenantId.value = Number(info.id);
       await configStore.getConfig(true, currentTenantId.value);
       if (markResolved) isTenantResolved.value = true;
-      showTenantInput.value = false;
-      tenantCode.value = "";
       return;
     }
   } catch {
     // 静默失败
-  } finally {
-    tenantLookupLoading.value = false;
   }
   if (markResolved) isTenantResolved.value = false;
-}
-
-/** 手动查询租户（点击确定按钮） */
-async function handleLookupTenant() {
-  const code = tenantCode.value.trim();
-  if (!code) {
-    tenantLookupError.value = "请输入租户编码";
-    return;
-  }
-  await loadTenantByCode(code);
-  if (!isTenantResolved.value) {
-    tenantLookupError.value = "未找到该租户";
-  }
-}
-
-/** 切换租户 */
-function switchTenant() {
-  showTenantInput.value = !showTenantInput.value;
-  tenantCode.value = "";
-  tenantLookupError.value = "";
 }
 
 const captchaState = reactive<CaptchaInfo>({
@@ -715,15 +592,6 @@ const rules = computed<FormRules>(() => {
       },
     ],
   };
-  if (captchaState.enable) {
-    base.captcha = [
-      {
-        required: true,
-        trigger: "blur",
-        message: t("login.message.captchaCode.required"),
-      },
-    ];
-  }
   return base;
 });
 
@@ -742,13 +610,38 @@ async function getCaptcha() {
     loginForm.captcha_key = data.key;
     captchaState.img_base = data.img_base;
     captchaState.enable = data.enable;
+    // 重置滑块状态
+    isPassing.value = false;
+    isClickPass.value = false;
   } catch {
     captchaState.enable = false;
-    loginForm.captcha = "";
     loginForm.captcha_key = "";
   } finally {
     codeLoading.value = false;
   }
+}
+
+/** 滑块验证完成后通知后端标记 */
+async function handleSliderPass(passed: boolean) {
+  if (!passed || !loginForm.captcha_key) return;
+  try {
+    await AuthAPI.sliderComplete(loginForm.captcha_key);
+  } catch {
+    isPassing.value = false;
+    await getCaptcha();
+  }
+}
+
+/** 监听滑块通过状态 */
+watch(isPassing, (val) => {
+  handleSliderPass(val);
+});
+
+/** 顶部栏租户切换 */
+async function handleTopBarTenantChange(tenantId: number) {
+  currentTenantId.value = tenantId;
+  isTenantResolved.value = true;
+  await configStore.getConfig(true, tenantId);
 }
 
 function resolveRedirectTarget(query: LocationQuery): RouteLocationRaw {
@@ -801,7 +694,6 @@ onMounted(async () => {
 onActivated(() => {
   if (authPanel.value !== "login" || loginFlowMode.value !== "account") return;
   getCaptcha();
-  loginForm.captcha = "";
 });
 
 onBeforeUnmount(() => {
@@ -815,7 +707,6 @@ watch(
   () => {
     if (authPanel.value !== "login" || loginFlowMode.value !== "account") return;
     getCaptcha();
-    loginForm.captcha = "";
   }
 );
 
@@ -840,6 +731,8 @@ const handleSubmit = async () => {
       appStore.showGuide(true);
     }
   } catch (error) {
+    // 自增 formKey 强制重新挂载表单（滑块自动重置为初始状态）
+    formKey.value++;
     await getCaptcha();
     if (!(error instanceof HttpError)) {
       console.error("[Login] Unexpected error:", error);
@@ -851,7 +744,6 @@ const handleSubmit = async () => {
     }
   } finally {
     loading.value = false;
-    accountFormRef.value?.resetDragVerify?.();
   }
 };
 

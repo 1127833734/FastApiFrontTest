@@ -1,5 +1,3 @@
-"""订单与支付 CRUD"""
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_crud import CRUDBase

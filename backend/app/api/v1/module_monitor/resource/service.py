@@ -1,4 +1,5 @@
 import ast
+import json
 import os
 import re
 import shutil
@@ -6,6 +7,8 @@ import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+
+from fastapi_cache import FastAPICache
 
 from app.config.setting import settings
 from app.core.exceptions import CustomException
@@ -215,6 +218,14 @@ class ResourceService:
         include_hidden: bool = False,
         base_url: str | None = None,
     ) -> ResourceDirectorySchema:
+        # 进程级缓存（目录内容变更极低频，30s 过期）
+        _RESOURCE_DIR_TTL = 30
+        cache_key = f"resource_dir:{path or 'root'}:{include_hidden}"
+        _backend = FastAPICache.get_backend()
+        cached = await _backend.get(cache_key)
+        if cached:
+            return ResourceDirectorySchema(**json.loads(cached.decode()))
+
         try:
             if path is None:
                 safe_path = ResourceService._get_resource_root()
@@ -253,7 +264,7 @@ class ResourceService:
             except PermissionError:
                 raise CustomException(msg="没有权限访问此目录")
 
-            return ResourceDirectorySchema(
+            result = ResourceDirectorySchema(
                 path=display_path,
                 name=os.path.basename(safe_path),
                 items=items,
@@ -261,6 +272,8 @@ class ResourceService:
                 total_dirs=total_dirs,
                 total_size=total_size,
             )
+            await _backend.set(cache_key, json.dumps(result.model_dump()).encode(), expire=_RESOURCE_DIR_TTL)
+            return result
 
         except CustomException:
             raise

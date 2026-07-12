@@ -1,14 +1,18 @@
 from typing import Any
 
 import sqlalchemy as sa
+from redis.asyncio.client import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_platform.menu.model import MenuModel
 from app.api.v1.module_platform.tenant.model import TenantModel
 from app.core.base_schema import AuthSchema, PageResultSchema
-from app.core.dependencies import require_superadmin
-from app.core.exceptions import CustomException
+from app.core.exceptions import CustomException, require_superadmin
 from app.core.logger import logger
+from app.core.dependencies import _package_menu_cache
+from app.core.redis_crud import RedisCURD
+from app.utils.common_util import search_to_dict
 
 from .crud import PackageCRUD
 from .model import PackageMenuModel, PackageModel
@@ -50,7 +54,7 @@ class PackageService:
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"sort": "asc"}, {"id": "asc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=PackageOutSchema,
         )
 
@@ -90,37 +94,89 @@ class PackageService:
         if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
+        # 批量查询套餐被租户引用情况（一次查询代替 N 次）
+        stmt = select(TenantModel.package_id, func.count()).where(
+            TenantModel.package_id.in_(ids)
+        ).group_by(TenantModel.package_id)
+        result = await self.db.execute(stmt)
+        rows = result.all()
+        used_map = {row[0]: row[1] for row in rows}
         for pid in ids:
-            stmt = select(func.count()).select_from(TenantModel).where(TenantModel.package_id == pid)
-            result = await self.db.execute(stmt)
-            count = result.scalar()
+            count = used_map.get(pid, 0)
             if count and count > 0:
                 raise CustomException(msg=f"套餐 ID={pid} 已被 {count} 个租户使用，无法删除")
 
         await PackageCRUD(self.auth, self.db).delete(ids=ids)
 
     async def disable_cascade(self, package_id: int) -> None:
-        stmt = select(TenantModel.id, TenantModel.name).where(
-            TenantModel.package_id == package_id,
-            TenantModel.status == 0,
+        """停用套餐的级联动作：
+
+        - 把所有引用此套餐的状态为 normal 的租户切换为 ``suspended``（不再可登录）
+        - 不会物理删除租户或业务数据（避免误伤）；管理员后续可恢复
+
+        注意：原实现只 log 不生效，已修复。
+        """
+        from sqlalchemy import update as sa_update  # noqa
+
+        # 先 SELECT 统计受影响行数（SQLAlchemy 2.x async 下 ``Result.rowcount`` 不可用）
+        stmt_count = (
+            select(func.count(TenantModel.id))
+            .where(TenantModel.package_id == package_id, TenantModel.status == 0)
         )
-        result = await self.db.execute(stmt)
-        rows = result.all()
-        if rows:
-            tenant_ids = [row[0] for row in rows]
-            logger.warning(f"套餐[{package_id}]已禁用，影响租户: {tenant_ids}")
+        count = (await self.db.execute(stmt_count)).scalar_one()
+
+        if count == 0:
+            return
+
+        stmt = (
+            sa_update(TenantModel)
+            .where(TenantModel.package_id == package_id, TenantModel.status == 0)
+            .values(status=2)  # TenantStatusEnum.SUSPENDED
+        )
+        await self.db.execute(stmt)
+        await self.db.flush()
+        logger.warning(f"套餐[{package_id}]已禁用，已级联冻结 {count} 个租户（status=2 suspended）")
 
     async def get_menus(self, package_id: int) -> list[int]:
         stmt = select(PackageMenuModel.menu_id).where(PackageMenuModel.package_id == package_id)
         result = await self.db.execute(stmt)
         return [row[0] for row in result.all()]
 
-    async def set_menus(self, package_id: int, data: PackageMenuSetSchema) -> None:
+    async def set_menus(self, package_id: int, data: PackageMenuSetSchema, redis: Redis | None = None) -> None:
         await self.db.execute(sa.delete(PackageMenuModel).where(PackageMenuModel.package_id == package_id))
         for menu_id in data.menu_ids:
             self.db.add(PackageMenuModel(package_id=package_id, menu_id=menu_id))
         await self.db.flush()
         logger.info(f"套餐[{package_id}]菜单权限已设置, count={len(data.menu_ids)}")
+        # 失效缓存：使所有 worker / 进程 立刻重新查询套餐菜单（最长 60s 旧值生效 -> 立即生效）
+        await self._invalidate_package_menu_cache(package_id=package_id, redis=redis)
+
+    async def _invalidate_package_menu_cache(self, package_id: int, redis: Redis | None = None) -> None:
+        """套餐菜单变更后失效缓存（进程级 + 跨进程广播）。
+
+        进程级：清空本进程的 ``_package_menu_cache`` 中所有引用此套餐的租户（这里用全局清空）。
+        跨进程：通过 Redis pub/sub 通知所有 worker 进程清空各自的进程缓存。
+
+        缓存具体的 location 在 ``_get_cached_tenant_menu_ids`` (dependencies.py)。
+        """
+        try:
+            _package_menu_cache.clear()
+        except Exception:
+            pass
+
+        if redis is None:
+            return
+
+        try:
+            import json
+
+            await RedisCURD(redis).publish(
+                "cache:invalidate:package_menus",
+                json.dumps({"package_id": package_id}),
+            )
+            logger.info(f"已广播套餐[{package_id}]菜单缓存失效")
+        except Exception as e:
+            logger.warning(f"广播缓存失效失败（仅影响跨 worker 延迟生效）: {e!s}")
 
     async def get_package_menu_ids(self, package_id: int) -> list[int]:
         stmt = select(PackageMenuModel.menu_id).where(PackageMenuModel.package_id == package_id)
@@ -128,9 +184,6 @@ class PackageService:
         return [row[0] for row in result.all()]
 
     async def get_tenant_available_menu_ids(self, tenant_id: int) -> list[int]:
-        from app.api.v1.module_platform.menu.model import MenuModel
-        from app.api.v1.module_platform.tenant.model import TenantModel
-
         if tenant_id == 1:
             menu_stmt = select(MenuModel.id).where(MenuModel.status == 0)
             result = await self.db.execute(menu_stmt)

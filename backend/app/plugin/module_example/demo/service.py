@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
+from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
 
 from .crud import DemoCRUD
@@ -35,7 +36,7 @@ class DemoService:
         search: DemoQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> list[DemoOutSchema]:
-        obj_list = await DemoCRUD(self.auth, self.db).get_list(search=vars(search) if search else None, order_by=order_by)
+        obj_list = await DemoCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by)
         return [DemoOutSchema.model_validate(obj) for obj in obj_list]
 
     async def page(
@@ -50,7 +51,7 @@ class DemoService:
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=DemoOutSchema,
         )
 
@@ -74,7 +75,7 @@ class DemoService:
         return DemoOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
         objs = await DemoCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         obj_map = {o.id: o for o in objs}

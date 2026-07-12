@@ -3,13 +3,13 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, BatchSetAvailable
-from app.core.dependencies import require_superadmin
-from app.core.exceptions import CustomException
+from app.core.exceptions import CustomException, require_superadmin
 from app.utils.common_util import (
     get_child_id_map,
     get_child_recursion,
     get_parent_id_map,
     get_parent_recursion,
+    search_to_dict,
     traversal_to_tree,
 )
 
@@ -76,7 +76,7 @@ class MenuService:
         search: MenuQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[dict]:
-        menu_list = await MenuCRUD(self.auth, self.db).tree_list(search=vars(search) if search else None, order_by=order_by)
+        menu_list = await MenuCRUD(self.auth, self.db).tree_list(search=search_to_dict(search), order_by=order_by)
         menu_dict_list = [MenuTreeOutSchema.model_validate(menu).model_dump() for menu in menu_list]
         return traversal_to_tree(menu_dict_list)
 
@@ -129,7 +129,7 @@ class MenuService:
 
     @require_superadmin
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
         all_menus = await MenuCRUD(self.auth, self.db).get_list()

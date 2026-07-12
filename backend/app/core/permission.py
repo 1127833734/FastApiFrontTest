@@ -1,4 +1,6 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,7 +44,11 @@ class Permission:
         return query.where(condition) if condition is not None else query
 
     async def __permission_condition(self) -> ColumnElement | None:
-        """根据模型的权限过滤策略，选择合适的过滤方法"""
+        """根据模型的权限过滤策略，选择合适的过滤方法
+
+        注意：当 ``auth.user.is_superuser=True`` 时直接返回 ``None``（不应用任何过滤），
+        以便平台超管能查看/管理所有角色的菜单授权（``USER_BINDING`` 等策略对超管不生效）。
+        """
         if not self.auth.user or not self.auth.user.id or not self.auth.check_data_scope or self.auth.user.is_superuser:
             return None
 
@@ -60,7 +66,7 @@ class Permission:
 
         只显示用户角色授权的菜单，同时受租户套餐约束。
         """
-        menu_ids = set(self.auth.session_info.get("menu_ids", [])) if self.auth.session_info else set()
+        menu_ids = set(self.auth.menu_ids)
         if not menu_ids:
             return self.__id_eq(-1)
 
@@ -71,7 +77,7 @@ class Permission:
                 from app.api.v1.module_platform.package.service import PackageService
 
                 cached = set[int](await PackageService(self.auth, self.db).get_tenant_available_menu_ids(self.auth.user.tenant_id))
-                object.__setattr__(self.auth, cache_attr, cached)
+            object.__setattr__(self.auth, cache_attr, cached)
             menu_ids = menu_ids & cached
 
         return self.__id_in(menu_ids) if menu_ids else self.__id_eq(-1)
@@ -79,11 +85,9 @@ class Permission:
     async def __filter_by_user_binding(self) -> ColumnElement | None:
         """基于当前用户绑定角色的过滤（适用于角色模型）
 
-        只显示当前用户绑定的角色
+        只显示当前用户绑定的角色。超管场景下不应用此过滤（参见 `__permission_condition`）。
         """
-        assert self.auth.user is not None
-        roles = getattr(self.auth.user, "roles", []) or []
-        role_ids = [role.id for role in roles]
+        role_ids = self.auth.role_ids
         return self.__id_in(role_ids) if role_ids else self.__id_eq(-1)
 
     async def __filter_by_dept_relation(self) -> ColumnElement | None:
@@ -92,18 +96,14 @@ class Permission:
         根据用户的部门权限范围过滤数据
         """
         assert self.auth.user is not None
-        roles = getattr(self.auth.user, "roles", []) or []
-        if not roles:
-            # 无角色：仅能看本部门
+
+        data_scopes = set(self.auth.data_scopes)
+        custom_dept_ids = set(self.auth.custom_dept_ids)
+
+        if not data_scopes:
+            # 无数据权限范围：仅能看本部门
             user_dept_id = self.auth.user.dept_id
             return self.__id_eq(user_dept_id) if user_dept_id else None
-
-        data_scopes: set[int] = set()
-        custom_dept_ids: set[int] = set()
-        for role in roles:
-            data_scopes.add(role.data_scope)
-            if role.data_scope == self.DATA_SCOPE_CUSTOM and getattr(role, "depts", None):
-                custom_dept_ids.update(dept.id for dept in role.depts)
 
         if self.DATA_SCOPE_ALL in data_scopes:
             return None
@@ -127,14 +127,13 @@ class Permission:
         适用于大多数业务模型
         """
         assert self.auth.user is not None
-        from app.api.v1.module_system.user.model import UserModel
 
         created_id_attr = getattr(self.model, "created_id", None)
         if created_id_attr is None:
             return None
 
-        data_scopes = set(self.auth.session_info.get("data_scopes", [])) if self.auth.session_info else set()
-        custom_dept_ids = set(self.auth.session_info.get("custom_dept_ids", [])) if self.auth.session_info else set()
+        data_scopes = set(self.auth.data_scopes)
+        custom_dept_ids = set(self.auth.custom_dept_ids)
 
         if not data_scopes or self.DATA_SCOPE_SELF in data_scopes:
             return created_id_attr == self.auth.user.id
@@ -152,7 +151,9 @@ class Permission:
                 return dept_id_attr.in_(list[int](accessible_dept_ids))
 
         creator_rel = getattr(self.model, "created_by", None)
-        if creator_rel is not None and hasattr(UserModel, "dept_id"):
+        if creator_rel is not None:
+            from app.api.v1.module_system.user.model import UserModel
+
             return creator_rel.has(UserModel.dept_id.in_(list(accessible_dept_ids)))
 
         return created_id_attr == self.auth.user.id

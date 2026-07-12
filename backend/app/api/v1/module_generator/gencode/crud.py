@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config.setting import settings
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
+from app.core.database import engine
 from app.core.logger import logger
+from app.utils.common_util import search_to_dict
 
 from .model import GenTableColumnModel, GenTableModel
 from .schema import (
@@ -85,7 +87,7 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         - Sequence[GenTableModel]: 业务表列表信息。
         """
         return await self.get_list(
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             order_by=[{"created_time": "desc"}],
             preload=preload,
         )
@@ -139,8 +141,6 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         """
         database_name = settings.DATABASE_NAME
         database_type = settings.DATABASE_TYPE
-
-        from app.core.database import engine
 
         inspector: Inspector = inspect(engine)
         table_names = inspector.get_table_names()
@@ -296,8 +296,6 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         database_name = settings.DATABASE_NAME
         database_type = settings.DATABASE_TYPE
 
-        from app.core.database import engine
-
         inspector: Inspector = inspect(engine)
         all_table_names = set(inspector.get_table_names())
 
@@ -332,8 +330,6 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         返回:
         - bool: 如果表存在返回True，否则返回False。
         """
-        from app.core.database import engine
-
         inspector: Inspector = inspect(engine)
         return inspector.has_table(table_name)
 
@@ -346,8 +342,6 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
         返回:
         - str: 表注释；表不存在或失败时为空字符串。
         """
-        from app.core.database import engine
-
         inspector: Inspector = inspect(engine)
         if not inspector.has_table(table_name):
             return ""
@@ -401,8 +395,6 @@ class GenTableColumnCRUD(CRUDBase[GenTableColumnModel, GenTableColumnSchema, Gen
         - list: 列信息列表
         """
         # 使用SQLAlchemy Inspector获取表列信息
-        from app.core.database import engine
-
         inspector: Inspector = inspect(engine)
 
         # 获取列信息

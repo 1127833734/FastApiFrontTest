@@ -3,7 +3,6 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { LanguageEnum } from "@/enums/appEnum";
 import { router } from "@/router";
-import { useSettingsStore } from "./setting.store";
 import { useWorktabStore } from "./worktab.store";
 import { useMenuStore } from "./menu.store";
 import { useConfigStore } from "./config.store";
@@ -84,12 +83,6 @@ export const useUserStore = defineStore(
 
     // 计算属性：基础用户信息
     const basicInfo = computed(() => info.value as UserInfoLike);
-    // 计算属性：获取设置状态
-    const getSettingState = computed(() => useSettingsStore().$state);
-    // 计算属性：获取工作台状态
-    const getWorktabState = computed(() => useWorktabStore().$state);
-    // 计算属性：获取基础信息
-    const getBasicInfo = computed(() => info.value as UserInfoLike);
     // 计算属性：获取路由列表
     const getRouteList = computed(() => routeList.value);
     // 计算属性：获取权限列表
@@ -484,7 +477,7 @@ export const useUserStore = defineStore(
         throw new Error("没有有效的刷新令牌");
       }
 
-      const response = await AuthAPI.refreshToken({ refresh_token: currentRefreshToken });
+      const response = await AuthAPI.refreshToken(currentRefreshToken);
       const data = response.data.data;
       // 更新令牌，保持当前记住我状态
       Auth.setTokens(data.access_token, data.refresh_token, Auth.getRememberMe());
@@ -519,10 +512,7 @@ export const useUserStore = defineStore(
       hasGetRoute,
       rememberMe,
       getUserInfo,
-      getSettingState,
-      getWorktabState,
       basicInfo,
-      getBasicInfo,
       getRouteList,
       getPerms,
       getHasGetRoute,

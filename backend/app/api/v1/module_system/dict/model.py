@@ -17,7 +17,7 @@ class DictTypeModel(ModelMixin, TenantMixin, UserMixin):
     __platform_data_shared__: bool = True
 
     dict_name: Mapped[str] = mapped_column(String(64), nullable=False, comment="字典名称")
-    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, comment="字典类型")
+    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="字典类型")
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     dict_data_list: Mapped[list["DictDataModel"]] = relationship(
@@ -50,7 +50,7 @@ class DictDataModel(ModelMixin, TenantMixin, UserMixin):
     css_class: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="样式属性（其他样式扩展）")
     list_class: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="表格回显样式")
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment="是否默认(True是 False否)")
-    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, comment="字典类型")
+    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="字典类型")
 
     # 添加外键关系，同时保留dict_type字段用于业务查询
     dict_type_id: Mapped[int] = mapped_column(

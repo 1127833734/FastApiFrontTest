@@ -1,19 +1,8 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    declared_attr,
-    mapped_column,
-    relationship,
-)
-
-if TYPE_CHECKING:
-    from app.api.v1.module_platform.tenant.model import TenantModel
-    from app.api.v1.module_system.user.model import UserModel
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
 from app.common.enums import PermissionFilterStrategy
 from app.utils.common_util import uuid4_str
@@ -114,11 +103,7 @@ class ModelMixin(MappedBase):
 
 
 class TenantMixin(MappedBase):
-    """租户隔离字段 Mixin
-
-    业务表通过 tenant_id 关联 platform_tenant，实现行级数据隔离。
-    平台超级管理员（is_superuser 且 tenant_id=1）在数据层不按租户过滤。
-    """
+    """租户隔离字段 Mixin"""
 
     __abstract__ = True
 
@@ -132,12 +117,8 @@ class TenantMixin(MappedBase):
     )
 
     @declared_attr
-    def tenant_by(self) -> Mapped[Optional["TenantModel"]]:
-        """租户关联关系（延迟加载，避免循环依赖）。
-
-        返回:
-        - Mapped[Optional[TenantModel]]: 租户 ORM 关系。
-        """
+    def tenant_by(self):
+        """租户关联关系"""
         return relationship(
             "TenantModel",
             lazy="selectin",
@@ -147,11 +128,7 @@ class TenantMixin(MappedBase):
 
 
 class UserMixin(MappedBase):
-    """用户审计字段 Mixin
-
-    用于记录数据的创建者和更新者
-    用于实现数据权限中的"仅本人数据权限"
-    """
+    """用户审计字段 Mixin"""
 
     __abstract__: bool = True
 
@@ -182,12 +159,8 @@ class UserMixin(MappedBase):
     )
 
     @declared_attr
-    def created_by(self) -> Mapped[Optional["UserModel"]]:
-        """创建人关联关系（延迟加载，避免循环依赖）。
-
-        返回:
-        - Mapped[Optional[UserModel]]: 创建人 ORM 关系。
-        """
+    def created_by(self):
+        """创建人关联关系"""
         return relationship(
             "UserModel",
             lazy="selectin",
@@ -196,12 +169,8 @@ class UserMixin(MappedBase):
         )
 
     @declared_attr
-    def updated_by(self) -> Mapped[Optional["UserModel"]]:
-        """更新人关联关系（延迟加载，避免循环依赖）。
-
-        返回:
-        - Mapped[Optional[UserModel]]: 更新人 ORM 关系。
-        """
+    def updated_by(self):
+        """更新人关联关系"""
         return relationship(
             "UserModel",
             lazy="selectin",
@@ -210,12 +179,8 @@ class UserMixin(MappedBase):
         )
 
     @declared_attr
-    def deleted_by(self) -> Mapped[Optional["UserModel"]]:
-        """删除人关联关系（延迟加载，避免循环依赖）。
-
-        返回:
-        - Mapped[Optional[UserModel]]: 删除人 ORM 关系。
-        """
+    def deleted_by(self):
+        """删除人关联关系"""
         return relationship(
             "UserModel",
             lazy="selectin",

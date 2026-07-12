@@ -6,6 +6,7 @@ from app.api.v1.module_system.position.crud import PositionCRUD
 from app.api.v1.module_system.role.crud import RoleCRUD
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
+from app.core.exceptions import CustomException
 
 from .model import UserModel
 from .schema import (
@@ -38,8 +39,6 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         返回:
         - None
         """
-        from app.core.exceptions import CustomException
-
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if role_ids:
             role_objs = await RoleCRUD(self.auth, self.db).get_list(search={"id": ("in", role_ids)})
@@ -67,8 +66,6 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         返回:
         - None
         """
-        from app.core.exceptions import CustomException
-
         user_objs = await self.get_list(search={"id": ("in", user_ids)})
         if position_ids:
             position_objs = await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", position_ids)})
@@ -101,3 +98,23 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
     async def forget_password(self, id: int, password_hash: str) -> UserModel:
         """重置密码（与 change_password 逻辑相同）"""
         return await self.change_password(id=id, password_hash=password_hash)
+
+    async def bump_token_version(self, user_id: int) -> None:
+        """递增指定用户的 token_version 字段，使所有现有 JWT 立即失效。
+
+        配合 invalidate_user_sessions（service 层调用）可在用户改密/重置/禁用时
+        同时清掉 Redis 中的活跃会话。
+
+        参数:
+        - user_id (int): 用户ID
+        """
+        from sqlalchemy import update as sa_update
+
+        from .model import UserModel
+
+        await self.db.execute(
+            sa_update(UserModel)
+            .where(UserModel.id == user_id)
+            .values(token_version=UserModel.token_version + 1)
+        )
+        await self.db.flush()

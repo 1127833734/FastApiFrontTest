@@ -3,10 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import OrderTypeEnum, QueueEnum
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
-OrderType = OrderTypeEnum  # 兼容旧代码的类型别名
 PackageAction = Literal["buy", "renew", "upgrade", "downgrade"]
 PayMethod = Literal["alipay", "wxpay", "free"]
 
@@ -343,7 +342,7 @@ class SelfOrderListItem(BaseModel):
     id: int = Field(..., description="订单ID")
     order_no: str = Field(..., description="订单号")
     package_name: str = Field(default="", description="套餐名称")
-    order_type: OrderType = Field(..., description="订单类型")
+    order_type: OrderTypeEnum = Field(..., description="订单类型")
     amount: int = Field(..., ge=0, description="订单金额(分)")
     status: int = Field(..., description="订单状态(0:待支付 1:已支付 2:已取消 3:已退款)")
     pay_method: str | None = Field(default=None, description="支付方式")
@@ -374,7 +373,7 @@ class SelfOrderDetailOut(BaseModel):
     package_id: int | None = Field(default=None, description="套餐ID")
     package_name: str = Field(default="", description="套餐名称")
     amount: int = Field(..., ge=0, description="订单金额(分)")
-    order_type: OrderType = Field(..., description="订单类型")
+    order_type: OrderTypeEnum = Field(..., description="订单类型")
     status: int = Field(..., description="订单状态(0:待支付 1:已支付 2:已取消 3:已退款)")
     pay_method: str | None = Field(default=None, description="支付方式")
     pay_time: str | None = Field(default=None, description="支付时间")
@@ -447,7 +446,7 @@ class WorkspaceOrderItem(BaseModel):
     id: int = Field(..., description="订单ID")
     order_no: str = Field(..., description="订单号")
     amount: int = Field(..., ge=0, description="订单金额(分)")
-    order_type: OrderType = Field(..., description="订单类型")
+    order_type: OrderTypeEnum = Field(..., description="订单类型")
     status: int = Field(..., description="订单状态(0:待支付 1:已支付 2:已取消 3:已退款)")
     created_at: str | None = Field(default=None, description="创建时间")
 
@@ -462,6 +461,3 @@ class WorkspaceOut(BaseModel):
     package: WorkspacePackageInfo | None = Field(default=None, description="当前套餐信息")
     quota: WorkspaceQuotaInfo = Field(..., description="配额用量")
     recent_orders: list[WorkspaceOrderItem] = Field(default_factory=list, description="近期订单(最多5条)")
-
-
-TenantBySchema.model_rebuild()

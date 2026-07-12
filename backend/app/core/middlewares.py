@@ -13,14 +13,135 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from app.api.v1.module_system.params.service import ParamsService
+from typing import Any
+
+from redis.asyncio.client import Redis
+
+from app.common.enums import RedisInitKeyConfig
 from app.common.response import ErrorResponse
 from app.config.setting import settings
 from app.core.exceptions import CustomException
 from app.core.logger import logger
+from app.core.redis_crud import RedisCURD
 from app.core.request_context import RequestContext, clear_current_tenant, reset_correlation_id, set_correlation_id, set_current_tenant
 from app.core.security import decode_access_token
 from app.utils.ip_local_util import get_client_ip
+
+
+# ── 中间件配置（Redis 缓存读取） ──────────────────────────────
+# 中间件高频读取的 sys_param 配置键集合
+MIDDLEWARE_CONFIG_KEYS: tuple[str, ...] = (
+    "demo_enable",
+    "ip_white_list",
+    "ip_black_list",
+    "operation_log_retention_days",
+)
+
+# 内存缓存（按租户隔离）
+_MID_CONFIG_TTL: float = 60.0
+_mid_config_cache: dict[int, tuple[float, dict]] = {}
+
+
+def _parse_bool(value: object) -> bool:
+    """兼容字符串 / 布尔值 / JSON 布尔值的开关字段解析。"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off", ""}:
+            return False
+        try:
+            return bool(json.loads(normalized))
+        except (json.JSONDecodeError, ValueError):
+            return False
+    if value is None:
+        return False
+    return bool(value)
+
+
+def _parse_json_list(value: object) -> list:
+    """兼容 JSON 字符串 / 列表 / 空值的数组字段解析。"""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return []
+
+
+def _default_for(key: str) -> object:
+    """缺省值表：新增 MIDDLEWARE_CONFIG_KEYS 时只需在这里登记默认值。"""
+    if key in {"ip_white_list", "ip_black_list"}:
+        return []
+    if key == "demo_enable":
+        return False
+    if key == "operation_log_retention_days":
+        return 90
+    return None
+
+
+def _parse_value(key: str, value: object) -> object:
+    """按 key 的语义解析 config_value。"""
+    if key == "demo_enable":
+        return _parse_bool(value)
+    if key in {"ip_white_list", "ip_black_list"}:
+        return _parse_json_list(value)
+    return value
+
+
+def invalidate_middleware_config_cache(tenant_id: int | None = None) -> None:
+    """失效中间件内存缓存。tenant_id 为 None 时清空所有租户。"""
+    if tenant_id is None:
+        _mid_config_cache.clear()
+    else:
+        _mid_config_cache.pop(tenant_id, None)
+
+
+async def _load_middleware_config_from_redis(redis: Redis, tenant_id: int = 1) -> dict:
+    """从 Redis 批量拉取并解析 MIDDLEWARE_CONFIG_KEYS 中的配置。"""
+    config_keys = [f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{tenant_id}:{key}" for key in MIDDLEWARE_CONFIG_KEYS]
+    config_values = await RedisCURD(redis).mget(config_keys)
+
+    result: dict[str, Any] = {}
+    for key, raw in zip(MIDDLEWARE_CONFIG_KEYS, config_values, strict=True):
+        if not raw:
+            result[key] = _default_for(key)
+            continue
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            logger.error("解析系统配置 %s 失败", key)
+            result[key] = _default_for(key)
+            continue
+
+        if not isinstance(payload, dict):
+            result[key] = _default_for(key)
+            continue
+
+        # 停用的配置视为未启用，使用默认值
+        if payload.get("status", 0) != 0:
+            result[key] = _default_for(key)
+            continue
+
+        result[key] = _parse_value(key, payload.get("config_value"))
+
+    return result
+
+
+async def get_middleware_config(redis: Redis, tenant_id: int = 1) -> dict:
+    """获取中间件 / 调度器所需的系统配置（带 60 秒内存缓存，按租户隔离）。"""
+    cached = _mid_config_cache.get(tenant_id)
+    if cached and time.monotonic() - cached[0] < _MID_CONFIG_TTL:
+        return cached[1]
+
+    config = await _load_middleware_config_from_redis(redis, tenant_id)
+    _mid_config_cache[tenant_id] = (time.monotonic(), config)
+    return config
 
 
 def _strip_bearer(authorization: str) -> str | None:
@@ -42,7 +163,6 @@ _DEFAULT_CONFIG: MappingProxyType = MappingProxyType(
         "demo_enable": False,
         "ip_white_list": (),
         "ip_black_list": (),
-        "white_api_list_path": (),
     },
 )
 
@@ -95,7 +215,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
             config = await self._load_config(request)
             is_blacklisted = bool(client_ip and client_ip in config["ip_black_list"])
             in_demo = (
-                config["demo_enable"] and request.method != "GET" and (client_ip is None or client_ip not in config["ip_white_list"]) and not _is_path_whitelisted(path, config["white_api_list_path"])
+                config["demo_enable"] and request.method != "GET" and (client_ip is None or client_ip not in config["ip_white_list"]) and not _is_path_whitelisted(path, settings.WHITE_API_LIST_PATH)
             )
 
             if is_blacklisted or in_demo:
@@ -125,7 +245,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
             return dict(_DEFAULT_CONFIG)
         try:
             tenant_id = await _extract_tenant_from_token(request) or 1
-            return await ParamsService.get_system_config_for_middleware(redis, tenant_id)
+            return await get_middleware_config(redis, tenant_id)
         except Exception:
             return dict(_DEFAULT_CONFIG)
 
@@ -218,9 +338,6 @@ async def _extract_tenant_from_token(request: Request) -> int | None:
 
 async def await_redis_get(redis, key: str) -> str | None:
     """获取用户会话；Redis 不可用时返回 None。"""
-    from app.common.enums import RedisInitKeyConfig
-    from app.core.redis_crud import RedisCURD
-
     try:
         return await RedisCURD(redis).get(f"{RedisInitKeyConfig.USER_SESSION.key}:{key}")
     except Exception:

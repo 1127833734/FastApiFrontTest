@@ -3,25 +3,34 @@ import time
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-from fastapi import Depends, Request, Response
+from fastapi import Request, Response
 from fastapi.routing import APIRoute
 from starlette.background import BackgroundTask
 
 from app.config.setting import settings
-from app.core.base_schema import AuthSchema
-from app.core.database import async_db_session
-from app.core.dependencies import RequireTenantWrite
 from app.core.logger import logger
 from app.utils.ip_local_util import get_client_ip
 
 _WRITE_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
 
+# （通常在登录前调用，没有 JWT token）
+_PUBLIC_WRITE_PATHS: set[str] = {
+    "/auth/login",
+    "/auth/token/refresh",
+    "/auth/captcha/slider/complete",
+    "/auth/tenant/register",
+    "/auth/user/register",
+}
+
 
 async def _write_operation_log_async(log_data: dict) -> None:
-    from app.api.v1.module_system.log.crud import OperationLogCRUD
-    from app.api.v1.module_system.log.schema import OperationLogCreateSchema
-
+    """直接写入操作日志（函数体内导入避免循环依赖）。"""
     try:
+        from app.api.v1.module_system.log.crud import OperationLogCRUD
+        from app.api.v1.module_system.log.schema import OperationLogCreateSchema
+        from app.core.base_schema import AuthSchema
+        from app.core.database import async_db_session
+
         async with async_db_session() as _session, _session.begin():
             auth = AuthSchema(check_data_scope=False)
             await OperationLogCRUD(auth, _session).create(data=OperationLogCreateSchema(**log_data))
@@ -30,23 +39,19 @@ async def _write_operation_log_async(log_data: dict) -> None:
 
 
 class OperationLogRoute(APIRoute):
-    """操作日志路由 — 自动记录请求/响应并后台异步写入，自动为写操作注入租户写权限检查
+    """操作日志路由 — 自动记录请求/响应并后台异步写入。
 
     根据 HTTP 方法判断：
-    - 写方法 (POST/PUT/DELETE/PATCH)：注入 RequireTenantWrite 依赖
+    - 写方法 (POST/PUT/DELETE/PATCH)：注入租户写权限检查
     - 读方法 (GET/HEAD/OPTIONS)：不注入
-
-    RequireTenantWrite 内部会根据 auth.tenant_status 精确判断，
-    不会误拦只读操作（只读租户的只读路由根本不会触发写权限检查）。
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         methods = getattr(self, "methods", set())
-        if methods & _WRITE_METHODS:
+        if methods & _WRITE_METHODS and self.path not in _PUBLIC_WRITE_PATHS:
             if self.dependencies is None:
                 self.dependencies = []
-            self.dependencies.append(Depends(RequireTenantWrite()))
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
         original_route_handler = super().get_route_handler()

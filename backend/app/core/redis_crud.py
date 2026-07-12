@@ -28,8 +28,27 @@ class RedisCURD:
             logger.error(f"批量获取缓存失败: {e!s}")
             return []
 
+    async def scan_keys(self, pattern: str = "*", count: int = 100) -> list:
+        """SCAN 模式获取缓存键名（不阻塞 Redis，推荐替代 get_keys）
+
+        参数:
+        - pattern (str, optional): 匹配模式,默认值为"*"。
+        - count (int, optional): 每次迭代基数，默认 100。
+
+        返回:
+        - list: 返回匹配的缓存键名列表,如果获取失败则返回空列表
+        """
+        try:
+            keys: list = []
+            async for key in self.redis.scan_iter(match=pattern, count=count):
+                keys.append(key)
+            return keys
+        except Exception as e:
+            logger.error(f"扫描缓存键名失败: {e!s}")
+            return []
+
     async def get_keys(self, pattern: str = "*") -> list:
-        """获取缓存键名
+        """获取缓存键名（KEYS 命令，可能阻塞 Redis，小数据量使用）
 
         参数:
         - pattern (str, optional): 匹配模式,默认值为"*"。
@@ -256,10 +275,29 @@ class RedisCURD:
         - bool: 如果设置缓存过期时间成功则返回True,否则返回False
         """
         try:
-            return await self.redis.expire(f"{key}", expire)
+            return bool(await self.redis.expire(name=key, time=expire))
         except Exception as e:
             logger.error(f"设置缓存过期时间失败: {e!s}")
             return False
+
+    async def delete_by_pattern(self, pattern: str) -> int:
+        """按 glob 模式批量删除 Redis 键，返回实际删除的键数
+
+        参数:
+        - pattern (str): 通配符模式，例如 "USER_SESSION:123*"
+
+        返回:
+        - int: 实际删除的键数量
+        """
+        try:
+            count = 0
+            async for key in self.redis.scan_iter(match=pattern, count=100):
+                if await self.redis.delete(key):
+                    count += 1
+            return count
+        except Exception as e:
+            logger.error(f"按模式删除缓存失败: pattern={pattern}, err={e!s}")
+            return 0
 
     async def info(self) -> dict:
         """获取缓存信息
@@ -331,3 +369,19 @@ class RedisCURD:
         except Exception as e:
             logger.error(f"获取哈希缓存失败: {e!s}")
             return []
+
+    async def publish(self, channel: str, message: str) -> int:
+        """发布消息到频道（Redis pub/sub）
+
+        参数:
+        - channel (str): 频道名称
+        - message (str): 消息内容
+
+        返回:
+        - int: 订阅者数量
+        """
+        try:
+            return await self.redis.publish(channel, message)
+        except Exception as e:
+            logger.error(f"Redis 发布消息失败: channel={channel}, err={e!s}")
+            return 0

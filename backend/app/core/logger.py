@@ -54,5 +54,9 @@ def setup_logger() -> None:
         std.handlers = [InterceptHandler()]
         std.propagate = False
 
+    # APScheduler 的 DEBUG 轮询日志干扰太大，只保留 WARNING 以上
+    for name in ("apscheduler", "apscheduler.schedulers", "apscheduler.jobstores"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
 
 setup_logger()

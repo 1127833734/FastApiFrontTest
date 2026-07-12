@@ -2,23 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.core.base_schema import AuthSchema, CoreUserSchema, JWTOutSchema
+from app.core.base_schema import JWTOutSchema
 
-__all__ = [
-    "AuthSchema",
-    "CoreUserSchema",
-    "CaptchaOutSchema",
-    "TenantOptionSchema",
-    "SelectTenantSchema",
-    "SelectTenantOutSchema",
-    "LoginWithTenantsSchema",
-    "TenantRegisterSchema",
-    "TenantRegisterOutSchema",
-    "EnterPlatformOutSchema",
-    "TenantLookupOutSchema",
-    "ImpersonateSchema",
-    "ImpersonateOutSchema",
-]
 
 class CaptchaOutSchema(BaseModel):
     """验证码响应模型"""
@@ -27,7 +12,7 @@ class CaptchaOutSchema(BaseModel):
 
     enable: bool = Field(default=True, description="是否启用验证码")
     key: str = Field(..., min_length=1, description="验证码唯一标识")
-    img_base: str = Field(..., min_length=1, description="Base64编码的验证码图片")
+    img_base: str = Field(default="", description="Base64编码的验证码图片（滑块模式为空字符串）")
 
 
 class TenantOptionSchema(BaseModel):
@@ -123,3 +108,16 @@ class ImpersonateOutSchema(BaseModel):
     expires_in: int = Field(..., gt=0, description="过期时间(秒)")
     tenant_id: int = Field(..., description="目标租户ID")
     tenant_name: str = Field(..., description="目标租户名称")
+
+
+class SliderCompleteSchema(BaseModel):
+    """滑块验证完成请求"""
+
+    captcha_key: str = Field(..., min_length=1, description="验证码唯一标识")
+
+
+class SliderCompleteOutSchema(BaseModel):
+    """滑块验证完成响应"""
+
+    captcha_key: str = Field(..., description="验证码唯一标识")
+    verified: bool = Field(default=True, description="是否验证通过")

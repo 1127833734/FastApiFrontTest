@@ -79,11 +79,12 @@ async def delete_param_controller(
 
 @ParamsRouter.patch("/status/batch", summary="批量设置参数状态", response_model=ResponseSchema)
 async def batch_set_status_controller(
+    redis: Annotated[Redis, Depends(redis_getter)],
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:patch"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
-    await ParamsService(auth, db).batch_set_status(ids=data.ids, status=data.status)
+    await ParamsService(auth, db).batch_set_status(redis=redis, ids=data.ids, status=data.status)
     return SuccessResponse(msg="批量设置参数状态成功")
 
 

@@ -5,6 +5,7 @@ from starlette.requests import Request
 
 from app.config.setting import settings
 from app.core.logger import logger
+from app.core.redis_crud import RedisCURD
 
 # 归属地缓存：IP 几乎不变化，缓存 7 天可显著减少外网请求
 _IP_CACHE_TTL: int = settings.IP_LOCATION_CACHE_TTL
@@ -127,8 +128,6 @@ class IpLocalUtil:
     @staticmethod
     async def _cache_get(redis, ip: str) -> str | None:
         try:
-            from app.core.redis_crud import RedisCURD
-
             value = await RedisCURD(redis).get(f"ip:location:{ip}")
             if value is None:
                 return None
@@ -139,8 +138,6 @@ class IpLocalUtil:
     @staticmethod
     async def _cache_set(redis, ip: str, value: str) -> None:
         try:
-            from app.core.redis_crud import RedisCURD
-
             await RedisCURD(redis).set(f"ip:location:{ip}", value, expire=_IP_CACHE_TTL)
         except Exception:
             pass

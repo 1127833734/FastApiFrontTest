@@ -1,12 +1,14 @@
 import re
 
-from app.api.v1.module_generator.gencode.schema import (
+from app.common.constant import GenConstant
+from app.config.setting import settings
+from app.utils.string_util import StringUtil
+
+from .schema import (
     GenTableColumnSchema,
     GenTableOutSchema,
     GenTableSchema,
 )
-from app.common.constant import GenConstant
-from app.utils.string_util import StringUtil
 
 
 class GenUtils:
@@ -23,7 +25,7 @@ class GenUtils:
         - None
         """
         gen_table.class_name = cls.convert_class_name(gen_table.table_name or "")
-        # 导入时给出“可用默认值”，减少用户点开后看到空表单：
+        # 导入时给出"可用默认值"，减少用户点开后看到空表单：
         # - module_name：从表名推导（去掉 gen_/tb_ 前缀）
         # - package_name：默认 module_{module_name}（仍可在前端改）
         if gen_table.business_name is None:
@@ -69,8 +71,6 @@ class GenUtils:
         column.python_field = StringUtil.to_lower_camel_case(column_name)
 
         # 特殊处理几何类型，根据数据库类型选择不同的映射
-        from app.config.setting import settings
-
         if data_type in [
             "point",
             "line",
@@ -97,7 +97,7 @@ class GenUtils:
             column.column_default = ""
 
         if column.html_type is None:
-            # 先按“字段名语义”推断（优先级高于通用字符串规则）
+            # 先按"字段名语义"推断（优先级高于通用字符串规则）
             lower_name = column_name.lower()
             if lower_name.endswith("status"):
                 column.html_type = GenConstant.HTML_RADIO
@@ -109,7 +109,7 @@ class GenUtils:
                 column.html_type = GenConstant.HTML_FILE_UPLOAD
             elif lower_name.endswith("content"):
                 column.html_type = GenConstant.HTML_EDITOR
-            # 再按“数据类型”推断
+            # 再按"数据类型"推断
             elif cls.arrays_contains(GenConstant.COLUMNTYPE_TIME, data_type):
                 column.html_type = GenConstant.HTML_DATETIME
             elif cls.arrays_contains(GenConstant.COLUMNTYPE_NUMBER, data_type):
@@ -121,20 +121,20 @@ class GenUtils:
             else:
                 column.html_type = GenConstant.HTML_INPUT
 
-        # 默认新增字段：非主键且不在“新增不展示”黑名单中
+        # 默认新增字段：非主键且不在"新增不展示"黑名单中
         # 说明：schema 默认值可能为 True/False；仅当调用方未显式配置时才做推断
         if column.is_insert is None:
             column.is_insert = bool((not column.is_pk) and (not cls.arrays_contains(GenConstant.COLUMNNAME_NOT_ADD_SHOW, column_name)))
 
-        # 默认编辑字段：非主键且不在“不编辑”黑名单中
+        # 默认编辑字段：非主键且不在"不编辑"黑名单中
         if column.is_edit is None:
             column.is_edit = bool((not cls.arrays_contains(GenConstant.COLUMNNAME_NOT_EDIT, column_name)) and (not column.is_pk))
 
-        # 默认列表字段：非主键且不在“不列表显示”黑名单中
+        # 默认列表字段：非主键且不在"不列表显示"黑名单中
         if column.is_list is None:
             column.is_list = bool((not cls.arrays_contains(GenConstant.COLUMNNAME_NOT_LIST, column_name)) and (not column.is_pk))
 
-        # 默认查询字段：非主键且不在“不查询”黑名单中
+        # 默认查询字段：非主键且不在"不查询"黑名单中
         if column.is_query is None:
             column.is_query = bool((not cls.arrays_contains(GenConstant.COLUMNNAME_NOT_QUERY, column_name)) and (not column.is_pk))
 

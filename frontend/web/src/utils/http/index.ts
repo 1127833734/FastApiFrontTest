@@ -324,9 +324,7 @@ request.interceptors.response.use(
         isRefreshing = true;
         try {
           // 直接请求刷新令牌接口，避免动态导入 user.store 造成循环依赖
-          const refreshResp = await AuthAPI.refreshToken({
-            refresh_token: Auth.getRefreshToken(),
-          });
+          const refreshResp = await AuthAPI.refreshToken(Auth.getRefreshToken());
           const tokenData = refreshResp.data.data;
           const newAccessToken = tokenData?.access_token || "";
           const newRefreshToken = tokenData?.refresh_token || "";

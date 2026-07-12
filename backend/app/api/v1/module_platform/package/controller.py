@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Request, Security, status
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
@@ -113,10 +113,11 @@ async def get_menus_controller(
 
 @PackageRouter.post("/menus/{package_id}/set", summary="设置套餐菜单", response_model=ResponseSchema)
 async def set_menus_controller(
+    request: Request,
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_package:package:update"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     package_id: Annotated[int, Path(description="套餐ID", ge=1)],
     data: Annotated[PackageMenuSetSchema, Body(description="菜单列表")],
 ) -> JSONResponse:
-    await PackageService(auth, db).set_menus(package_id=package_id, data=data)
+    await PackageService(auth, db).set_menus(package_id=package_id, data=data, redis=request.app.state.redis)
     return SuccessResponse(msg="设置成功")

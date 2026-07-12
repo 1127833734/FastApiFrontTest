@@ -1,3 +1,4 @@
+from functools import wraps
 from math import ceil
 from typing import Any
 
@@ -8,9 +9,35 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
-from app.common.enums import RET
+from app.common.enums import RET, EnvironmentEnum
 from app.common.response import ErrorResponse
+from app.config.setting import settings
 from app.core.logger import logger
+
+
+def require_superadmin(func):
+    """装饰器：仅超级管理员可调用 Service 方法。
+
+    自动校验 ``self.auth.user.is_superuser`` 属性，非超管直接抛出 403。
+    适用于实例方法（``Service(auth).xxx(...)``），由 ``self.auth`` 取认证上下文。
+
+    用法:
+        class XxxService:
+            def __init__(self, auth: AuthSchema) -> None:
+                self.auth = auth
+
+            @require_superadmin
+            async def create(self, data: ...) -> ...:
+                ...
+    """
+
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        if not self.auth.user or not self.auth.user.is_superuser:
+            raise CustomException(msg="仅平台管理员可操作")
+        return await func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class CustomException(Exception):
@@ -53,7 +80,9 @@ def handle_exception(app: FastAPI) -> None:
             exc.msg,
             exc.data,
         )
-        return ErrorResponse(msg=exc.msg, code=exc.code, status_code=exc.status_code, data=exc.data)
+        # 生产环境不外泄 data（可能含 SQL 字段、约束名等内部细节）
+        expose_data = exc.data if settings.ENVIRONMENT != EnvironmentEnum.PROD else None
+        return ErrorResponse(msg=exc.msg, code=exc.code, status_code=exc.status_code, data=expose_data)
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
@@ -103,13 +132,14 @@ def handle_exception(app: FastAPI) -> None:
 
         if isinstance(exc, IntegrityError):
             detail = str(exc.orig) if exc.orig else str(exc)
+            expose_detail = detail if settings.ENVIRONMENT != EnvironmentEnum.PROD else None
             if "Duplicate entry" in detail:
-                return ErrorResponse(msg="数据重复，请检查唯一字段", status_code=status.HTTP_409_CONFLICT, data=detail)
+                return ErrorResponse(msg="数据重复，请检查唯一字段", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
             if "foreign key constraint" in detail:
-                return ErrorResponse(msg="存在关联数据，无法删除", status_code=status.HTTP_409_CONFLICT, data=detail)
+                return ErrorResponse(msg="存在关联数据，无法删除", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
             if "cannot be null" in detail:
-                return ErrorResponse(msg="必填字段缺失", status_code=status.HTTP_409_CONFLICT, data=detail)
-            return ErrorResponse(msg="数据已存在或违反完整性约束", status_code=status.HTTP_409_CONFLICT, data=detail)
+                return ErrorResponse(msg="必填字段缺失", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
+            return ErrorResponse(msg="数据已存在或违反完整性约束", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
 
         lower = str(exc).lower()
         if "connect" in lower or "connection" in lower:

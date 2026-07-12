@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_platform.tenant.service import TenantService
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.common_util import (
@@ -7,6 +8,7 @@ from app.utils.common_util import (
     get_child_recursion,
     get_parent_id_map,
     get_parent_recursion,
+    search_to_dict,
 )
 
 from .crud import DeptCRUD
@@ -43,7 +45,7 @@ class DeptService:
         search: DeptQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[dict]:
-        dept_list = await DeptCRUD(self.auth, self.db).tree_list(search=vars(search) if search else None, order_by=order_by)
+        dept_list = await DeptCRUD(self.auth, self.db).tree_list(search=search_to_dict(search), order_by=order_by)
         dept_dict_list = [DeptTreeOutSchema.model_validate(dept).model_dump() for dept in dept_list]
         return [d for d in dept_dict_list if d.get("parent_id") is None]
 
@@ -56,8 +58,6 @@ class DeptService:
             raise CustomException(msg="创建失败，编码已存在")
 
         # 检查租户配额
-        from app.api.v1.module_platform.tenant.service import TenantService
-
         user = self.auth.user
         if not user:
             raise CustomException(msg="未登录")
@@ -84,7 +84,7 @@ class DeptService:
         return dept_out
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
         # 获取所有部门列表，用于构建树形关系

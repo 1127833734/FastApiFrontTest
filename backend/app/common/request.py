@@ -1,6 +1,8 @@
 from typing import Any
 
 from app.common.enums import RET
+from app.core.base_schema import PageResultSchema
+from app.core.exceptions import CustomException
 
 
 class PaginationService:
@@ -26,9 +28,6 @@ class PaginationService:
         异常:
         - CustomException: 当分页参数不合法时抛出。
         """
-        from app.core.base_schema import PageResultSchema
-        from app.core.exceptions import CustomException
-
         total = len(data_list)
 
         # 设置默认值

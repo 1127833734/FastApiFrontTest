@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 
 from .crud import VersionCRUD
 from .schema import (
@@ -38,7 +39,7 @@ class VersionService:
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"sort": "asc"}, {"id": "desc"}],
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=VersionOutSchema,
         )
 
@@ -54,7 +55,7 @@ class VersionService:
         return VersionOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
         objs = await VersionCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         obj_map = {o.id: o for o in objs}

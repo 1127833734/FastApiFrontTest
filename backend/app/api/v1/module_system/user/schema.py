@@ -9,7 +9,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.v1.module_platform.menu.schema import MenuOutSchema
+from app.api.v1.module_platform.menu.schema import MenuTreeOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
 from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
@@ -73,6 +73,8 @@ class UserForgetPasswordSchema(BaseModel):
     username: str = Field(..., min_length=3, max_length=32, description="用户名")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
+    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
+    captcha: str | None = Field(default=None, description="图形验证码")
 
     @field_validator("username")
     @classmethod
@@ -245,10 +247,9 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema, TenantBySchema):
     dept: CommonSchema | None = Field(default=None, description="部门")
     positions: list[CommonSchema] | None = Field(default=[], description="岗位")
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
-    menus: list[MenuOutSchema] | None = Field(default=[], description="菜单")
+    menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
     is_impersonate: bool = Field(default=False, description="是否为平台管理员代签入")
     is_superuser: bool = Field(default=False, description="是否超管")
-    tenant: CommonSchema | None = Field(default=None, description="租户")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
@@ -287,7 +288,3 @@ class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
         if isinstance(self.status, int):
             self.status = (QueueEnum.eq.value, self.status)
         return self
-
-
-UserBySchema.model_rebuild()
-TenantBySchema.model_rebuild()

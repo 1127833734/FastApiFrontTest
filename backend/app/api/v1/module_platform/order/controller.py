@@ -4,13 +4,15 @@ from fastapi import APIRouter, Body, Depends, Path, Query, Request, Security, st
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.enums import RET
+from app.common.enums import RET, EnvironmentEnum
 from app.common.response import ErrorResponse, ResponseSchema, SuccessResponse
+from app.config.setting import settings
 from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.router_class import OperationLogRoute
+from app.utils.payment import get_mock_gateway
 
 from .schema import (
     OrderCreateSchema,
@@ -102,8 +104,8 @@ async def order_pay_create_controller(
 async def order_pay_status_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
     order_id: Annotated[int, Path(description="订单ID", ge=1)],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:order:query"], check_data_scope=False))],
 ) -> JSONResponse:
-    auth = AuthSchema(check_data_scope=False)
     result = await OrderService.check_payment_status(auth=auth, db=db, order_id=order_id)
     return SuccessResponse(data=result)
 
@@ -124,12 +126,18 @@ async def order_pay_callback_controller(
         return ErrorResponse(msg=str(e))
 
 
-@OrderRouter.post("/mock/callback", summary="Mock 支付回调（开发环境触发模拟支付）", response_model=ResponseSchema[dict])
+@OrderRouter.post("/mock/callback", summary="Mock 支付回调（仅开发/测试环境可用）", response_model=ResponseSchema[dict])
 async def order_pay_mock_callback_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
     order_id: Annotated[int, Body(description="订单ID", ge=1)],
 ) -> JSONResponse:
-    from app.utils.payment import get_mock_gateway
+    # Mock 回调仅在 DEV 环境暴露；生产环境必须通过真实支付网关的 webhook 触发
+    if settings.ENVIRONMENT != EnvironmentEnum.DEV:
+        raise CustomException(
+            msg="Mock 支付回调仅在开发环境可用",
+            code=RET.FORBIDDEN.code,
+            status_code=403,
+        )
 
     from .service import OrderService
 

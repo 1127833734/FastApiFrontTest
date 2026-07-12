@@ -64,12 +64,6 @@ async def get_scheduler_console_controller() -> JSONResponse:
     return SuccessResponse(data=console_output, msg="获取控制台信息成功")
 
 
-@JobRouter.post("/scheduler/sync", summary="同步调度器任务到数据库", response_model=ResponseSchema[int], dependencies=[Security(AuthPermission(["module_task:cronjob:job:update"]))])
-async def sync_jobs_controller() -> JSONResponse:
-    sync_count = SchedulerUtil.sync_jobs_to_db()
-    return SuccessResponse(data=sync_count, msg=f"同步完成，共同步 {sync_count} 个任务")
-
-
 @JobRouter.post("/task/pause/{job_id}", summary="暂停任务", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_task:cronjob:job:task"]))])
 async def pause_job_controller(
     job_id: Annotated[str, Path(description="调度器任务ID")],

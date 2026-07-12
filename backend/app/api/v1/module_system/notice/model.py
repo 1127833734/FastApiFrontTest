@@ -33,7 +33,7 @@ class NoticeReadModel(MappedBase):
     - (user_id, notice_id) 唯一约束 — 未建立记录即代表未读
     - 仅用于标记已读时间，不做其他业务用途
     - 不继承 ModelMixin：使用 (user_id, notice_id) 复合主键，无需自增 id 列
-      （避免 SQLite 不支持复合主键列 autoincrement 的问题）
+    （避免 SQLite 不支持复合主键列 autoincrement 的问题）
     """
 
     __tablename__: str = "sys_notice_read"

@@ -1,32 +1,37 @@
 import json
-import random
-import string
 from datetime import datetime, timedelta
+from typing import Any
 
 from redis.asyncio.client import Redis
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_platform.menu.model import MenuModel
 from app.api.v1.module_platform.order.crud import OrderCRUD
 from app.api.v1.module_platform.order.model import OrderModel
 from app.api.v1.module_platform.order.schema import (
     OrderCreateInternalSchema,
     OrderUpdateInternalSchema,
 )
-from app.api.v1.module_platform.order.service import (
-    PaymentService,
-    _generate_order_no,
-)
+from app.api.v1.module_platform.package.crud import PackageCRUD
 from app.api.v1.module_platform.package.model import PackageModel
+from app.api.v1.module_platform.package.service import PackageService
+from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.api.v1.module_system.dept.model import DeptModel
-from app.api.v1.module_system.role.model import RoleModel
+from app.api.v1.module_system.position.crud import PositionCRUD
+from app.api.v1.module_system.role.crud import RoleCRUD
+from app.api.v1.module_system.role.model import RoleMenusModel, RoleModel
+from app.api.v1.module_system.role.schema import RoleCreateSchema
+from app.api.v1.module_system.user.crud import UserCRUD
 from app.api.v1.module_system.user.model import UserModel
+from app.api.v1.module_system.user.schema import UserCreateSchema
 from app.common.enums import OrderTypeEnum, RedisInitKeyConfig
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
-from app.core.dependencies import require_superadmin
-from app.core.exceptions import CustomException
+from app.core.database import async_db_session
+from app.core.exceptions import CustomException, require_superadmin
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
+from app.utils.common_util import search_to_dict
 from app.utils.password_util import PwdUtil
 
 from .crud import TenantCRUD
@@ -68,6 +73,21 @@ class TenantService:
     定时任务方法与静态工具方法保持 ``@staticmethod``（无 auth）。
     """
 
+    CONFIG_FIELDS = [
+        "name",
+        "description",
+        "version",
+        "logo_url",
+        "favicon",
+        "login_bg",
+        "copyright",
+        "keep_record",
+        "help_doc",
+        "privacy",
+        "clause",
+        "git_code",
+    ]
+
     def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
         self.db = db
@@ -95,7 +115,7 @@ class TenantService:
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=TenantOutSchema,
         )
 
@@ -108,7 +128,6 @@ class TenantService:
             raise CustomException(msg="创建失败，编码已存在")
 
         # ② 校验套餐：必须存在且启用
-        from app.api.v1.module_platform.package.crud import PackageCRUD
 
         package = await PackageCRUD(self.auth, self.db).get(id=data.package_id)
         if not package:
@@ -118,8 +137,6 @@ class TenantService:
 
         # ③ 生成初始管理员账号（用户名 = code_admin），随机密码仅此一次返回
         username = f"{data.code}_admin"
-        from app.api.v1.module_system.user.crud import UserCRUD
-        from app.api.v1.module_system.user.schema import UserCreateSchema
 
         if await UserCRUD(self.auth, self.db).get(username=username):
             raise CustomException(msg=f"初始管理员用户名已存在: {username}，请更换租户编码后重试")
@@ -132,9 +149,6 @@ class TenantService:
             raise CustomException(msg="创建租户失败")
 
         # ⑤ 创建「管理员」角色（tenant_id 已建立，code 用 f"{tenant_code}_admin" 避免与编码冲突）
-        from app.api.v1.module_system.role.crud import RoleCRUD
-        from app.api.v1.module_system.role.model import RoleModel
-        from app.api.v1.module_system.role.schema import RoleCreateSchema
 
         admin_role = RoleCreateSchema(
             name=f"{tenant_obj.name}管理员",
@@ -172,7 +186,6 @@ class TenantService:
             raise CustomException(msg="创建租户初始管理员失败") from e
 
         # ⑦ 把套餐所有菜单授权给管理员角色（快照模式：复制 ID，不维护引用）
-        from app.api.v1.module_platform.package.service import PackageService
 
         menu_ids = await PackageService(self.auth, self.db).get_package_menu_ids(data.package_id)
         if menu_ids:
@@ -183,29 +196,11 @@ class TenantService:
 
         # ⑧ 缓存刷新（失败不阻塞：DB 已是真相，后续 _sync_all_configs_to_redis 会补偿）
         try:
-            config_fields = [
-                "name",
-                "description",
-                "version",
-                "logo_url",
-                "favicon",
-                "login_bg",
-                "copyright",
-                "keep_record",
-                "help_doc",
-                "privacy",
-                "clause",
-                "git_code",
-            ]
-            config = {field: getattr(tenant_obj, field, None) for field in config_fields}
-            redis = getattr(self.auth.user, "_redis_ref", None)  # 见下方注释
-            # 缓存刷新统一走 TenantService 静态方法，调用方传 redis
             await self.db.commit()
             logger.info(
                 f"✅ 租户[{tenant_obj.name}]开通完成 "
                 f"(套餐={package.name}, 菜单授权={len(menu_ids)}, 管理员={username})"
             )
-            _ = config  # 配置缓存将在 init_cache / sync_all_configs 中按 tenant_id 重建
         except Exception as e:
             logger.warning(f"租户[{tenant_obj.name}]缓存刷新失败（事务已提交，可后续补偿）: {e!s}")
 
@@ -232,9 +227,22 @@ class TenantService:
         - TenantOutSchema: 租户详情
         """
         obj = await TenantCRUD(self.auth, self.db).get_or_404(id=id)
-
         old_package_id = obj.package_id
 
+        await self._validate_tenant_update(id, obj, data)
+
+        updated = await TenantCRUD(self.auth, self.db).update(id=id, data=data)
+        if not updated:
+            raise CustomException(msg="更新失败")
+
+        # 套餐变更后：清理角色中不再可用的菜单关联；如果是降级，先校验不超额再清理
+        if data.package_id is not None and data.package_id != old_package_id:
+            await self._handle_package_change(id, old_package_id, data.package_id)
+
+        return TenantOutSchema.model_validate(updated)
+
+    async def _validate_tenant_update(self, id: int, obj: TenantModel, data: TenantUpdateSchema) -> None:
+        """校验租户更新约束"""
         if id == 1:
             if data.code is not None and data.code != obj.code:
                 raise CustomException(msg="系统租户编码不可修改")
@@ -242,7 +250,7 @@ class TenantService:
                 raise CustomException(msg="系统租户不允许禁用")
 
         # 套餐变更：仅超管可操作，防止租户管理员自行升级/降级套餐
-        if data.package_id is not None and data.package_id != old_package_id:
+        if data.package_id is not None and data.package_id != obj.package_id:
             if not self.auth.user or not self.auth.user.is_superuser:
                 raise CustomException(msg="仅平台管理员可变更租户套餐")
 
@@ -255,32 +263,55 @@ class TenantService:
             if exist and exist.id != id:
                 raise CustomException(msg="更新失败，编码重复")
 
-        updated = await TenantCRUD(self.auth, self.db).update(id=id, data=data)
-        if not updated:
-            raise CustomException(msg="更新失败")
+    async def _handle_package_change(self, tenant_id: int, old_package_id: int | None, new_package_id: int) -> None:
+        """处理套餐变更：降级预检 + 菜单清理"""
 
-        # 套餐变更后：清理角色中不再可用的菜单关联，防止用户看到空白菜单
-        if data.package_id is not None and data.package_id != old_package_id:
-            from app.api.v1.module_platform.package.service import PackageService
-            from app.api.v1.module_system.role.model import RoleMenusModel, RoleModel
+        new_pkg = await PackageCRUD(self.auth, self.db).get(id=new_package_id)
+        if not new_pkg:
+            raise CustomException(msg=f"套餐[{new_package_id}]不存在")
 
-            available_ids = await PackageService(self.auth, self.db).get_tenant_available_menu_ids(id)
-            if available_ids:
-                role_ids_stmt = select(RoleModel.id).where(RoleModel.tenant_id == id)
-                result = await self.db.execute(role_ids_stmt)
-                tenant_role_ids = [row[0] for row in result.all()]
-                if tenant_role_ids:
-                    await self.db.execute(
-                        delete(RoleMenusModel).where(
-                            RoleMenusModel.role_id.in_(tenant_role_ids),
-                            RoleMenusModel.menu_id.notin_(available_ids),
-                        ),
-                    )
-                    await self.db.flush()
-                    logger.info(f"租户[{id}]套餐变更：已清理角色中不再可用的菜单关联, available_menus={len(available_ids)}, roles_affected={len(tenant_role_ids)}")
+        # 降级前的超额预检：升级和首次绑定跳过；降级时若现有资源超过新套餐上限则拒
+        if old_package_id is not None:
+            counts_stmt_user = select(func.count(UserModel.id)).where(
+                UserModel.tenant_id == tenant_id, UserModel.is_deleted.is_(False)
+            )
+            counts_stmt_role = select(func.count(RoleModel.id)).where(
+                RoleModel.tenant_id == tenant_id, RoleModel.is_deleted.is_(False)
+            )
+            counts_stmt_dept = select(func.count(DeptModel.id)).where(
+                DeptModel.tenant_id == tenant_id, DeptModel.is_deleted.is_(False)
+            )
+            user_count = (await self.db.execute(counts_stmt_user)).scalar_one()
+            role_count = (await self.db.execute(counts_stmt_role)).scalar_one()
+            dept_count = (await self.db.execute(counts_stmt_dept)).scalar_one()
 
-        result = TenantOutSchema.model_validate(updated)
-        return result
+            exceed_msgs = []
+            if new_pkg.max_users and user_count > new_pkg.max_users:
+                exceed_msgs.append(f"用户({user_count}>{new_pkg.max_users})")
+            if new_pkg.max_roles and role_count > new_pkg.max_roles:
+                exceed_msgs.append(f"角色({role_count}>{new_pkg.max_roles})")
+            if new_pkg.max_depts and dept_count > new_pkg.max_depts:
+                exceed_msgs.append(f"部门({dept_count}>{new_pkg.max_depts})")
+            if exceed_msgs:
+                raise CustomException(
+                    msg="降级失败：当前资源超过新套餐上限，请先清理或升级套餐: " + " ".join(exceed_msgs),
+                )
+
+        available_ids = await PackageService(self.auth, self.db).get_tenant_available_menu_ids(tenant_id)
+        if not available_ids:
+            return
+        role_ids_stmt = select(RoleModel.id).where(RoleModel.tenant_id == tenant_id)
+        result = await self.db.execute(role_ids_stmt)
+        tenant_role_ids = [row[0] for row in result.all()]
+        if tenant_role_ids:
+            await self.db.execute(
+                delete(RoleMenusModel).where(
+                    RoleMenusModel.role_id.in_(tenant_role_ids),
+                    RoleMenusModel.menu_id.notin_(available_ids),
+                ),
+            )
+            await self.db.flush()
+            logger.info(f"租户[{tenant_id}]套餐变更：已清理角色中不再可用的菜单关联, available_menus={len(available_ids)}, roles_affected={len(tenant_role_ids)}")
 
     @require_superadmin
     async def delete(self, ids: list[int]) -> None:
@@ -296,23 +327,21 @@ class TenantService:
             raise CustomException(msg="删除失败，删除对象不能为空")
         if 1 in ids:
             raise CustomException(msg="系统租户不允许删除")
-        from app.api.v1.module_system.dept.crud import DeptCRUD
-        from app.api.v1.module_system.position.crud import PositionCRUD
-        from app.api.v1.module_system.role.crud import RoleCRUD
-        from app.api.v1.module_system.user.crud import UserCRUD
 
-        for tid in ids:
-            reasons: list[str] = []
-            if await UserCRUD(self.auth, self.db).get_list(search={"tenant_id": tid}):
-                reasons.append("用户")
-            if await DeptCRUD(self.auth, self.db).get_list(search={"tenant_id": tid}):
-                reasons.append("部门")
-            if await RoleCRUD(self.auth, self.db).get_list(search={"tenant_id": tid}):
-                reasons.append("角色")
-            if await PositionCRUD(self.auth, self.db).get_list(search={"tenant_id": tid}):
-                reasons.append("岗位")
-            if reasons:
-                raise CustomException(msg=f"租户下已存在{'/'.join(reasons)}，操作失败")
+        # 批量检查所有租户是否有关联资源（一次查询代替 N*4 次）
+        resource_checks = [
+            ("用户", UserCRUD, "tenant_id"),
+            ("部门", DeptCRUD, "tenant_id"),
+            ("角色", RoleCRUD, "tenant_id"),
+            ("岗位", PositionCRUD, "tenant_id"),
+        ]
+        tid_set = set(ids)
+        for name, crud_cls, field in resource_checks:
+            existing = await crud_cls(self.auth, self.db).get_list(search={field: ("in", list(tid_set))})
+            used_tids = {getattr(obj, field) for obj in existing if getattr(obj, field, None) is not None}
+            conflict = tid_set & used_tids
+            if conflict:
+                raise CustomException(msg=f"租户下已存在{name}，操作失败")
 
         await TenantCRUD(self.auth, self.db).delete(ids=ids)
 
@@ -346,9 +375,6 @@ class TenantService:
 
     async def get_tenant_users(self, tenant_id: int) -> list[TenantUserOutSchema]:
         """获取租户下的用户列表"""
-        from sqlalchemy import select
-
-        from app.api.v1.module_system.user.model import UserModel
 
         stmt = (
             select(TenantUserModel, UserModel)
@@ -360,17 +386,17 @@ class TenantService:
         rows = result.all()
 
         users = []
-        for tu, u in rows:
+        for tenant_user, user_row in rows:
             users.append(
                 TenantUserOutSchema(
-                    id=tu.id,
-                    user_id=tu.user_id,
-                    tenant_id=tu.tenant_id,
-                    role=tu.role,
-                    is_default=tu.is_default,
-                    create_time=tu.create_time,
-                    username=u.username,
-                    name=u.name,
+                    id=tenant_user.id,
+                    user_id=tenant_user.user_id,
+                    tenant_id=tenant_user.tenant_id,
+                    role=tenant_user.role,
+                    is_default=tenant_user.is_default,
+                    create_time=tenant_user.create_time,
+                    username=user_row.username,
+                    name=user_row.name,
                 ),
             )
         return users
@@ -391,15 +417,12 @@ class TenantService:
             raise CustomException(msg="该数据不存在")
 
         # 验证用户存在
-        from app.api.v1.module_system.user.crud import UserCRUD
 
         user = await UserCRUD(self.auth, self.db).get(id=data.user_id)
         if not user:
             raise CustomException(msg="该数据不存在")
 
         # 检查是否已关联
-        from sqlalchemy import select
-
         exist_stmt = (
             select(TenantUserModel)
             .where(
@@ -423,8 +446,6 @@ class TenantService:
                 # 第一个租户自动设为默认
                 data.is_default = 1
 
-        from datetime import datetime
-
         tu = TenantUserModel(
             user_id=data.user_id,
             tenant_id=tenant_id,
@@ -447,8 +468,6 @@ class TenantService:
         返回:
         - None
         """
-        from sqlalchemy import select
-
         # 查找关联记录
         exist_stmt = (
             select(TenantUserModel)
@@ -512,7 +531,6 @@ class TenantService:
                 "max_depts": 0,
                 "package_name": "未绑定套餐",
             }
-        from app.api.v1.module_platform.package.crud import PackageCRUD
 
         pkg = await PackageCRUD(self.auth, self.db).get(id=tenant.package_id)
         if not pkg:
@@ -543,71 +561,39 @@ class TenantService:
         if not tenant or not tenant.package_id:
             return
 
-        from app.api.v1.module_platform.package.crud import PackageCRUD
-
         pkg = await PackageCRUD(self.auth, self.db).get(id=tenant.package_id)
         if not pkg:
             return
 
-        field_map = {
-            "user": "max_users",
-            "role": "max_roles",
-            "dept": "max_depts",
-            "storage": "max_storage_mb",
-        }
-        if resource_type not in field_map:
-            return
+        # resource_type → (model_class, label, max_field)
+        resource_map: dict[str, tuple[Any, str, str]] = {}
 
-        max_field = field_map[resource_type]
+        resource_map["user"] = (UserModel, "用户", "max_users")
+        resource_map["role"] = (RoleModel, "角色", "max_roles")
+        resource_map["dept"] = (DeptModel, "部门", "max_depts")
+
+        entry = resource_map.get(resource_type)
+        if not entry:
+            return  # storage 和未知类型跳过
+        model_cls, label, max_field = entry
+
         max_limit = getattr(pkg, max_field, None)
         if max_limit is None or max_limit == 0:
             return
 
-        if resource_type == "user":
-            from app.api.v1.module_system.user.model import UserModel
-
-            count_stmt = (
-                select(func.count())
-                .select_from(UserModel)
-                .where(
-                    UserModel.tenant_id == tenant_id,
-                    UserModel.is_deleted.is_(False),
-                )
+        count_stmt = (
+            select(func.count())
+            .select_from(model_cls)
+            .where(
+                model_cls.tenant_id == tenant_id,
+                model_cls.is_deleted.is_(False),
             )
-        elif resource_type == "role":
-            from app.api.v1.module_system.role.model import RoleModel
-
-            count_stmt = (
-                select(func.count())
-                .select_from(RoleModel)
-                .where(
-                    RoleModel.tenant_id == tenant_id,
-                    RoleModel.is_deleted.is_(False),
-                )
-            )
-        elif resource_type == "dept":
-            from app.api.v1.module_system.dept.model import DeptModel
-
-            count_stmt = (
-                select(func.count())
-                .select_from(DeptModel)
-                .where(
-                    DeptModel.tenant_id == tenant_id,
-                    DeptModel.is_deleted.is_(False),
-                )
-            )
-        elif resource_type == "storage":
-            # storage 的实际容量校验在文件上传时进行，此处仅检查是否有配额
-            return
-        else:
-            return
-
+        )
         result = await self.db.execute(count_stmt)
         current_count = result.scalar() or 0
 
         if current_count >= max_limit:
-            resource_labels = {"user": "用户", "role": "角色", "dept": "部门"}
-            raise CustomException(msg=f"租户{resource_labels.get(resource_type, resource_type)}数量已达套餐上限（{max_limit}），无法继续创建")
+            raise CustomException(msg=f"租户{label}数量已达套餐上限（{max_limit}），无法继续创建")
 
     async def get_config(self, tenant_id: int) -> dict:
         """获取租户所有配置（从租户主表读取，返回原始 dict 供内部使用）
@@ -622,21 +608,7 @@ class TenantService:
         if not tenant:
             raise CustomException(msg="该数据不存在")
 
-        config_fields = [
-            "name",
-            "description",
-            "version",
-            "logo_url",
-            "favicon",
-            "login_bg",
-            "copyright",
-            "keep_record",
-            "help_doc",
-            "privacy",
-            "clause",
-            "git_code",
-        ]
-        config = {field: getattr(tenant, field, None) for field in config_fields}
+        config = {field: getattr(tenant, field, None) for field in self.CONFIG_FIELDS}
         return config
 
     @staticmethod
@@ -668,8 +640,6 @@ class TenantService:
                 logger.error(f"解析租户配置数据失败: {e}")
 
         logger.info(f"Redis 中没有租户[{tenant_id}]配置数据，从数据库中加载")
-        from app.core.database import async_db_session
-
         async with async_db_session() as session, session.begin():
             _auth = AuthSchema(check_data_scope=False)
             svc = TenantService(_auth, session)
@@ -711,22 +681,7 @@ class TenantService:
         if not tenant:
             raise CustomException(msg="该数据不存在")
 
-        config_fields = [
-            "name",
-            "description",
-            "version",
-            "logo_url",
-            "favicon",
-            "login_bg",
-            "copyright",
-            "keep_record",
-            "help_doc",
-            "privacy",
-            "clause",
-            "git_code",
-        ]
-
-        for field in config_fields:
+        for field in self.CONFIG_FIELDS:
             if field in config:
                 setattr(tenant, field, config[field])
 
@@ -748,31 +703,13 @@ class TenantService:
         返回:
         - None
         """
-        from sqlalchemy import select
-
-        from app.core.database import async_db_session
-
         async with async_db_session() as session, session.begin():
             stmt = select(TenantModel)
             result = await session.execute(stmt)
             tenants = result.scalars().all()
 
             for tenant in tenants:
-                config_fields = [
-                    "name",
-                    "description",
-                    "version",
-                    "logo_url",
-                    "favicon",
-                    "login_bg",
-                    "copyright",
-                    "keep_record",
-                    "help_doc",
-                    "privacy",
-                    "clause",
-                    "git_code",
-                ]
-                config = {field: getattr(tenant, field, None) for field in config_fields}
+                config = {field: getattr(tenant, field, None) for field in TenantService.CONFIG_FIELDS}
 
                 await TenantService._sync_configs_to_redis(redis, tenant.id, config)
                 logger.info(f"✅ 租户[{tenant.name}](id={tenant.id}) 配置已缓存到 Redis")
@@ -790,8 +727,6 @@ class TenantService:
         返回:
         - dict: 更新后的租户信息
         """
-        from datetime import datetime
-
         tenant = await TenantCRUD(self.auth, self.db).get(id=tenant_id)
         if not tenant:
             raise CustomException(msg="该数据不存在")
@@ -827,12 +762,6 @@ class TenantService:
         - PackageChangePreviewOut: 预览结果
         """
         from sqlalchemy import func, select
-
-        from app.api.v1.module_platform.menu.model import MenuModel
-        from app.api.v1.module_platform.package.crud import PackageCRUD
-        from app.api.v1.module_platform.package.service import PackageService
-        from app.api.v1.module_system.role.model import RoleMenusModel, RoleModel
-        from app.api.v1.module_system.user.model import UserModel
 
         tenant = await TenantCRUD(self.auth, self.db).get(id=tenant_id)
         if not tenant:
@@ -933,11 +862,7 @@ class TenantService:
           frozen(3)     → 到期后第 15-30 天，只读模式
           expired(4)    → 第 31 天起，归档候选
         """
-        from datetime import datetime
-
         from sqlalchemy import text
-
-        from app.core.database import async_db_session
 
         now = datetime.now()
 
@@ -981,8 +906,6 @@ class TenantService:
         from datetime import datetime, timedelta
 
         from sqlalchemy import text
-
-        from app.core.database import async_db_session
 
         cutoff = datetime.now() - timedelta(days=90)
 
@@ -1117,7 +1040,19 @@ class TenantService:
         if not pkg or pkg.status == 1:
             raise CustomException(msg="该数据不存在")
 
+        # 校验 order_type 与当前套餐状态的一致性：
+        # - 未购套餐时只能 buy / renew（不能用 upgrade/downgrade）
+        # - 已有套餐时禁止 buy（应走 upgrade 等）
+        if not tenant.package_id:
+            if data.order_type not in ("buy", "renew"):
+                raise CustomException(msg="当前租户未购买套餐，只能 buy 或 renew")
+        else:
+            if data.order_type == "buy":
+                raise CustomException(msg="该租户已存在套餐，请使用 upgrade/renew/downgrade")
+
         amount = pkg.price
+
+        from app.api.v1.module_platform.order.service import _generate_order_no, PaymentService
 
         order = await OrderCRUD(auth, db).create(
             OrderCreateInternalSchema(

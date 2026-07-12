@@ -7,7 +7,7 @@ from sqlalchemy import Select, asc, delete, desc, false, func, literal_column, s
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import load_only, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.base_model import ModelMixin
@@ -170,6 +170,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         search: dict[str, Any] | None = None,
         order_by: list[dict[str, str]] | None = None,
         preload: list[str | Any] | None = None,
+        load_columns: list | None = None,
     ) -> Sequence[ModelType]:
         """根据条件获取对象列表（复用请求级事务会话）
 
@@ -177,6 +178,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         - search: 查询条件
         - order_by: 排序字段, 格式为 [{'id': 'asc'}, {'name': 'desc'}]
         - preload: 预加载关系
+        - load_columns: 仅加载指定的列（减少 SELECT 传输量）
 
         返回:
         - 对象列表
@@ -185,6 +187,8 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             conditions = await self.__build_conditions(**(search or {}))
             order = order_by or [{"id": "asc"}]
             sql = select(self.model).where(*conditions).order_by(*self._parse_order(order))
+            if load_columns:
+                sql = sql.options(load_only(*load_columns))
             for opt in self.__loader_options(preload):
                 sql = sql.options(opt)
             sql = await self.__filter_permissions(sql)
@@ -245,6 +249,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         search: dict[str, Any] | None = None,
         out_schema: type[OutSchemaType] | None = None,
         preload: list[str | Any] | None = None,
+        load_columns: list | None = None,
     ) -> PageResultSchema[OutSchemaType] | PageResultSchema:
         """获取分页数据（复用请求级事务会话；count 与 data 共享同一会话）
 
@@ -255,6 +260,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         - search: 查询条件
         - out_schema: 输出数据模型（None 时返回原始 ORM 对象）
         - preload: 预加载关系
+        - load_columns: 仅加载指定的列（减少 SELECT 传输量）
 
         返回:
         - PageResultSchema: 分页结果
@@ -268,6 +274,8 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             pk = pk_cols[0] if pk_cols else literal_column("1")
 
             data_sql = select(self.model).where(*conditions)
+            if load_columns:
+                data_sql = data_sql.options(load_only(*load_columns))
             for opt in self.__loader_options(preload):
                 data_sql = data_sql.options(opt)
             data_sql = await self.__filter_permissions(data_sql)
@@ -315,8 +323,12 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             user = self.auth.user
             if user.id:
                 if hasattr(obj, "tenant_id"):
-                    if not user.is_superuser or getattr(obj, "tenant_id", None) is None:
+                    # 仅当调用方未显式指定 tenant_id 时，才默认使用当前用户的租户
+                    # 超管可以显式传任意 tenant_id（管理跨租户数据），非超管必须强制为本租户
+                    if not hasattr(obj, "tenant_id") or getattr(obj, "tenant_id", None) is None:
                         setattr(obj, "tenant_id", user.tenant_id)
+                    elif not user.is_superuser and getattr(obj, "tenant_id") != user.tenant_id:
+                        raise CustomException(msg="无权创建其他租户的数据")
                 if hasattr(obj, "created_id"):
                     setattr(obj, "created_id", user.id)
                 if hasattr(obj, "updated_id"):
@@ -483,46 +495,56 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
 
             attr = getattr(self.model, key)
             if isinstance(value, tuple):
-                seq, val = value
-                if seq == "None":
-                    conditions.append(attr.is_(None))
-                elif seq == "not None":
-                    conditions.append(attr.isnot(None))
-                elif seq == "date" and val:
-                    dt = datetime.strptime(val, "%Y-%m-%d")
-                    conditions.append(attr >= dt)
-                    conditions.append(attr < dt + timedelta(days=1))
-                elif seq == "month" and val:
-                    dt = datetime.strptime(val, "%Y-%m")
-                    next_month = dt.replace(year=dt.year + 1, month=1) if dt.month == 12 else dt.replace(month=dt.month + 1)
-                    conditions.append(attr >= dt)
-                    conditions.append(attr < next_month)
-                elif seq == "like" and val:
-                    conditions.append(attr.like(f"%{val}%"))
-                elif seq == "in":
-                    if val is None:
-                        continue
-                    if isinstance(val, (list, tuple, set)) and len(val) == 0:
-                        conditions.append(false())
-                    else:
-                        conditions.append(attr.in_(val))
-                elif seq == "between" and isinstance(val, (list, tuple)) and len(val) == 2:
-                    conditions.append(attr.between(val[0], val[1]))
-                elif seq in ("!=", "ne") and val is not None:
-                    conditions.append(attr != val)
-                elif seq in (">", "gt") and val is not None:
-                    conditions.append(attr > val)
-                elif seq in (">=", "ge") and val is not None:
-                    conditions.append(attr >= val)
-                elif seq in ("<", "lt") and val is not None:
-                    conditions.append(attr < val)
-                elif seq in ("<=", "le") and val is not None:
-                    conditions.append(attr <= val)
-                elif seq in ("eq", "==") and val is not None:
-                    conditions.append(attr == val)
+                conditions.extend(self._resolve_condition(attr, value))
             else:
                 conditions.append(attr == value)
         return conditions
+
+    @staticmethod
+    def _resolve_condition(attr: ColumnElement, value: tuple) -> list[ColumnElement]:
+        """解析 (operator, value) 元组为 SQLAlchemy 条件列表"""
+        seq, val = value
+
+        handlers: dict[str, tuple] = {
+            "None": (lambda: [attr.is_(None)], True),
+            "not None": (lambda: [attr.isnot(None)], True),
+        }
+        # 需要额外校验的运算符
+        if seq in handlers:
+            fn, _always = handlers[seq]
+            return fn()
+
+        if val is None:
+            return []
+
+        if seq == "date":
+            dt = datetime.strptime(val, "%Y-%m-%d")
+            return [attr >= dt, attr < dt + timedelta(days=1)]
+        if seq == "month":
+            dt = datetime.strptime(val, "%Y-%m")
+            next_month = dt.replace(year=dt.year + 1, month=1) if dt.month == 12 else dt.replace(month=dt.month + 1)
+            return [attr >= dt, attr < next_month]
+        if seq == "like":
+            return [attr.like(f"%{val}%")]
+        if seq == "in":
+            if isinstance(val, (list, tuple, set)) and len(val) == 0:
+                return [false()]
+            return [attr.in_(val)]
+        if seq == "between" and isinstance(val, (list, tuple)) and len(val) == 2:
+            return [attr.between(val[0], val[1])]
+
+        _COMPARATORS: dict[str, Any] = {
+            "!=": attr.__ne__, "ne": attr.__ne__,
+            ">": attr.__gt__, "gt": attr.__gt__,
+            ">=": attr.__ge__, "ge": attr.__ge__,
+            "<": attr.__lt__, "lt": attr.__lt__,
+            "<=": attr.__le__, "le": attr.__le__,
+            "eq": attr.__eq__, "==": attr.__eq__,
+        }
+        cmp = _COMPARATORS.get(seq)
+        if cmp is not None:
+            return [cmp(val)]
+        return []
 
     def _parse_order(self, order: list[dict[str, str]]) -> list[ColumnElement]:
         """解析排序参数

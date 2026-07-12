@@ -22,11 +22,11 @@ const AuthAPI = {
     });
   },
 
-  refreshToken(body: RefreshToekenBody) {
+  refreshToken(refreshToken: string) {
     return request<ApiResponse<JWTOut>>({
       url: `${API_PATH}/token/refresh`,
       method: "post",
-      data: body,
+      data: refreshToken,
     });
   },
 
@@ -104,6 +104,32 @@ const AuthAPI = {
       params: { domain },
     });
   },
+
+  /** 搜索租户（根据关键字模糊搜索编码或名称） */
+  tenantSearch(q: string) {
+    return request<ApiResponse<TenantOption[]>>({
+      url: `${API_PATH}/tenant-search`,
+      method: "get",
+      params: { q },
+    });
+  },
+
+  /** 获取所有活跃租户选项，用于登录页下拉选择 */
+  getTenantOptions() {
+    return request<ApiResponse<TenantOption[]>>({
+      url: `${API_PATH}/tenant-options`,
+      method: "get",
+    });
+  },
+
+  /** 滑块验证完成后端标记 */
+  sliderComplete(captchaKey: string) {
+    return request<ApiResponse<{ captcha_key: string; verified: boolean }>>({
+      url: `${API_PATH}/captcha/slider/complete`,
+      method: "post",
+      data: { captcha_key: captchaKey },
+    });
+  },
 };
 
 export default AuthAPI;
@@ -132,7 +158,6 @@ export interface TenantRegisterResult {
 export interface LoginFormData {
   username: string;
   password: string;
-  captcha?: string;
   captcha_key?: string;
   remember?: boolean;
   login_type?: string;
@@ -149,11 +174,6 @@ export interface JWTOut {
 /** 登录成功返回 */
 export interface LoginResult extends JWTOut {
   tenants?: TenantOption[];
-}
-
-/** 刷新 Token 请求体 */
-export interface RefreshToekenBody {
-  refresh_token: string;
 }
 
 /** 退出登录请求体 */

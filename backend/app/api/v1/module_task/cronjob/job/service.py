@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.ap_scheduler import SchedulerUtil
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 
 from .crud import JobCRUD
 from .schema import JobCreateSchema, JobOutSchema, JobQueryParam, JobUpdateSchema
@@ -28,7 +29,7 @@ class JobService:
     ) -> list[JobOutSchema]:
         if order_by is None:
             order_by = [{"created_time": "desc"}]
-        obj_list = await JobCRUD(self.auth, self.db).get_obj_list_crud(search=vars(search) if search else {}, order_by=order_by)
+        obj_list = await JobCRUD(self.auth, self.db).get_obj_list_crud(search=search_to_dict(search, {}), order_by=order_by)
         return [JobOutSchema.model_validate(obj) for obj in obj_list]
 
     async def get_job_log_page(
@@ -44,7 +45,7 @@ class JobService:
             offset=offset,
             limit=page_size,
             order_by=ob,
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=JobOutSchema,
         )
 
@@ -83,7 +84,7 @@ class JobService:
         return JobOutSchema.model_validate(obj)
 
     async def delete_job_log(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
         await JobCRUD(self.auth, self.db).delete_obj_crud(ids=ids)
 

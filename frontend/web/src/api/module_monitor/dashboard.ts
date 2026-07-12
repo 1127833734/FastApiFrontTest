@@ -1,6 +1,6 @@
 import { request } from "@utils";
 
-const API_PATH = "/monitor/dashboard";
+const API_PATH = "/monitor/online";
 
 export interface RecentLoginItem {
   username: string;

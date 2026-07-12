@@ -1,8 +1,15 @@
+from datetime import datetime, timedelta
+from typing import Any
+
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.setting import settings
 from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
+from app.utils.common_util import search_to_dict
 
 from .crud import LoginLogCRUD, OperationLogCRUD
 from .schema import (
@@ -37,12 +44,12 @@ class LoginLogService:
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"updated_time": "desc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=LoginLogOutSchema,
         )
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
         existing = await LoginLogCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
@@ -63,26 +70,9 @@ class OperationLogService:
 
     @staticmethod
     async def cleanup_operation_log() -> bool:
-        from datetime import datetime, timedelta
-        from typing import Any
-
-        from sqlalchemy import delete
-
-        from app.api.v1.module_system.params.service import ParamsService
-        from app.core.ap_scheduler import SchedulerUtil
-        from app.core.database import async_db_session
-
         from .model import LoginLogModel, OperationLogModel
 
-        retention_days = 90
-        try:
-            redis = SchedulerUtil.redis_instance
-            if redis:
-                # 调度任务是平台级别的，统一使用平台租户（id=1）的配置
-                config = await ParamsService.get_system_config_for_middleware(redis, tenant_id=1)
-                retention_days = int(config.get("operation_log_retention_days") or 90)
-        except Exception:
-            pass
+        retention_days = settings.OPERATION_LOG_RETENTION_DAYS
 
         cutoff = datetime.now() - timedelta(days=retention_days)
         async with async_db_session() as session:
@@ -108,7 +98,7 @@ class OperationLogService:
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"id": "desc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=OperationLogOutSchema,
         )
 
@@ -118,7 +108,7 @@ class OperationLogService:
         return OperationLogDetailOutSchema.model_validate(obj)
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
         existing = await OperationLogCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         existing_map = {obj.id for obj in existing}

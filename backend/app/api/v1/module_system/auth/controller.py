@@ -37,6 +37,8 @@ from .schema import (
     LoginWithTenantsSchema,
     SelectTenantOutSchema,
     SelectTenantSchema,
+    SliderCompleteOutSchema,
+    SliderCompleteSchema,
     TenantLookupOutSchema,
     TenantOptionSchema,
     TenantRegisterOutSchema,
@@ -74,6 +76,25 @@ async def lookup_tenant_by_domain_controller(
     return SuccessResponse(data=data, msg="查询成功")
 
 
+@AuthRouter.get("/tenant-options", summary="获取所有租户选项（登录页下拉选择）", response_model=ResponseSchema[list[TenantOptionSchema]])
+async def get_tenant_options_controller(
+    db: Annotated[AsyncSession, Depends(db_getter)],
+) -> JSONResponse:
+    """获取所有活跃租户下拉选项"""
+    data = await TenantLookupService.list_options(db=db)
+    return SuccessResponse(data=data, msg="查询成功")
+
+
+@AuthRouter.get("/tenant-search", summary="搜索租户（按编码/名称模糊匹配）", response_model=ResponseSchema[list[TenantOptionSchema]])
+async def search_tenant_controller(
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    q: Annotated[str, Query(description="搜索关键字")],
+) -> JSONResponse:
+    """模糊搜索租户"""
+    data = await TenantLookupService.search(db=db, q=q)
+    return SuccessResponse(data=data, msg="查询成功")
+
+
 @AuthRouter.post("/login", summary="登录", response_model=LoginWithTenantsSchema)
 async def login_for_access_token_controller(
     request: Request,
@@ -107,6 +128,15 @@ async def get_captcha_for_login_controller(
 ) -> JSONResponse:
     captcha = await CaptchaService.get_captcha(redis=redis)
     return SuccessResponse(data=captcha, msg="获取验证码成功")
+
+
+@AuthRouter.post("/captcha/slider/complete", summary="滑块验证完成", response_model=ResponseSchema[SliderCompleteOutSchema])
+async def slider_complete_controller(
+    redis: Annotated[Redis, Depends(redis_getter)],
+    body: SliderCompleteSchema,
+) -> JSONResponse:
+    result = await CaptchaService.slider_complete(redis=redis, captcha_key=body.captcha_key)
+    return SuccessResponse(data=result, msg="滑块验证成功")
 
 
 @AuthRouter.post("/logout", summary="退出登录", response_model=ResponseSchema[None], dependencies=[Depends(get_current_user)])

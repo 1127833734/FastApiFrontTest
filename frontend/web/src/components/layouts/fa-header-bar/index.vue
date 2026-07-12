@@ -240,14 +240,14 @@ const menuStore = useMenuStore();
 const configStore = useConfigStore();
 const noticeStore = useNoticeStore();
 
-/** 租户配置：tenant_logo / tenant_name */
+/** 租户配置：logo_url / name */
 const headerLogoSrc = computed(() => {
-  const raw = configStore.configData.tenant_logo?.config_value;
+  const raw = configStore.configData.logo_url?.config_value;
   return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
 });
 
 const headerSystemName = computed(() => {
-  const raw = configStore.configData.tenant_name?.config_value;
+  const raw = configStore.configData.name?.config_value;
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return AppConfig.systemInfo.name;
 });

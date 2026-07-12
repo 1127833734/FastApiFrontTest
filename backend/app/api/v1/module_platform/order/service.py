@@ -1,15 +1,23 @@
-import random
+import secrets
+import string
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_system.dept.model import DeptModel
+from app.api.v1.module_system.role.model import RoleModel
+from app.api.v1.module_system.user.model import UserModel
 from app.core.base_schema import AuthSchema
+from app.core.database import async_db_session
+from app.core.event_bus import EventBus
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.payment import create_payment_gateway
 
 from ..package.model import PackageModel
+from ..tenant.model import TenantModel
 from .crud import OrderCRUD
 from .model import OrderModel
 from .schema import (
@@ -27,16 +35,19 @@ from .schema import (
 
 
 def _generate_order_no() -> str:
-    """生成订单号：YYYYMMDD + 6位随机数"""
+    """生成订单号：YYYYMMDD + 10位加密安全随机数（碰撞概率极低）。
+
+    使用 :func:`secrets.choice` 而非 ``random``，避免伪随机带来的可预测性。
+    """
     today = datetime.now().strftime("%Y%m%d")
-    suffix = str(random.randint(100000, 999999))
-    return f"{today}{suffix}"
+    rand = "".join(secrets.choice(string.digits) for _ in range(10))
+    return f"{today}{rand}"
 
 
 def _generate_refund_no() -> str:
     """生成退款单号"""
     today = datetime.now().strftime("%Y%m%d")
-    suffix = str(random.randint(100000, 999999))
+    suffix = "".join(secrets.choice(string.digits) for _ in range(6))
     return f"RF{today}{suffix}"
 
 
@@ -65,10 +76,10 @@ class OrderService:
         - OrderOutSchema: 新创建的订单详情
         """
         if amount is None:
-            from app.api.v1.module_platform.package.model import PackageModel
-
             pkg = await db.get(PackageModel, data.package_id)
-            amount = pkg.price if pkg else 0
+            if not pkg:
+                raise CustomException(msg=f"套餐[{data.package_id}]不存在或已删除")
+            amount = pkg.price
 
         order = await OrderCRUD(auth, db).create(
             OrderCreateInternalSchema(
@@ -189,10 +200,6 @@ class OrderService:
 
     @staticmethod
     async def cancel_expired_orders() -> None:
-        from sqlalchemy import update as sa_update
-
-        from app.core.database import async_db_session
-
         now = datetime.now()
         async with async_db_session() as session:
             async with session.begin():
@@ -224,8 +231,6 @@ class PaymentService:
         返回:
         - PaymentCreateOut: 支付创建结果（支付URL/二维码）
         """
-        from app.api.v1.module_platform.package.model import PackageModel
-
         order = await OrderCRUD(auth, db).get_by_id(order_id)
         if not order:
             raise CustomException(msg="该数据不存在")
@@ -305,17 +310,12 @@ class PaymentService:
             ),
         )
 
-        order.package_id = pid
-        order.tenant_id = tid
-        order.order_type = otype
+        # order 已被 update refresh，直接传给激活方法
         await PaymentService._activate_tenant_package(auth, db, order)
 
         logger.info(f"支付回调处理完成: order_id={oid} method={method} tenant_id={tid} type={otype}")
 
         # SSE 推送支付成功通知
-        from app.api.v1.module_platform.package.model import PackageModel
-        from app.core.event_bus import EventBus
-
         _pkg = await db.get(PackageModel, pid)
         await EventBus.publish_tenant(
             tid,
@@ -340,9 +340,6 @@ class PaymentService:
         返回:
         - None
         """
-        from app.api.v1.module_platform.package.model import PackageModel
-        from app.api.v1.module_platform.tenant.model import TenantModel
-
         pkg = await db.get(PackageModel, order.package_id)
         if not pkg:
             logger.warning(f"支付回调：套餐 {order.package_id} 不存在，跳过激活")
@@ -391,12 +388,6 @@ class PaymentService:
         返回:
         - None
         """
-        from sqlalchemy import func
-
-        from app.api.v1.module_system.dept.model import DeptModel
-        from app.api.v1.module_system.role.model import RoleModel
-        from app.api.v1.module_system.user.model import UserModel
-
         checks = {
             "用户": (UserModel, new_pkg.max_users),
             "角色": (RoleModel, new_pkg.max_roles),

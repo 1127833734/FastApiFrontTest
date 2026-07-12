@@ -4,16 +4,17 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
 
-from app.api.v1.module_generator.gencode.schema import (
-    GenTableColumnOutSchema,
-    GenTableOutSchema,
-)
 from app.common.constant import GenConstant
 from app.config.path_conf import TEMPLATE_DIR
 from app.config.setting import settings
-from app.utils.common_util import CamelCaseUtil, SnakeCaseUtil
-from app.utils.gen_util import GenUtils
+from app.utils.common_util import CamelCaseUtil, SnakeCaseUtil, compute_menu_route_first_segment
 from app.utils.string_util import StringUtil
+
+from .gen_util import GenUtils
+from .schema import (
+    GenTableColumnOutSchema,
+    GenTableOutSchema,
+)
 
 
 class Jinja2TemplateUtil:
@@ -238,20 +239,9 @@ class Jinja2TemplateUtil:
 
     @classmethod
     def get_menu_route_first_segment(cls, gen_table: GenTableOutSchema) -> str:
-        """前端页面路由首段（与写入菜单 ``route_path`` 第一段一致）：始终为 ``module_xxx``。
-
-        懒加载 ``GenTableService`` 避免与 ``service`` 模块循环依赖。
-
-        参数:
-        - gen_table (GenTableOutSchema): 生成表配置。
-
-        返回:
-        - str: 路由首段（module_xxx）。
-        """
-        from app.api.v1.module_generator.gencode.service import GenTableService
-
+        """前端页面路由首段（与写入菜单 ``route_path`` 第一段一致）：始终为 ``module_xxx``。"""
         pid = int(gen_table.parent_menu_id) if gen_table.parent_menu_id is not None else None
-        return GenTableService._menu_route_first_segment(
+        return compute_menu_route_first_segment(
             pid,
             gen_table.package_name or "",
             gen_table.module_name,

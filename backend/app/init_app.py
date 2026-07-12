@@ -14,31 +14,62 @@ from .config.setting import settings
 from .core.exceptions import handle_exception
 from .core.http_limit import WebSocketRateLimiter, limiter
 from .core.logger import logger
-from .scripts.initialize import InitializeData
-from .utils.common_util import import_module, import_modules_async
+from .utils.common_util import import_module
 from .utils.console import console_end, console_start
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
+    from app.api.v1.module_platform.order.service import OrderService
     from app.api.v1.module_platform.tenant.service import TenantService
     from app.api.v1.module_system.dict.service import DictDataService
+    from app.api.v1.module_system.log.service import OperationLogService
     from app.api.v1.module_system.params.service import ParamsService
     from app.core.ap_scheduler import SchedulerUtil
+    from app.core.database import async_engine, redis_connect
+    from app.scripts.initialize import InitializeData
 
-    try:
-        await InitializeData().init_db()
-        logger.info("✅ {}数据库初始化完成", settings.DATABASE_TYPE)
-        await import_modules_async(modules=settings.EVENT_LIST, desc="全局事件", app=app, status=True)
-        logger.info("✅ 全局事件模块加载完成")
+    async def _init_system_caches() -> None:
+        """Redis 缓存初始化（参数/数据字典/租户配置）。"""
         await ParamsService.init_cache(redis=app.state.redis)
         logger.info("✅ Redis系统参数初始化完成")
         await DictDataService.init_cache(redis=app.state.redis)
         logger.info("✅ Redis数据字典初始化完成")
         await TenantService.init_cache(redis=app.state.redis)
         logger.info("✅ Redis租户配置初始化完成")
+
+    def _register_system_jobs() -> None:
+        """注册系统级定时任务（拆分自 SchedulerUtil._register_system_jobs）。"""
+        from apscheduler.triggers.cron import CronTrigger
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        SchedulerUtil.register_system_job(
+            "system_tenant_expiry_check", TenantService.check_tenant_expiry,
+            trigger=IntervalTrigger(hours=1), name="租户到期检查",
+        )
+        SchedulerUtil.register_system_job(
+            "system_clean_expired", TenantService.clean_expired_tenants,
+            trigger=CronTrigger(day=1, hour=2, minute=0), name="过期租户归档清理",
+        )
+        SchedulerUtil.register_system_job(
+            "system_cancel_expired_orders", OrderService.cancel_expired_orders,
+            trigger=IntervalTrigger(minutes=30), name="超时订单取消",
+        )
+        SchedulerUtil.register_system_job(
+            "system_cleanup_operation_log", OperationLogService.cleanup_operation_log,
+            trigger=CronTrigger(day_of_week="sun", hour=3, minute=0), name="操作日志清理",
+        )
+        logger.info("✅ 4 个系统周期任务已注册（租户到期检查/归档清理/订单取消/日志清理）")
+
+    try:
+        await InitializeData().init_db()
+        logger.info("✅ {}数据库初始化完成", settings.DATABASE_TYPE)
+        await redis_connect(app, status=True)
+        logger.info("✅ Redis 连接初始化完成")
+        await _init_system_caches()
         await SchedulerUtil.init_scheduler(redis=app.state.redis)
         logger.info("✅ 定时任务调度器初始化完成")
+        _register_system_jobs()
         FastAPICache.init(RedisBackend(app.state.redis), prefix="fastapi-admin-cache")
         logger.info("✅ fastapi-admin-cache 初始化完成")
         app.state.limiter = limiter
@@ -64,10 +95,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
         logger.info("✅ 定时任务调度器已关闭")
         await FastAPICache.clear()
         logger.info("✅ fastapi-admin-cache 已关闭")
-        await import_modules_async(modules=settings.EVENT_LIST, desc="全局事件", app=app, status=False)
-        logger.info("✅ 全局事件模块卸载完成")
-        from app.core.database import async_engine
-
+        await redis_connect(app, status=False)
+        logger.info("✅ Redis 连接已关闭")
         await async_engine.dispose()
         logger.info("✅ 数据库引擎连接池已释放")
         console_end()

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 
 from ..node_type.crud import WorkflowNodeTypeCRUD
 from .crud import WorkflowCRUD
@@ -52,7 +53,7 @@ class WorkflowService:
         if order_by is None:
             order_by = [{"updated_time": "desc"}]
         obj_list = await WorkflowCRUD(self.auth, self.db).get_obj_list_crud(
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             order_by=order_by,
         )
         return [self._out(o) for o in obj_list]
@@ -70,7 +71,7 @@ class WorkflowService:
             offset=offset,
             limit=page_size,
             order_by=order,
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=WorkflowOutSchema,
         )
         return result

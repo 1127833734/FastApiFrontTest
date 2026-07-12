@@ -316,6 +316,7 @@ async def ensure_oauth_user(
         username=username,
         password=secrets.token_urlsafe(24),
         name=(display_name or username)[:32],
+        tenant_id=1,  # 系统租户：OAuth 用户未指定业务租户，统一落到 system tenant
         role_ids=list(settings.OAUTH_DEFAULT_ROLE_IDS),
     )
     try:
@@ -344,6 +345,8 @@ async def complete_oauth_login(
 ) -> tuple[JWTOutSchema, str]:
     rc = RedisCURD(redis)
     raw = await rc.get(f"{STATE_PREFIX}{state}")
+    # 安全加固：state 一次性消费（read-then-delete）— 防止重放 / 跨上下文劫持
+    await rc.delete(f"{STATE_PREFIX}{state}")
     if not raw:
         raise CustomException(msg="登录状态已失效，请重试")
     if isinstance(raw, bytes):

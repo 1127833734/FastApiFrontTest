@@ -2,8 +2,10 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_platform.tenant.service import TenantService
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
 
 from .crud import RoleCRUD
@@ -56,7 +58,7 @@ class RoleService:
         返回:
         - list[RoleOutSchema]: 角色响应模型列表
         """
-        role_list = await RoleCRUD(self.auth, self.db).get_list(search=vars(search) if search else None, order_by=order_by)
+        role_list = await RoleCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by)
         return [RoleOutSchema.model_validate(role) for role in role_list]
 
     async def page(
@@ -82,13 +84,11 @@ class RoleService:
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=RoleOutSchema,
         )
 
     async def create(self, data: RoleCreateSchema) -> RoleOutSchema:
-        from app.api.v1.module_platform.tenant.service import TenantService
-
         """
         创建角色
 
@@ -140,7 +140,7 @@ class RoleService:
         返回:
         - None
         """
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
 
         # 批量校验角色存在性

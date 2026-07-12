@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.module_system.user.model import UserModel
 from app.core.base_schema import AuthSchema, PageResultSchema
+from app.core.event_bus import EventBus
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 
 from .crud import TicketCommentCRUD, TicketCRUD
 from .schema import (
@@ -81,7 +83,7 @@ class TicketService:
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"created_time": "desc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=TicketOutSchema,
         )
 
@@ -119,8 +121,6 @@ class TicketService:
 
         # 有回复内容时 SSE 推送通知给工单创建者
         if data.reply and obj.created_id:
-            from app.core.event_bus import EventBus
-
             await EventBus.publish(
                 obj.created_id,
                 {

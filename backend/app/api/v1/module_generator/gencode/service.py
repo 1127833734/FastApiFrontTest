@@ -20,6 +20,8 @@ from sqlglot.expressions import (
     Update,
 )
 
+from app.api.v1.module_platform.menu.crud import MenuCRUD
+from app.api.v1.module_platform.menu.schema import MenuCreateSchema
 from app.common.constant import GenConstant
 from app.common.enums import QueueEnum
 from app.config.path_conf import BASE_DIR
@@ -27,8 +29,9 @@ from app.config.setting import settings
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
-from app.utils.gen_util import GenUtils
-from app.utils.jinja2_template_util import Jinja2TemplateUtil
+from app.utils.common_util import CamelCaseUtil, compute_menu_route_first_segment, search_to_dict
+from .gen_util import GenUtils
+from .jinja2_template_util import Jinja2TemplateUtil
 
 from .crud import GenTableColumnCRUD, GenTableCRUD
 from .schema import (
@@ -84,8 +87,6 @@ class GenTableService:
         pn = (package_name or "").strip()
         # 1) 选择上级目录：从上级菜单 route_path 第一段推断 module_xxx
         if parent_catalog_id is not None:
-            from app.api.v1.module_platform.menu.crud import MenuCRUD
-
             m = await MenuCRUD(self.auth, self.db).get(id=parent_catalog_id)
             if not m:
                 raise CustomException(msg="上级菜单不存在")
@@ -109,7 +110,6 @@ class GenTableService:
         """上级菜单仅允许目录：与前端树只展示目录一致，避免挂到菜单/按钮下。"""
         if parent_menu_id is None:
             return
-        from app.api.v1.module_platform.menu.crud import MenuCRUD
 
         m = await MenuCRUD(self.auth, self.db).get(id=parent_menu_id)
         if not m:
@@ -125,10 +125,7 @@ class GenTableService:
         - **无上级目录**：``/module_xxx/...``（新分系统）
         - **有上级目录**：``/module_xxx/...``（继承上级所属分系统）
         """
-        pn = (package_name or "").strip()
-        if not pn:
-            raise CustomException(msg="包名不能为空")
-        return pn if pn.startswith("module_") else f"module_{pn}"
+        return compute_menu_route_first_segment(parent_catalog_id, package_name, module_name)
 
     def _catalog_menu_dir_key(self, parent_catalog_id: int | None, package_name: str, module_name: str | None) -> str:
         """菜单上「模块目录」节点的 name（与路由第一段 package 独立）。
@@ -154,9 +151,6 @@ class GenTableService:
         business_name: str,
     ) -> int:
         """创建或复用 type=1 模块目录；固定为「目录 → 菜单 → 按钮」中的第一层目录。"""
-        from app.api.v1.module_platform.menu.schema import MenuCreateSchema
-        from app.utils.common_util import CamelCaseUtil
-
         pn = (package_name or "").strip()
         if not pn:
             raise CustomException(msg="包名不能为空")
@@ -277,7 +271,7 @@ class GenTableService:
             offset=offset,
             limit=page_size,
             order_by=order,
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=GenTableOutSchema,
         )
 
@@ -684,10 +678,6 @@ class GenTableService:
         env = Jinja2TemplateUtil.get_env()
         render_info = await self.__get_gen_render_info(table_name)
         gen_table_schema: GenTableOutSchema = render_info[3]
-
-        from app.api.v1.module_platform.menu.crud import MenuCRUD
-        from app.api.v1.module_platform.menu.schema import MenuCreateSchema
-        from app.utils.common_util import CamelCaseUtil
 
         # 按“上级目录”规则矫正最终包名（分系统根）
         gen_table_schema.package_name = await self._effective_package_name(gen_table_schema.parent_menu_id, gen_table_schema.package_name)

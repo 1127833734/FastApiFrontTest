@@ -1,28 +1,13 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.validator import DateTimeStr
+from app.core.base_schema import SessionInfoSchema
 
 
-class OnlineOutSchema(BaseModel):
-    """在线用户对应pydantic模型
-    """
-
-    name: str = Field(..., description="用户名称")
-    session_id: str = Field(..., description="会话编号")
-    user_id: int = Field(..., description="用户ID")
-    tenant_id: int = Field(..., description="租户ID")
-    tenant_status: int = Field(default=0, description="租户状态(0:正常 1:欠费 2:试用 3:冻结 4:注销)")
-    is_superuser: bool = Field(default=False, description="是否为超级管理员")
-    user_status: int = Field(default=0, description="用户状态(0:启用 1:停用)")
-    user_name: str = Field(..., description="用户名")
-    permissions: list[str] = Field(default_factory=list, description="用户权限列表")
-    ipaddr: str | None = Field(default=None, description="登陆IP地址")
-    login_location: str | None = Field(default=None, description="登录所属地")
-    os: str | None = Field(default=None, description="操作系统")
-    browser: str | None = Field(default=None, description="浏览器")
-    login_time: DateTimeStr | None = Field(default=None, description="登录时间")
-    login_type: str | None = Field(default=None, description="登录类型 PC端 | 移动端")
+class OnlineOutSchema(SessionInfoSchema):
+    """在线用户响应模型 — ``SessionInfoSchema`` 的公开子集。"""
 
 
 class OnlineQueryParam(BaseModel):
@@ -41,3 +26,26 @@ class OnlineQueryParam(BaseModel):
         if isinstance(self.login_location, str):
             self.login_location = (QueueEnum.like.value, self.login_location)
         return self
+
+
+class RecentLoginItem(BaseModel):
+    """最近登录记录"""
+    username: str
+    status: int
+    login_time: datetime
+    login_ip: str | None = None
+    login_location: str | None = None
+
+
+class DashboardStatsSchema(BaseModel):
+    """仪表盘统计数据"""
+    online_users: int = 0
+    total_users: int = 0
+    total_tenants: int = 0
+    total_orders: int = 0
+    today_login_count: int = 0
+    today_unique_users: int = 0
+    week_user_created: int = 0
+    week_tenant_created: int = 0
+    paid_orders: int = 0
+    recent_logins: list[RecentLoginItem] = []

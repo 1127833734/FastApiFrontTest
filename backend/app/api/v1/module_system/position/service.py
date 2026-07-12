@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
 
 from .crud import PositionCRUD
@@ -38,7 +39,7 @@ class PositionService:
         search: PositionQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[PositionOutSchema]:
-        position_list = await PositionCRUD(self.auth, self.db).get_list(search=vars(search) if search else None, order_by=order_by)
+        position_list = await PositionCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by)
         return [PositionOutSchema.model_validate(position) for position in position_list]
 
     async def page(
@@ -53,7 +54,7 @@ class PositionService:
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
-            search=vars(search) if search else None,
+            search=search_to_dict(search),
             out_schema=PositionOutSchema,
         )
 
@@ -73,7 +74,7 @@ class PositionService:
         return PositionOutSchema.model_validate(updated_position)
 
     async def delete(self, ids: list[int]) -> None:
-        if len(ids) < 1:
+        if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
         positions = await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", ids)})
         position_map = {p.id: p for p in positions}

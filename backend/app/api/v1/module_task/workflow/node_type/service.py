@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
+from app.utils.common_util import search_to_dict
 
 from .crud import WorkflowNodeTypeCRUD
 from .schema import (
@@ -51,7 +52,7 @@ class WorkflowNodeTypeService:
         if order_by is None:
             order_by = [{"sort_order": "asc"}, {"id": "asc"}]
         obj_list = await WorkflowNodeTypeCRUD(self.auth, self.db).get_obj_list_crud(
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             order_by=order_by,
         )
         return [self._out(o) for o in obj_list]
@@ -69,7 +70,7 @@ class WorkflowNodeTypeService:
             offset=offset,
             limit=page_size,
             order_by=order,
-            search=vars(search) if search else {},
+            search=search_to_dict(search, {}),
             out_schema=WorkflowNodeTypeOutSchema,
         )
         return result

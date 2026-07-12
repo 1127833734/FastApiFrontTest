@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # ================================================= #
     # ******************* 登录认证配置 ****************** #
     # ================================================= #
-    SECRET_KEY: str = ""  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
+    SECRET_KEY: str = "fastapiadmin-dev-secret-key-do-not-use-in-production"  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
     ALGORITHM: str = "HS256"  # JWT算法
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # access_token过期时间(秒)12 小时
     REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # refresh_token过期时间(秒)12 小时
@@ -191,6 +191,30 @@ class Settings(BaseSettings):
     # ================================================= #
     ALLOWED_HOSTS: list[str] = ["service.fastapiadmin.com", "*.fastapiadmin.com"]  # 允许访问的主机名列表
 
+    # 操作日志保留天数（调度器按此天数定期清理过期日志）
+    OPERATION_LOG_RETENTION_DAYS: int = 90
+
+    # 接口白名单（无需认证即可访问的接口路径，支持 * 开头表示前缀匹配）
+    WHITE_API_LIST_PATH: list[str] = [
+        "/api/v1/system/auth/login",
+        "/api/v1/system/auth/token/refresh",
+        "/api/v1/system/auth/captcha/get",
+        "/api/v1/system/auth/captcha/slider/complete",
+        "/api/v1/system/auth/logout",
+        "/api/v1/system/auth/tenant-options",
+        "/api/v1/system/auth/tenant-search",
+        "/api/v1/system/config/info",
+        "/api/v1/system/user/current/info",
+        "/api/v1/system/notice/available",
+        "/api/v1/system/auth/auto-login/users",
+        "/api/v1/system/auth/auto-login/token",
+        "/api/v1/system/auth/auto-login",
+        "/api/v1/common/health",
+        "/api/v1/common/health/ready",
+        "/api/v1/common/health/live",
+        "/metrics",
+    ]
+
     # ================================================= #
     # ***************** 静态文件配置 ***************** #
     # ================================================= #
@@ -265,13 +289,6 @@ class Settings(BaseSettings):
             "slowapi.middleware.SlowAPIMiddleware",  # 接口限流（读取 app.state.limiter）
         ]
         return MIDDLEWARES
-
-    @property
-    def EVENT_LIST(self) -> list[str | None]:
-        EVENTS: list[str | None] = [
-            "app.core.database.redis_connect" if self.REDIS_ENABLE else None,
-        ]
-        return EVENTS
 
     @property
     def ASYNC_DB_URI(self) -> str:

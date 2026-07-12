@@ -350,6 +350,9 @@ class ChatService:
 # ================================================= #
 
 
+_AI_MODEL_TTL = 604800  # AI 模型配置缓存 7 天，不活跃用户自动清理
+
+
 def _ai_model_items_key(user_id: int) -> str:
     return f"{RedisInitKeyConfig.AI_MODEL_CONFIG.key}:items:{user_id}"
 
@@ -409,11 +412,12 @@ async def create_user_model_config(
     await RedisCURD(redis).set(
         _ai_model_items_key(user_id),
         json.dumps(items, ensure_ascii=False),
+        expire=_AI_MODEL_TTL,
     )
 
     # 若用户尚未激活任何配置，自动激活新增的
     if not await get_active_model_id(redis, user_id):
-        await RedisCURD(redis).set(_ai_model_active_key(user_id), item["id"])
+        await RedisCURD(redis).set(_ai_model_active_key(user_id), item["id"], expire=_AI_MODEL_TTL)
 
     logger.info("已新增 AI 模型配置: user_id={} name={} id={}", user_id, config.name, item["id"])
     return item
@@ -434,6 +438,7 @@ async def update_user_model_config(
     await RedisCURD(redis).set(
         _ai_model_items_key(user_id),
         json.dumps(items, ensure_ascii=False),
+        expire=_AI_MODEL_TTL,
     )
     logger.info("已更新 AI 模型配置: user_id={} id={}", user_id, config_id)
     return target
@@ -448,6 +453,7 @@ async def delete_user_model_config(redis: Redis, user_id: int, config_id: str) -
     await RedisCURD(redis).set(
         _ai_model_items_key(user_id),
         json.dumps(new_items, ensure_ascii=False),
+        expire=_AI_MODEL_TTL,
     )
     active_id = await get_active_model_id(redis, user_id)
     if active_id == config_id:
@@ -465,7 +471,7 @@ async def set_active_model_config(redis: Redis, user_id: int, config_id: str) ->
     items = await list_user_model_configs(redis, user_id)
     if not any(it.get("id") == config_id for it in items):
         return False
-    await RedisCURD(redis).set(_ai_model_active_key(user_id), config_id)
+    await RedisCURD(redis).set(_ai_model_active_key(user_id), config_id, expire=_AI_MODEL_TTL)
     logger.info("已切换 AI 模型: user_id={} id={}", user_id, config_id)
     return True
 

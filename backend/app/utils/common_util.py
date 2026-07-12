@@ -83,6 +83,22 @@ def uuid4_str() -> str:
     return str(uuid.uuid4())
 
 
+def search_to_dict(search: Any, default: Any = None) -> dict | None:
+    """将 Pydantic 查询模型转为参数字典。
+
+    - search 为 None 时返回 default（默认 None）。
+    - search 非空时调用 vars() 提取字段字典。
+
+    参数:
+    - search: Pydantic 查询模型或 None。
+    - default: search 为 None 时的返回值，默认 None。
+
+    返回:
+    - dict | None: 查询参数字典或 None。
+    """
+    return vars(search) if search else default
+
+
 def get_parent_id_map(model_list: Sequence[DeclarativeBase]) -> dict[int, int]:
     """获取父级 ID 映射字典
 
@@ -265,6 +281,22 @@ def get_filepath_from_url(url: str) -> Path:
     filepath = settings.STATIC_ROOT.joinpath(task_path, task_id, file_name)
 
     return filepath
+
+
+def compute_menu_route_first_segment(
+    parent_catalog_id: int | None,  # noqa: ARG001
+    package_name: str,
+    module_name: str | None,  # noqa: ARG001
+) -> str:
+    """前端页面路由首段 — 始终使用 ``module_xxx`` 作为路由首段。
+
+    中性位置函数，供 ``Jinja2TemplateUtil`` 和 ``GenTableService``
+    双方模块级安全导入，避免 ``jinja2_template_util ↔ gencode.service`` 循环依赖。
+    """
+    pn = (package_name or "").strip()
+    if not pn:
+        raise CustomException(msg="包名不能为空")
+    return pn if pn.startswith("module_") else f"module_{pn}"
 
 
 class SqlalchemyUtil:

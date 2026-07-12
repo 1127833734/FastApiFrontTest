@@ -237,14 +237,13 @@
           <FaDataListCard
             class="mb-5"
             :maxCount="4"
-            :list="dataList"
-            title="最近活动"
-            subtitle="近期活动列表"
+            :list="healthList"
+            title="系统健康"
+            subtitle="实时 · 30s"
             :showMoreButton="true"
             @more="handleMore"
           />
           <TodoList class="mb-5" />
-          <HealthStatus />
         </ElCol>
       </ElRow>
 
@@ -288,7 +287,7 @@
 <script setup lang="ts">
 defineOptions({ name: "Home", inheritAttrs: false });
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
 import { useUserStore } from "@stores";
 import TenantAPI from "@/api/module_platform/tenant";
@@ -304,6 +303,54 @@ const loading = ref(true);
 const workspace = ref<WorkspaceData | null>(null);
 const dashboardStats = ref<DashboardStats | null>(null);
 const userStore = useUserStore();
+
+const healthList = ref<{ icon: string; class: string; title: string; status: string; time: string }[]>([]);
+let healthEventSource: EventSource | null = null;
+
+function connectHealth() {
+  const baseURL = import.meta.env.VITE_APP_BASE_API || "";
+  const es = new EventSource(`${baseURL}/common/health/stream`);
+
+  es.addEventListener("health", (event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data);
+      const deps = data.dependencies || {};
+      const dbOk = deps.database?.status;
+      const redisOk = deps.redis?.status;
+      const diskOk = (data.disk_usage ?? 100) < 90;
+      healthList.value = [
+        {
+          icon: "ri:database-2-line",
+          class: dbOk ? "bg-success/12 text-success" : "bg-error/12 text-error",
+          title: "数据库",
+          status: dbOk ? "正常" : "异常",
+          time: dbOk ? `${deps.database.latency_ms || 0}ms` : "离线",
+        },
+        {
+          icon: "ri:server-line",
+          class: redisOk ? "bg-success/12 text-success" : "bg-error/12 text-error",
+          title: "Redis",
+          status: redisOk ? "正常" : "异常",
+          time: redisOk ? `${deps.redis.latency_ms || 0}ms` : "离线",
+        },
+        {
+          icon: "ri:hard-drive-2-line",
+          class: diskOk ? "bg-success/12 text-success" : "bg-error/12 text-error",
+          title: "磁盘",
+          status: diskOk ? "正常" : "异常",
+          time: `${data.disk_usage ?? "-"}%`,
+        },
+      ];
+    } catch {
+      /* 静默忽略 */
+    }
+  });
+
+  es.onerror = () => {
+    es.close();
+  };
+  healthEventSource = es;
+}
 
 const isTenantMode = computed(() => userStore.workspaceMode === "tenant");
 
@@ -390,6 +437,11 @@ onMounted(() => {
   loading.value = false;
   loadWorkspace();
   loadDashboardStats();
+  connectHealth();
+});
+
+onUnmounted(() => {
+  healthEventSource?.close();
 });
 import FaCardBanner from "@/components/banners/fa-card-banner/index.vue";
 import FaImageCard from "@/components/cards/fa-image-card/index.vue";
@@ -406,7 +458,6 @@ import TodoList from "./modules/todo-list.vue";
 import CardList from "./modules/card-list.vue";
 import AboutProject from "./modules/about-project.vue";
 import QuickLinks from "./modules/quick-links.vue";
-import HealthStatus from "./modules/health-status.vue";
 
 function handleBannerDemoConfirm() {
   // TODO: 接入真实操作
