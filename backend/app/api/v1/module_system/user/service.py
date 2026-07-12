@@ -1,8 +1,6 @@
-import json
 from typing import Any
 
 from fastapi import UploadFile
-from fastapi_cache import FastAPICache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.module_platform.menu.crud import MenuCRUD
@@ -205,17 +203,7 @@ class UserService:
             user_dict.tenant_by = CommonSchema(id=user.tenant_by.id, name=user.tenant_by.name, status=user.tenant_by.status)
         user_dict.is_impersonate = self.auth.is_impersonate
 
-        # 菜单树缓存（菜单变更极低频，Redis 60s 过期）
         _pc_only = {"client": "pc"}
-        _MENU_TREE_TTL = 60
-        _prefix = FastAPICache.get_prefix()
-        cache_key = f"{_prefix}:menu:menu_tree:{self.auth.user.tenant_id or 'platform'}" if self.auth.user.is_superuser else f"{_prefix}:menu:menu_tree:user:{self.auth.user.id}"
-        _backend = FastAPICache.get_backend()
-        cached = await _backend.get(cache_key)
-        if cached:
-            user_dict.menus = json.loads(cached.decode())
-            return user_dict
-
         if self.auth.user.is_superuser:
             scope_filter = {"scope": "tenant"} if self.auth.user.tenant_id else {"scope": "platform"}
             menu_all = await MenuCRUD(self.auth, self.db).tree_list(
@@ -242,9 +230,8 @@ class UserService:
                 if menu_ids
                 else []
             )
-        menu_tree = traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])
-        await _backend.set(cache_key, json.dumps(menu_tree).encode(), expire=_MENU_TREE_TTL)
-        user_dict.menus = [MenuTreeOutSchema(**item) for item in menu_tree]
+        menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])]
+        user_dict.menus = menu_tree
         return user_dict
 
     async def update_current_info(self, data: CurrentUserUpdateSchema) -> UserOutSchema:

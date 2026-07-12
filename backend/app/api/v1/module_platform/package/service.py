@@ -1,7 +1,6 @@
 from typing import Any
 
 import sqlalchemy as sa
-from redis.asyncio.client import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +9,6 @@ from app.api.v1.module_platform.tenant.model import TenantModel
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException, require_superadmin
 from app.core.logger import logger
-from app.core.dependencies import _package_menu_cache
-from app.core.redis_crud import RedisCURD
 from app.utils.common_util import search_to_dict
 
 from .crud import PackageCRUD
@@ -142,41 +139,12 @@ class PackageService:
         result = await self.db.execute(stmt)
         return [row[0] for row in result.all()]
 
-    async def set_menus(self, package_id: int, data: PackageMenuSetSchema, redis: Redis | None = None) -> None:
+    async def set_menus(self, package_id: int, data: PackageMenuSetSchema) -> None:
         await self.db.execute(sa.delete(PackageMenuModel).where(PackageMenuModel.package_id == package_id))
         for menu_id in data.menu_ids:
             self.db.add(PackageMenuModel(package_id=package_id, menu_id=menu_id))
         await self.db.flush()
         logger.info(f"套餐[{package_id}]菜单权限已设置, count={len(data.menu_ids)}")
-        # 失效缓存：使所有 worker / 进程 立刻重新查询套餐菜单（最长 60s 旧值生效 -> 立即生效）
-        await self._invalidate_package_menu_cache(package_id=package_id, redis=redis)
-
-    async def _invalidate_package_menu_cache(self, package_id: int, redis: Redis | None = None) -> None:
-        """套餐菜单变更后失效缓存（进程级 + 跨进程广播）。
-
-        进程级：清空本进程的 ``_package_menu_cache`` 中所有引用此套餐的租户（这里用全局清空）。
-        跨进程：通过 Redis pub/sub 通知所有 worker 进程清空各自的进程缓存。
-
-        缓存具体的 location 在 ``_get_cached_tenant_menu_ids`` (dependencies.py)。
-        """
-        try:
-            _package_menu_cache.clear()
-        except Exception:
-            pass
-
-        if redis is None:
-            return
-
-        try:
-            import json
-
-            await RedisCURD(redis).publish(
-                "cache:invalidate:package_menus",
-                json.dumps({"package_id": package_id}),
-            )
-            logger.info(f"已广播套餐[{package_id}]菜单缓存失效")
-        except Exception as e:
-            logger.warning(f"广播缓存失效失败（仅影响跨 worker 延迟生效）: {e!s}")
 
     async def get_package_menu_ids(self, package_id: int) -> list[int]:
         stmt = select(PackageMenuModel.menu_id).where(PackageMenuModel.package_id == package_id)

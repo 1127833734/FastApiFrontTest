@@ -30,10 +30,10 @@ from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.common_util import CamelCaseUtil, compute_menu_route_first_segment, search_to_dict
-from .gen_util import GenUtils
-from .jinja2_template_util import Jinja2TemplateUtil
 
 from .crud import GenTableColumnCRUD, GenTableCRUD
+from .gen_util import GenUtils
+from .jinja2_template_util import Jinja2TemplateUtil
 from .schema import (
     GenSyncColumnChange,
     GenSyncPreviewSchema,

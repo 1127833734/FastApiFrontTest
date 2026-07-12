@@ -1052,7 +1052,7 @@ class TenantService:
 
         amount = pkg.price
 
-        from app.api.v1.module_platform.order.service import _generate_order_no, PaymentService
+        from app.api.v1.module_platform.order.service import PaymentService, _generate_order_no
 
         order = await OrderCRUD(auth, db).create(
             OrderCreateInternalSchema(

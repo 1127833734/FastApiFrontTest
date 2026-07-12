@@ -1,5 +1,4 @@
 import json
-import time
 from collections.abc import AsyncGenerator
 from dataclasses import replace
 from typing import Any
@@ -17,11 +16,7 @@ from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
 from app.core.request_context import RequestContext
-
 from app.core.security import OAuth2Schema, decode_access_token
-
-# 套餐可用菜单 ID 进程级缓存（package/service.py 也引用，共享同一 dict）
-_package_menu_cache: dict[int, tuple[float, list[int]]] = {}
 
 
 async def db_getter() -> AsyncGenerator[AsyncSession, None]:
@@ -248,15 +243,9 @@ class AuthPermission:
             raise CustomException(msg="无权限操作", code=RET.FORBIDDEN.code, status_code=403)
 
         if user.tenant_id:
-            # 获取租户可用菜单 ID（带 60s 进程级缓存）
-            cached = _package_menu_cache.get(user.tenant_id)
-            if cached and time.time() - cached[0] < 60:
-                allowed_ids = set[int](cached[1])
-            else:
-                from app.api.v1.module_platform.package.service import PackageService
-                result = await PackageService(auth, db).get_tenant_available_menu_ids(user.tenant_id)
-                _package_menu_cache[user.tenant_id] = (time.time(), result)
-                allowed_ids = set[int](result)
+            from app.api.v1.module_platform.package.service import PackageService
+            result = await PackageService(auth, db).get_tenant_available_menu_ids(user.tenant_id)
+            allowed_ids = set[int](result)
             user_permissions = {p for p, mid in auth.permissions_with_menu.items() if mid in allowed_ids}
 
         if not any(perm in user_permissions for perm in self.permissions):

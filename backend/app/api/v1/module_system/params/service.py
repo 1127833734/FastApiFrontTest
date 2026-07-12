@@ -22,6 +22,7 @@ from .schema import (
     ParamsUpdateSchema,
 )
 
+
 class ParamsService:
     """参数管理服务
 

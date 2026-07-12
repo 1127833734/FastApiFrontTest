@@ -3,7 +3,9 @@ import time
 import uuid
 from dataclasses import replace
 from types import MappingProxyType
+from typing import Any
 
+from redis.asyncio.client import Redis
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -12,10 +14,6 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
-
-from typing import Any
-
-from redis.asyncio.client import Redis
 
 from app.common.enums import RedisInitKeyConfig
 from app.common.response import ErrorResponse
@@ -26,7 +24,6 @@ from app.core.redis_crud import RedisCURD
 from app.core.request_context import RequestContext, clear_current_tenant, reset_correlation_id, set_correlation_id, set_current_tenant
 from app.core.security import decode_access_token
 from app.utils.ip_local_util import get_client_ip
-
 
 # ── 中间件配置（Redis 缓存读取） ──────────────────────────────
 # 中间件高频读取的 sys_param 配置键集合
