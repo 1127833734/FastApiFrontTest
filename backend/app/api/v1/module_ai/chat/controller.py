@@ -37,7 +37,7 @@ async def get_session_detail_controller(
 @ChatRouter.get("/list", summary="查询会话列表", response_model=ResponseSchema[dict])
 async def get_session_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_ai:chat:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[ChatSessionQueryParam, Query(description="查询参数")],
 ) -> JSONResponse:
     service = ChatService(auth)

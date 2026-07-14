@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.base_schema import BaseQueryParam
+from app.core.validator import DateTimeStr
 
 
 class VersionCreateSchema(BaseModel):
@@ -26,8 +27,8 @@ class VersionOutSchema(VersionCreateSchema):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description="主键ID")
-    created_time: str | None = Field(default=None, description="创建时间")
-    updated_time: str | None = Field(default=None, description="更新时间")
+    created_time: DateTimeStr | None = Field(default=None, description="创建时间")
+    updated_time: DateTimeStr | None = Field(default=None, description="更新时间")
 
 
 class VersionStatusSchema(BaseModel):

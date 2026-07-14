@@ -39,7 +39,7 @@ async def get_obj_detail_controller(
 @NodeRouter.get("/list", summary="查询节点", response_model=ResponseSchema[PageResultSchema[NodeOutSchema]])
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:node:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[NodeQueryParam, Query(description="查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:

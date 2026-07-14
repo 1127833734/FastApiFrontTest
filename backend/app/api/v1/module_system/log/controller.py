@@ -36,7 +36,7 @@ async def get_log_detail_controller(
 async def get_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:login_log:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[LoginLogQueryParam, Query(description="登录日志查询参数")],
 ) -> JSONResponse:
     result_dict = await LoginLogService(auth, db).page(
@@ -74,7 +74,7 @@ async def get_operation_log_detail_controller(
 async def get_operation_log_list_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[OperationLogQueryParam, Query(description="操作日志查询参数")],
 ) -> JSONResponse:
     result_dict = await OperationLogService(auth, db).page(

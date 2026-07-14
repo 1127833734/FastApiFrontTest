@@ -23,12 +23,12 @@ from .schema import (
 )
 from .service import ApiTokenService
 
-ApiTokenRouter = APIRouter(route_class=OperationLogRoute, prefix="/token", tags=["平台-API令牌"])
+ApiTokenRouter = APIRouter(route_class=OperationLogRoute, prefix="/api_token", tags=["系统-API令牌"])
 
 
 @ApiTokenRouter.post("/create", summary="创建 API Token", response_model=ResponseSchema[ApiTokenCreatedSchema])
 async def create_token_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:create"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:create"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     data: Annotated[ApiTokenCreateSchema, Body(description="创建参数")],
 ) -> JSONResponse:
@@ -39,9 +39,9 @@ async def create_token_controller(
 
 @ApiTokenRouter.get("/list", summary="查询 token 列表", response_model=ResponseSchema[PageResultSchema[ApiTokenOutSchema]])
 async def get_token_list_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:query"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[ApiTokenQueryParam, Query(description="查询参数")],
 ) -> JSONResponse:
     result = await ApiTokenService(auth, db).page(
@@ -55,7 +55,7 @@ async def get_token_list_controller(
 
 @ApiTokenRouter.get("/detail/{id}", summary="token 详情", response_model=ResponseSchema[ApiTokenOutSchema])
 async def get_token_detail_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:detail"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:detail"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     id: Annotated[int, Path(description="token ID", ge=1)],
 ) -> JSONResponse:
@@ -65,7 +65,7 @@ async def get_token_detail_controller(
 
 @ApiTokenRouter.post("/{id}/reset", summary="重置 token（重新生成 secret）", response_model=ResponseSchema[ApiTokenCreatedSchema])
 async def reset_token_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:reset"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:reset"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     id: Annotated[int, Path(description="token ID", ge=1)],
     data: Annotated[ApiTokenResetSchema, Body(description="可选项")],
@@ -77,7 +77,7 @@ async def reset_token_controller(
 
 @ApiTokenRouter.patch("/{id}/status", summary="启用/禁用 token", response_model=ResponseSchema[None])
 async def set_token_status_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:patch"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:patch"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     id: Annotated[int, Path(description="token ID", ge=1)],
     status: Annotated[int, Body(description="状态", ge=0, le=2)],
@@ -88,7 +88,7 @@ async def set_token_status_controller(
 
 @ApiTokenRouter.delete("/{id}", summary="删除 token", response_model=ResponseSchema[None])
 async def delete_token_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:delete"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:delete"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     id: Annotated[int, Path(description="token ID", ge=1)],
 ) -> JSONResponse:
@@ -98,7 +98,7 @@ async def delete_token_controller(
 
 @ApiTokenRouter.post("/{id}/reveal", summary="查看 token 明文（需二次验证）", response_model=ResponseSchema[ApiTokenRevealOutSchema])
 async def reveal_token_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:token:reveal"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:reveal"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     id: Annotated[int, Path(description="token ID", ge=1)],
     data: Annotated[ApiTokenRevealSchema, Body(description="需输入当前用户密码")],

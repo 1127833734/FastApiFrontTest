@@ -1,4 +1,3 @@
-import asyncio
 import json
 import re
 from datetime import datetime, time
@@ -17,7 +16,7 @@ from app.api.v1.module_system.role.model import RoleModel
 from app.api.v1.module_system.user.model import UserModel, UserRolesModel
 from app.api.v1.module_system.versions.model import VersionModel
 from app.config.path_conf import SCRIPT_DIR
-from app.core.database import async_db_session, create_tables
+from app.core.database import async_db_session, check_db, create_tables, drop_tables
 from app.core.logger import logger
 
 
@@ -54,11 +53,9 @@ class InitializeData:
 
     async def init_db(self) -> None:
         """建表并导入种子数据"""
-        try:
-            await create_tables()
-        except asyncio.exceptions.TimeoutError:
-            logger.error("❌️ 数据库表结构初始化超时")
-            raise
+        await check_db()
+        # await drop_tables()
+        await create_tables()
 
         async with async_db_session() as session, session.begin():
             await self.__init_data(session)

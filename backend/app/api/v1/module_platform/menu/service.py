@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, BatchSetAvailable
-from app.core.exceptions import CustomException, require_superadmin
+from app.core.exceptions import CustomException
 from app.utils.common_util import (
     get_child_id_map,
     get_child_recursion,
@@ -80,7 +80,6 @@ class MenuService:
         menu_dict_list = [MenuTreeOutSchema.model_validate(menu).model_dump() for menu in menu_list]
         return traversal_to_tree(menu_dict_list)
 
-    @require_superadmin
     async def create(self, data: MenuCreateSchema) -> MenuOutSchema:
         search: dict[str, Any] = {}
         if data.title is not None:
@@ -97,7 +96,6 @@ class MenuService:
         new_menu = await MenuCRUD(self.auth, self.db).create(data=data)
         return MenuOutSchema.model_validate(new_menu)
 
-    @require_superadmin
     async def update(self, id: int, data: MenuUpdateSchema) -> MenuOutSchema:
         _ = await MenuCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该菜单不存在")
         await self._validate_parent_child_type(data.parent_id, data.type)
@@ -127,7 +125,6 @@ class MenuService:
                 menu_out.parent_name = parent.name
         return menu_out
 
-    @require_superadmin
     async def delete(self, ids: list[int]) -> None:
         if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")
@@ -143,7 +140,6 @@ class MenuService:
         delete_ids = list(delete_ids_set)
         await MenuCRUD(self.auth, self.db).delete(ids=delete_ids)
 
-    @require_superadmin
     async def set_available(self, data: BatchSetAvailable) -> None:
         menu_list = await MenuCRUD(self.auth, self.db).get_list()
         total_ids = []

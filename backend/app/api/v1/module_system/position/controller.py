@@ -25,17 +25,14 @@ _POS_NS = "position"
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:position:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[PositionQueryParam, Query(description="岗位查询参数")],
 ) -> JSONResponse:
-    order_by = [{"order": "asc"}]
-    if page.order_by:
-        order_by = page.order_by
     result_dict = await PositionService(auth, db).page(
         page_no=page.page_no,
         page_size=page.page_size,
         search=search,
-        order_by=order_by,
+        order_by=page.order_by,
     )
     return SuccessResponse(data=result_dict, msg="查询岗位列表成功")
 

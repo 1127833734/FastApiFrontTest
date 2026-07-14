@@ -31,7 +31,7 @@ async def get_param_detail_controller(
 async def get_param_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[ParamsQueryParam, Query(description="参数查询参数")],
 ) -> JSONResponse:
     result_dict = await ParamsService(auth, db).page(

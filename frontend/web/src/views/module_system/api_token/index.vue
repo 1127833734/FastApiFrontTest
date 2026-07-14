@@ -202,7 +202,7 @@ import ApiTokenAPI, {
   type ApiTokenTable,
   type ApiTokenCreateForm,
   type ApiTokenRevealSchema,
-} from "@/api/module_system/api-token";
+} from "@/api/module_system/api_token";
 import { Plus } from "@element-plus/icons-vue";
 import type { ColumnOption } from "@/types/component";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";

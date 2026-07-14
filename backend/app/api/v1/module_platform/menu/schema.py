@@ -41,8 +41,8 @@ class MenuCreateSchema(BaseModel):
     active_path: str | None = Field(default=None, max_length=200, description="激活菜单路径")
     show_badge: bool = Field(default=False, description="是否显示红点角标")
     show_text_badge: str | None = Field(default=None, max_length=20, description="文字角标内容")
-    scope: Literal["platform", "tenant"] = Field(
-        default="tenant",
+    scope: Literal["platform", "tenant"] | None = Field(
+        default=None,
         description="菜单可见范围(platform:仅平台 tenant:租户可用)",
     )
 

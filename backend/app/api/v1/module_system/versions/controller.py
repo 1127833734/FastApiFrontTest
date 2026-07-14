@@ -25,7 +25,7 @@ VersionRouter = APIRouter(route_class=OperationLogRoute, prefix="/versions", tag
 async def get_version_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:version:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[VersionQueryParam, Query(description="查询参数")],
 ) -> JSONResponse:
     service = VersionService(auth, db)

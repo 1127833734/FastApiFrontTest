@@ -309,10 +309,14 @@ class ParamsService:
     @staticmethod
     async def init_cache(redis: Redis) -> None:
         """启动时初始化系统参数到 Redis。"""
-        config_obj = await ParamsService._load_all_configs_from_db()
-        if not config_obj:
-            raise CustomException(msg="该数据不存在")
-        await ParamsService._sync_configs_to_redis(redis, config_obj)
+        try:
+            config_obj = await ParamsService._load_all_configs_from_db()
+            if not config_obj:
+                raise CustomException(msg="该数据不存在")
+            await ParamsService._sync_configs_to_redis(redis, config_obj)
+        except Exception as e:
+            logger.error(f"❌️ 初始化系统参数到 Redis 失败: {e}")
+            raise CustomException(msg="初始化系统参数到 Redis 失败") from e
 
     @staticmethod
     async def get_init_cache(redis: Redis, tenant_id: int = 1) -> list[dict]:

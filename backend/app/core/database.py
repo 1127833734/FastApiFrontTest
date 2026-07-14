@@ -12,13 +12,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config.setting import settings
 from app.core.base_model import MappedBase
-from app.core.exceptions import CustomException
 from app.core.logger import logger
 
 
-def create_engine_and_session(
-    db_url: str = settings.DB_URI,
-) -> tuple[Engine, sessionmaker]:
+def create_engine_and_session(db_url: str = settings.DB_URI) -> tuple[Engine, sessionmaker]:
     """创建同步数据库引擎和会话工厂。
 
     参数:
@@ -28,11 +25,6 @@ def create_engine_and_session(
     - tuple[Engine, sessionmaker]: 同步数据库引擎和会话工厂。
     """
     try:
-        if not settings.SQL_DB_ENABLE:
-            raise CustomException(
-                msg="请先开启数据库连接",
-                data="请启用 app/config/setting.py: SQL_DB_ENABLE",
-            )
         # 同步数据库引擎
         engine: Engine = create_engine(
             url=db_url,
@@ -49,9 +41,7 @@ def create_engine_and_session(
         return engine, SessionLocal
 
 
-def create_async_engine_and_session(
-    db_url: str = settings.ASYNC_DB_URI,
-) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+def create_async_engine_and_session(db_url: str = settings.ASYNC_DB_URI) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     """获取异步数据库会话连接。
 
     参数:
@@ -61,11 +51,6 @@ def create_async_engine_and_session(
     - tuple[AsyncEngine, async_sessionmaker[AsyncSession]]: 异步数据库引擎和会话工厂。
     """
     try:
-        if not settings.SQL_DB_ENABLE:
-            raise CustomException(
-                msg="请先开启数据库连接",
-                data="请启用 app/config/setting.py: SQL_DB_ENABLE",
-            )
         # 异步数据库引擎
         if settings.DATABASE_TYPE == "sqlite":
             async_engine = create_async_engine(
@@ -107,6 +92,17 @@ def create_async_engine_and_session(
 engine, db_session = create_engine_and_session()
 async_engine, async_db_session = create_async_engine_and_session()
 
+async def check_db() -> None:
+    """检查数据库连接是否正常。"""
+
+    try:
+        with engine.connect():
+            pass
+        logger.info("✅ 数据库连接正常")
+    except Exception as e:
+        logger.error(f"❌ 数据库连接失败: {e}")
+        raise e
+
 
 async def create_tables() -> None:
     """创建数据库表（根据 ORM metadata）。
@@ -114,8 +110,12 @@ async def create_tables() -> None:
     返回:
     - None
     """
-    async with async_engine.begin() as coon:
-        await coon.run_sync(MappedBase.metadata.create_all)
+    try:
+        async with async_engine.begin() as coon:
+            await coon.run_sync(MappedBase.metadata.create_all)
+    except Exception as e:
+        logger.error(f"❌ 数据库表结构初始化失败: {e}")
+        raise e
 
 
 async def drop_tables() -> None:
@@ -124,8 +124,12 @@ async def drop_tables() -> None:
     返回:
     - None
     """
-    async with async_engine.begin() as conn:
-        await conn.run_sync(MappedBase.metadata.drop_all)
+    try:
+        async with async_engine.begin() as conn:
+            await conn.run_sync(MappedBase.metadata.drop_all)
+    except Exception as e:
+        logger.error(f"❌ 数据库表结构删除失败: {e}")
+        raise e
 
 
 async def redis_connect(app: FastAPI, status: bool) -> Redis | None:
@@ -138,12 +142,6 @@ async def redis_connect(app: FastAPI, status: bool) -> Redis | None:
     返回:
     - Redis | None: Redis连接实例,如果连接失败则返回None。
     """
-    if not settings.REDIS_ENABLE:
-        raise CustomException(
-            msg="请先开启Redis连接",
-            data="请启用 app/core/config.py: REDIS_ENABLE",
-        )
-
     if status:
         try:
             rd = await Redis.from_url(
@@ -159,10 +157,10 @@ async def redis_connect(app: FastAPI, status: bool) -> Redis | None:
                 return rd
         except exceptions.AuthenticationError as e:
             logger.error(f"❌ 数据库 Redis 认证失败: {e}")
-            raise
+            return None
         except exceptions.TimeoutError as e:
             logger.error(f"❌ 数据库 Redis 连接超时: {e}")
-            raise
+            return None
         except exceptions.RedisError as e:
             logger.error(f"❌ 数据库 Redis 连接错误: {e}")
             raise

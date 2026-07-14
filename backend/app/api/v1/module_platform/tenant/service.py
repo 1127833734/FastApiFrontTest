@@ -28,7 +28,7 @@ from app.api.v1.module_system.user.schema import UserCreateSchema
 from app.common.enums import OrderTypeEnum, RedisInitKeyConfig
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.database import async_db_session
-from app.core.exceptions import CustomException, require_superadmin
+from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
 from app.utils.common_util import search_to_dict
@@ -119,7 +119,6 @@ class TenantService:
             out_schema=TenantOutSchema,
         )
 
-    @require_superadmin
     async def create(self, data: TenantCreateSchema) -> TenantCreateResult:
         # ① 预校验：name / code 唯一
         if await TenantCRUD(self.auth, self.db).get(name=data.name):
@@ -215,7 +214,6 @@ class TenantService:
             ),
         )
 
-    @require_superadmin
     async def update(self, id: int, data: TenantUpdateSchema) -> TenantOutSchema:
         """更新租户
 
@@ -313,7 +311,6 @@ class TenantService:
             await self.db.flush()
             logger.info(f"租户[{tenant_id}]套餐变更：已清理角色中不再可用的菜单关联, available_menus={len(available_ids)}, roles_affected={len(tenant_role_ids)}")
 
-    @require_superadmin
     async def delete(self, ids: list[int]) -> None:
         """批量删除租户（含级联资源检查：用户/部门/角色/岗位）
 
@@ -703,16 +700,20 @@ class TenantService:
         返回:
         - None
         """
-        async with async_db_session() as session, session.begin():
-            stmt = select(TenantModel)
-            result = await session.execute(stmt)
-            tenants = result.scalars().all()
+        try:
+            async with async_db_session() as session, session.begin():
+                stmt = select(TenantModel)
+                result = await session.execute(stmt)
+                tenants = result.scalars().all()
 
-            for tenant in tenants:
-                config = {field: getattr(tenant, field, None) for field in TenantService.CONFIG_FIELDS}
+                for tenant in tenants:
+                    config = {field: getattr(tenant, field, None) for field in TenantService.CONFIG_FIELDS}
 
-                await TenantService._sync_configs_to_redis(redis, tenant.id, config)
-                logger.info(f"✅ 租户[{tenant.name}](id={tenant.id}) 配置已缓存到 Redis")
+                    await TenantService._sync_configs_to_redis(redis, tenant.id, config)
+                    logger.info(f"✅ 租户[{tenant.name}](id={tenant.id}) 配置已缓存到 Redis")
+        except Exception as e:
+            logger.error(f"❌️ 初始化租户配置到 Redis 失败: {e}")
+            raise CustomException(msg="初始化租户配置到 Redis 失败") from e
 
     async def renew(self, tenant_id: int, end_time: str) -> TenantOutSchema:
         """租户续期：延长 end_time 并恢复为 active 状态

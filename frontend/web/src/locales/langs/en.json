@@ -310,6 +310,7 @@
     "title": "Notice",
     "btnRead": "Mark as read",
     "bar": ["Notice", "Message", "Todo"],
+    "empty": "No notifications",
     "text": ["No"],
     "viewAll": "View all"
   },

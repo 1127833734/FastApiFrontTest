@@ -43,7 +43,7 @@ async def get_type_detail_controller(
 @DictRouter.get("/type/list", summary="查询字典类型", response_model=ResponseSchema[PageResultSchema[DictTypeOutSchema]])
 async def get_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页查询参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[DictTypeQueryParam, Query(description="字典类型查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
@@ -145,7 +145,7 @@ async def get_data_detail_controller(
 @DictRouter.get("/data/list", summary="查询字典数据", response_model=ResponseSchema[PageResultSchema[DictDataOutSchema]])
 async def get_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[DictDataQueryParam, Query(description="字典数据查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
@@ -208,7 +208,7 @@ async def batch_set_available_dict_data_controller(
 @DictRouter.post("/data/export", summary="导出字典数据")
 async def export_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:export"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[DictDataQueryParam, Query(description="字典数据查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> StreamingResponse:

@@ -97,7 +97,7 @@ async def forget_password_controller(
 async def get_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[UserQueryParam, Query(description="用户查询参数")],
 ) -> JSONResponse:
     result_dict = await UserService(auth, db).page(
@@ -178,7 +178,7 @@ async def export_user_import_template_controller() -> StreamingResponse:
 async def export_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[UserQueryParam, Query(description="用户查询参数")],
 ) -> StreamingResponse:
     user_list = await UserService(auth, db).get_list(search=search, order_by=page.order_by)

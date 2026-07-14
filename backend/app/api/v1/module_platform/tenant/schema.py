@@ -26,7 +26,7 @@ class TenantCreateSchema(BaseModel):
     domain: str | None = Field(default=None, max_length=255, description="域名")
     logo_url: str | None = Field(default=None, max_length=500, description="Logo URL")
     sort: int = Field(default=0, ge=0, description="排序")
-    package_id: int = Field(..., gt=0, description="关联套餐ID（必选，决定租户可用的菜单与配额）")
+    package_id: int | None = Field(default=None, gt=0, description="关联套餐ID")
     version: str | None = Field(default=None, max_length=20, description="版本号")
     favicon: str | None = Field(default=None, max_length=500, description="favicon地址")
     login_bg: str | None = Field(default=None, max_length=500, description="登录背景地址")

@@ -1,6 +1,6 @@
 import { request } from "@utils";
 
-const API_PATH = "/system/token";
+const API_PATH = "/system/api_token";
 
 const ApiTokenAPI = {
   /** 创建 API Token */

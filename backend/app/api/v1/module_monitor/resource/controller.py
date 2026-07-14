@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, File, Form, Query, Request, Security, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, Query, Request, Security, UploadFile, status
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from app.api.v1.module_common.file.service import FileService
@@ -20,7 +20,7 @@ ResourceRouter = APIRouter(route_class=OperationLogRoute, prefix="/resource", ta
 @ResourceRouter.get("/list", summary="获取目录列表", response_model=ResponseSchema[list[ResourceItemSchema]], dependencies=[Security(AuthPermission(["module_monitor:resource:query"]))])
 async def get_directory_list_controller(
     request: Request,
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[ResourceSearchQueryParam, Query(description="资源查询参数")],
 ) -> JSONResponse:
     result_dict_list = await ResourceService.get_resources_list(search=search, base_url=str(request.base_url))

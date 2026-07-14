@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.module_platform.menu.model import MenuModel
 from app.api.v1.module_platform.tenant.model import TenantModel
 from app.core.base_schema import AuthSchema, PageResultSchema
-from app.core.exceptions import CustomException, require_superadmin
+from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.common_util import search_to_dict
 
@@ -29,17 +29,14 @@ class PackageService:
         self.auth = auth
         self.db = db
 
-    @require_superadmin
     async def get_options(self) -> list[dict[str, Any]]:
         """获取套餐下拉选项，委托给 PackageCRUD"""
         return await PackageCRUD(self.auth, self.db).get_options()
 
-    @require_superadmin
     async def detail(self, id: int) -> PackageOutSchema:
         obj = await PackageCRUD(self.auth, self.db).get_or_404(id=id)
         return PackageOutSchema.model_validate(obj)
 
-    @require_superadmin
     async def page(
         self,
         page_no: int,
@@ -55,7 +52,6 @@ class PackageService:
             out_schema=PackageOutSchema,
         )
 
-    @require_superadmin
     async def create(self, data: PackageCreateSchema) -> PackageOutSchema:
         if await PackageCRUD(self.auth, self.db).get(name=data.name):
             raise CustomException(msg="创建失败，套餐名称已存在")
@@ -67,7 +63,6 @@ class PackageService:
         logger.info(f"创建套餐成功: {result.name}")
         return result
 
-    @require_superadmin
     async def update(self, id: int, data: PackageUpdateSchema) -> PackageOutSchema:
         obj = await PackageCRUD(self.auth, self.db).get_or_404(id=id)
 
@@ -86,7 +81,6 @@ class PackageService:
         updated = await PackageCRUD(self.auth, self.db).update(id=id, data=data)
         return PackageOutSchema.model_validate(updated)
 
-    @require_superadmin
     async def delete(self, ids: list[int]) -> None:
         if not ids:
             raise CustomException(msg="删除失败，删除对象不能为空")

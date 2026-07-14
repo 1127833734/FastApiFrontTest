@@ -55,7 +55,7 @@ async def order_detail_controller(
 async def order_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:order:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[OrderQueryParam, Query(description="查询参数")],
 ) -> JSONResponse:
     items, total = await OrderService.get_list(
@@ -157,7 +157,7 @@ async def order_pay_mock_callback_controller(
 async def order_refund_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:order:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     status: Annotated[int | None, Query(description="退款状态筛选")] = None,
 ) -> JSONResponse:
     offset = (page.page_no - 1) * page.page_size

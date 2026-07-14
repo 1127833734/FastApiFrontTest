@@ -366,7 +366,7 @@ class DictDataService:
                         logger.error(f"❌ 初始化字典数据失败 [{dict_type}]: {e}")
 
         except Exception as e:
-            logger.error(f"字典初始化过程发生错误: {e}")
+            logger.error(f"❌️ 字典初始化过程发生错误: {e}")
             raise CustomException(msg="字典数据初始化失败") from e
 
     @staticmethod

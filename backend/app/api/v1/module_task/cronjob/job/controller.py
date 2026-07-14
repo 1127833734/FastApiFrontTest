@@ -99,18 +99,15 @@ async def remove_job_controller(
 @JobRouter.get("/log/list", summary="查询执行日志列表", response_model=ResponseSchema[PageResultSchema[JobOutSchema]])
 async def get_job_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[JobQueryParam, Query(description="查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    order_by = [{"created_time": "desc"}]
-    if page.order_by:
-        order_by = page.order_by
     result_dict = await JobService(auth, db).get_job_log_page(
         page_no=page.page_no,
         page_size=page.page_size,
         search=search,
-        order_by=order_by,
+        order_by=page.order_by,
     )
     return SuccessResponse(data=result_dict, msg="查询执行日志列表成功")
 

@@ -122,17 +122,12 @@ def handle_exception(app: FastAPI) -> None:
     @app.exception_handler(SQLAlchemyError)
     async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
         exc_type = type(exc).__name__
-        logger.error(
-            "[数据库异常] %s %s | type=%s | detail=%s",
-            request.method,
-            request.url.path,
-            exc_type,
-            exc,
-        )
 
         if isinstance(exc, IntegrityError):
             detail = str(exc.orig) if exc.orig else str(exc)
             expose_detail = detail if settings.ENVIRONMENT != EnvironmentEnum.PROD else None
+            if "connect" in detail or "connection" in detail:
+                return ErrorResponse(msg="数据库连接失败", status_code=status.HTTP_403_SERVICE_UNAVAILABLE, data=expose_detail)
             if "Duplicate entry" in detail:
                 return ErrorResponse(msg="数据重复，请检查唯一字段", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
             if "foreign key constraint" in detail:
@@ -141,9 +136,7 @@ def handle_exception(app: FastAPI) -> None:
                 return ErrorResponse(msg="必填字段缺失", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
             return ErrorResponse(msg="数据已存在或违反完整性约束", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
 
-        lower = str(exc).lower()
-        if "connect" in lower or "connection" in lower:
-            return ErrorResponse(msg="数据库连接失败", status_code=status.HTTP_503_SERVICE_UNAVAILABLE, data=exc_type)
+        logger.error("[数据库异常] %s %s | type=%s | detail=%s", request.method, request.url.path, exc_type, exc)
         return ErrorResponse(msg=f"数据库操作失败: {exc_type}", status_code=status.HTTP_400_BAD_REQUEST, data=str(exc))
 
     @app.exception_handler(ValueError)

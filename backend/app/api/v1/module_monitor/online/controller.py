@@ -24,7 +24,7 @@ _STATS_NS = "online_stats"
 @OnlineRouter.get("/list", summary="获取在线用户列表", response_model=ResponseSchema[list[OnlineOutSchema]], dependencies=[Security(AuthPermission(["module_monitor:online:query"]))])
 async def get_online_list_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[OnlineQueryParam, Query(description="在线用户查询参数")],
 ) -> JSONResponse:
     result_dict_list = await OnlineService.get_online_list(redis=redis, search=search)

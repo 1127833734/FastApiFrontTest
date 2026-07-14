@@ -98,12 +98,43 @@ class SchedulerUtil:
 
     @classmethod
     async def init_scheduler(cls, redis: Redis | None = None) -> None:
-        """应用启动时初始化定时任务调度器。"""
-        if redis:
-            cls.redis_instance = redis
-        scheduler.start()
-        scheduler.add_listener(_dispatch_job_event, EVENT_ALL)
-        scheduler.resume()
+        """应用启动时初始化定时任务调度器（含系统级周期任务注册）。
+
+        返回:
+        - None
+        """
+        try:
+            if redis:
+                cls.redis_instance = redis
+            scheduler.start()
+            scheduler.add_listener(_dispatch_job_event, EVENT_ALL)
+            scheduler.resume()
+
+            # 注册系统级定时任务
+            from app.api.v1.module_platform.tenant.service import TenantService
+            from app.api.v1.module_platform.order.service import OrderService
+            from app.api.v1.module_system.log.service import OperationLogService
+
+            cls.register_system_job(
+                "system_tenant_expiry_check", TenantService.check_tenant_expiry,
+                trigger=IntervalTrigger(hours=1), name="租户到期检查",
+            )
+            cls.register_system_job(
+                "system_clean_expired", TenantService.clean_expired_tenants,
+                trigger=CronTrigger(day=1, hour=2, minute=0), name="过期租户归档清理",
+            )
+            cls.register_system_job(
+                "system_cancel_expired_orders", OrderService.cancel_expired_orders,
+                trigger=IntervalTrigger(minutes=30), name="超时订单取消",
+            )
+            cls.register_system_job(
+                "system_cleanup_operation_log", OperationLogService.cleanup_operation_log,
+                trigger=CronTrigger(day_of_week="sun", hour=3, minute=0), name="操作日志清理",
+            )
+            logger.info("✅ 4 个系统周期任务已注册（租户到期检查/归档清理/订单取消/日志清理）")
+        except Exception as e:
+            logger.error(f"❌ 定时任务调度器初始化失败: {e}")
+            raise
 
     @classmethod
     def register_system_job(cls, job_id: str, func: Callable, trigger: Any, name: str) -> None:

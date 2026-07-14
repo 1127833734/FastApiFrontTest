@@ -205,9 +205,8 @@ class UserService:
 
         _pc_only = {"client": "pc"}
         if self.auth.user.is_superuser:
-            scope_filter = {"scope": "tenant"} if self.auth.user.tenant_id else {"scope": "platform"}
             menu_all = await MenuCRUD(self.auth, self.db).tree_list(
-                search={"type": ("in", [1, 2, 3, 4]), "status": 0, **_pc_only, **scope_filter},
+                search={"type": ("in", [1, 2, 3, 4]), "status": 0, **_pc_only},
                 order_by=[{"order": "asc"}],
             )
             menus_raw = [MenuOutSchema.model_validate(menu) for menu in menu_all]
@@ -230,6 +229,9 @@ class UserService:
                 if menu_ids
                 else []
             )
+
+        for menu in menus_raw:
+            menu.scope = None
         menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])]
         user_dict.menus = menu_tree
         return user_dict

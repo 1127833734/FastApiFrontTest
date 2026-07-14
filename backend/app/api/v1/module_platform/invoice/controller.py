@@ -28,7 +28,7 @@ async def invoice_apply_controller(
 @InvoiceRouter.get("/mine/list", summary="我的发票列表", response_model=ResponseSchema[PageResultSchema[InvoiceOutSchema]])
 async def invoice_list_my_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:invoice:query"]))],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[InvoiceQueryParam, Query(description="发票查询参数")],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:

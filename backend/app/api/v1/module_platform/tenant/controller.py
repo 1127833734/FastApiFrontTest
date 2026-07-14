@@ -53,17 +53,14 @@ async def get_obj_detail_controller(
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:tenant:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
-    search: Annotated[TenantQueryParam, Query(description="查询参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
+    search: Annotated[TenantQueryParam, Depends()],
 ) -> JSONResponse:
-    order_by = [{"id": "asc"}]
-    if page.order_by:
-        order_by = page.order_by
     result_dict = await TenantService(auth, db).page(
         page_no=page.page_no,
         page_size=page.page_size,
         search=search,
-        order_by=order_by,
+        order_by=page.order_by,
     )
     return SuccessResponse(data=result_dict, msg="查询租户列表成功")
 
@@ -249,7 +246,7 @@ async def order_create_controller(
 async def order_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["tenant:order:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
 ) -> JSONResponse:
     result = await TenantService.get_self_order_list(
         auth=auth,

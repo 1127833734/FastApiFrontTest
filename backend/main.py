@@ -61,10 +61,9 @@ def run(
     os.environ["ENVIRONMENT"] = env.value
 
     typer.secho(
-        message="FastapiAdmin 服务启动",
+        message=f"{worship()}",
         fg=typer.colors.GREEN,
     )
-    logger.info(worship(env.value))
 
     # 启动uvicorn服务
     uvicorn.run(

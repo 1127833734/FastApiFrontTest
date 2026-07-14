@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -147,29 +148,32 @@ class PageResultSchema[T](BaseModel):
 
 
 class PaginationQueryParam(BaseModel):
-    """分页 —— 自动继承 page_no / page_size / order_by，子类无需重复声明"""
+    """分页 —— order_by 以 JSON 字符串传递，避免 Depends() 模式下 list 字段被当 body 验证。"""
 
     page_no: int = Field(default=1, description="当前页码", ge=1)
     page_size: int = Field(default=10, description="每页数量", ge=1, le=100)
-    order_by: list = Field(
-        default_factory=lambda: [{"id": "desc"}],
-        description="排序字段,格式:[{'field1': 'asc'}, {'field2': 'desc'}]",
+    order_by: Any = Field(
+        default=None,
+        description="排序字段 JSON 字符串, 格式:[{'field1': 'asc'}, {'field2': 'desc'}]",
     )
 
-    @field_validator("order_by", mode="before")
+    @field_validator("order_by")
     @classmethod
-    def parse_order_by(cls, v: object) -> list:
+    def validate_order_by(cls, v: Any) -> Any:
+        """校验 order_by：None→默认升序，str→json.loads 转 list，list→直接返回，其他→抛异常。"""
         if v is None:
-            return [{"id": "desc"}]
+            return [{"id": "asc"}]
         if isinstance(v, str):
             try:
-                return json.loads(v)
-            except (ValueError, json.JSONDecodeError):
-                return [{"id": "desc"}]
+                result = json.loads(v)
+                if not isinstance(result, list):
+                    raise ValueError("order_by 必须是 JSON 数组字符串，例如 [{\"id\":\"asc\"}]")
+                return result
+            except json.JSONDecodeError:
+                raise ValueError("order_by 字符串无法解析为 JSON，请传入有效的 JSON 数组字符串，例如 [{\"id\":\"asc\"}]")
         if isinstance(v, list):
             return v
-        return [{"id": "desc"}]
-
+        raise ValueError(f"order_by 类型无效: {type(v).__name__}，预期为 JSON 数组字符串或列表")
 
 class BaseQueryParam(BaseModel):
     """created_time + updated_time —— 子类自动继承"""

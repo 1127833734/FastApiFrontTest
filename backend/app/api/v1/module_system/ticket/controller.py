@@ -19,7 +19,7 @@ TicketRouter = APIRouter(route_class=OperationLogRoute, prefix="/ticket", tags=[
 async def ticket_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
     search: Annotated[TicketQueryParam, Query(description="工单查询参数")],
 ) -> JSONResponse:
     result = await TicketService(auth, db).page(
@@ -87,7 +87,7 @@ async def ticket_comment_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:detail"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     ticket_id: Annotated[int, Path(description="工单ID")],
-    page: Annotated[PaginationQueryParam, Query(description="分页参数")],
+    page: Annotated[PaginationQueryParam, Depends()],
 ) -> JSONResponse:
     result = await TicketCommentService(auth, db).page(ticket_id=ticket_id, page_no=page.page_no, page_size=page.page_size)
     return SuccessResponse(data=result, msg="查询成功")
