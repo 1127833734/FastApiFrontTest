@@ -3,7 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema
 
 
@@ -103,25 +102,13 @@ class OrderOutSchema(BaseSchema, TenantBySchema):
 class OrderQueryParam(BaseQueryParam):
     """订单查询参数"""
 
-    tenant_id: int | tuple[str, int] | None = Field(None, description="租户ID")
-    status: int | tuple[str, int] | None = Field(None, description="订单状态(0:待支付 1:已支付 2:已取消)")
-    refund_status: int | tuple[str, int] | None = Field(None, description="退款状态(1:申请中 2:已退款 3:已驳回)")
-    order_type: str | tuple[str, str] | None = Field(None, description="订单类型")
-    order_no: str | tuple[str, str] | None = Field(None, description="订单号")
+    tenant_id: int | None = Field(None, description="租户ID")
+    status: int | None = Field(None, description="订单状态(0:待支付 1:已支付 2:已取消)")
+    refund_status: int | None = Field(None, description="退款状态(1:申请中 2:已退款 3:已驳回)")
+    order_type: str | None = Field(None, description="订单类型", json_schema_extra={"q": "eq"})
+    order_no: str | None = Field(None, description="订单号")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "OrderQueryParam":
-        if isinstance(self.tenant_id, int):
-            self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        if isinstance(self.refund_status, int):
-            self.refund_status = (QueueEnum.eq.value, self.refund_status)
-        if isinstance(self.order_type, str):
-            self.order_type = (QueueEnum.eq.value, self.order_type)
-        if isinstance(self.order_no, str):
-            self.order_no = (QueueEnum.like.value, self.order_no)
-        return self
+
 
 
 class PaymentCallbackSchema(BaseModel):

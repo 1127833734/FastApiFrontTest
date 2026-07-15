@@ -44,7 +44,7 @@ async def get_type_detail_controller(
 async def get_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictTypeQueryParam, Query(description="字典类型查询参数")],
+    search: Annotated[DictTypeQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await DictTypeService(auth, db).page(
@@ -117,7 +117,7 @@ async def batch_set_available_dict_type_controller(
 @DictRouter.post("/type/export", summary="导出字典类型")
 async def export_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:export"]))],
-    search: Annotated[DictTypeQueryParam, Query(description="字典类型查询参数")],
+    search: Annotated[DictTypeQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> StreamingResponse:
     # 获取全量数据并转为dict列表
@@ -146,7 +146,7 @@ async def get_data_detail_controller(
 async def get_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictDataQueryParam, Query(description="字典数据查询参数")],
+    search: Annotated[DictDataQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
@@ -209,7 +209,7 @@ async def batch_set_available_dict_data_controller(
 async def export_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:export"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictDataQueryParam, Query(description="字典数据查询参数")],
+    search: Annotated[DictDataQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> StreamingResponse:
     result_dict_list = await DictDataService(auth, db).get_list(search=search, order_by=page.order_by)

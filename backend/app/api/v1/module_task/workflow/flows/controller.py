@@ -30,7 +30,7 @@ async def get_workflow_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:workflow:flow:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[WorkflowQueryParam, Query(description="查询参数")],
+    search: Annotated[WorkflowQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await WorkflowService(auth, db).get_workflow_page(
         page_no=page.page_no,

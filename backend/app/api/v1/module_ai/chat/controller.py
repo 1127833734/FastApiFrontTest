@@ -38,7 +38,7 @@ async def get_session_detail_controller(
 async def get_session_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_ai:chat:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[ChatSessionQueryParam, Query(description="查询参数")],
+    search: Annotated[ChatSessionQueryParam, Query()],
 ) -> JSONResponse:
     service = ChatService(auth)
     result_dict = await service.page(

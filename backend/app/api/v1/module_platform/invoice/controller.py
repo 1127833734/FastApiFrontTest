@@ -29,7 +29,7 @@ async def invoice_apply_controller(
 async def invoice_list_my_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:invoice:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[InvoiceQueryParam, Query(description="发票查询参数")],
+    search: Annotated[InvoiceQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result = await InvoiceTenantService.list_my(

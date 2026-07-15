@@ -2,7 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import menu_request_validator
 
@@ -202,42 +201,21 @@ class MenuTreeOutSchema(MenuOutSchema):
 class MenuQueryParam(BaseQueryParam):
     """菜单管理查询参数（菜单为平台级资源，无用户归属）"""
 
-    name: str | tuple[str, str] | None = Field(None, description="菜单名称")
-    route_path: str | tuple[str, str] | None = Field(None, description="路由地址")
-    component_path: str | tuple[str, str] | None = Field(None, description="组件路径")
-    type: int | tuple[str, int] | None = Field(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)")
-    permission: str | tuple[str, str] | None = Field(None, description="权限标识")
-    description: str | tuple[str, str] | None = Field(None, description="描述")
-    status: int | tuple[str, int] | None = Field(None, description="是否启用")
-    menu_client: Literal["pc", "app"] | None = Field(
+    name: str | None = Field(None, description="菜单名称")
+    route_path: str | None = Field(None, description="路由地址")
+    component_path: str | None = Field(None, description="组件路径")
+    type: int | None = Field(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)")
+    permission: str | None = Field(None, description="权限标识")
+    description: str | None = Field(None, description="描述")
+    status: int | None = Field(None, description="是否启用")
+    client: str | None = Field(
         None,
-        description="管理端 Tab：pc=桌面端菜单 app=移动端菜单；不传则不过滤终端",
+        description="终端(pc:桌面端菜单 app:移动端菜单)；不传则不过滤终端",
     )
-    scope: str | tuple[str, str] | None = Field(
+    scope: str | None = Field(
         None,
         description="菜单范围过滤：tenant=仅租户可用菜单",
+        json_schema_extra={"q": "eq"},
     )
-    client: str | tuple[str, str] | None = Field(None)
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "MenuQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.route_path, str):
-            self.route_path = (QueueEnum.like.value, self.route_path)
-        if isinstance(self.component_path, str):
-            self.component_path = (QueueEnum.like.value, self.component_path)
-        if isinstance(self.permission, str):
-            self.permission = (QueueEnum.like.value, self.permission)
-        if isinstance(self.description, str):
-            self.description = (QueueEnum.like.value, self.description)
-        if isinstance(self.type, int):
-            self.type = (QueueEnum.eq.value, self.type)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        if self.menu_client in ("pc", "app"):
-            self.client = (QueueEnum.eq.value, self.menu_client)
-            self.menu_client = None
-        if isinstance(self.scope, str):
-            self.scope = (QueueEnum.eq.value, self.scope)
-        return self
+

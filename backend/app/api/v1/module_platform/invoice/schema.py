@@ -1,6 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.common.enums import InvoiceTypeEnum, QueueEnum
+from app.common.enums import InvoiceTypeEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantBySchema, UserBySchema
 
 
@@ -55,16 +55,8 @@ class InvoiceOutSchema(InvoiceCreateSchema, BaseSchema, UserBySchema, TenantBySc
 class InvoiceQueryParam(BaseQueryParam):
     """发票查询参数"""
 
-    invoice_type: InvoiceTypeEnum | tuple[str, InvoiceTypeEnum] | None = Field(None, description="发票类型")
-    status: int | tuple[str, int] | None = Field(None, description="状态")
-    tenant_id: int | tuple[str, int] | None = Field(None, description="租户ID")
+    invoice_type: InvoiceTypeEnum | None = Field(None, description="发票类型")
+    status: int | None = Field(None, description="状态")
+    tenant_id: int | None = Field(None, description="租户ID")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "InvoiceQueryParam":
-        if isinstance(self.invoice_type, InvoiceTypeEnum):
-            self.invoice_type = (QueueEnum.eq.value, self.invoice_type)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        if isinstance(self.tenant_id, int):
-            self.tenant_id = (QueueEnum.eq.value, self.tenant_id)
-        return self
+

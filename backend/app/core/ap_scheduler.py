@@ -111,8 +111,8 @@ class SchedulerUtil:
             scheduler.resume()
 
             # 注册系统级定时任务
-            from app.api.v1.module_platform.tenant.service import TenantService
             from app.api.v1.module_platform.order.service import OrderService
+            from app.api.v1.module_platform.tenant.service import TenantService
             from app.api.v1.module_system.log.service import OperationLogService
 
             cls.register_system_job(

@@ -20,7 +20,7 @@ async def ticket_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[TicketQueryParam, Query(description="工单查询参数")],
+    search: Annotated[TicketQueryParam, Query()],
 ) -> JSONResponse:
     result = await TicketService(auth, db).page(
         page_no=page.page_no,

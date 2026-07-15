@@ -6,7 +6,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateStr, DateTimeStr, TimeStr
 
@@ -78,16 +77,8 @@ class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
 class DemoQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """示例查询参数（演示 Mixin 继承用法）"""
 
-    name: str | tuple[str, str] | None = Field(None, description="名称")
-    description: str | tuple[str, str] | None = Field(None, description="描述")
-    status: int | tuple[str, int] | None = Field(None, description="是否启用")
+    name: str | None = Field(None, description="名称")
+    description: str | None = Field(None, description="描述")
+    status: int | None = Field(None, description="是否启用")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "DemoQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.description, str):
-            self.description = (QueueEnum.like.value, self.description)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+

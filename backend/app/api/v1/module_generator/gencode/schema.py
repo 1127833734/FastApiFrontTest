@@ -1,8 +1,7 @@
 import re
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
@@ -286,16 +285,8 @@ class GenTableQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     - 空值将被忽略，不参与过滤。
     """
 
-    table_name: str | tuple[str, str] | None = Field(None, description="表名称")
-    table_comment: str | tuple[str, str] | None = Field(None, description="表注释")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    table_name: str | None = Field(None, description="表名称")
+    table_comment: str | None = Field(None, description="表注释")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "GenTableQueryParam":
-        if isinstance(self.table_name, str):
-            self.table_name = (QueueEnum.like.value, self.table_name)
-        if isinstance(self.table_comment, str):
-            self.table_comment = (QueueEnum.like.value, self.table_comment)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+

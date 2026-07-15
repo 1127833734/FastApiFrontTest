@@ -4,11 +4,10 @@
 from typing import List
 {% endif %}
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 {% for import_stmt in schema_import_list %}
 {{ import_stmt }}
 {% endfor %}
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema, BaseQueryParam, TenantByQueryParam, UserByQueryParam
 
 class {{ class_name }}CreateSchema(BaseModel):
@@ -54,16 +53,3 @@ class {{ class_name }}QueryParam(BaseQueryParam, UserByQueryParam, TenantByQuery
     {{ column.column_name }}: {{ column.python_type }} | None = Field(None, description="{{ column.column_comment }}")
     {% endif %}
     {% endfor %}
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "{{ class_name }}QueryParam":
-        {% for column in columns %}
-        {% if column.is_query and column.query_type == 'LIKE' and column.column_name not in ['created_time', 'updated_time', 'created_id', 'updated_id', 'tenant_id', 'is_deleted', 'deleted_time', 'deleted_id'] %}
-        if self.{{ column.column_name }}:
-            self.{{ column.column_name }} = (QueueEnum.like.value, self.{{ column.column_name }})
-        {% elif column.is_query and column.query_type == 'EQ' and column.column_name not in ['created_time', 'updated_time', 'created_id', 'updated_id', 'tenant_id', 'is_deleted', 'deleted_time', 'deleted_id'] %}
-        if self.{{ column.column_name }} is not None:
-            self.{{ column.column_name }} = (QueueEnum.eq.value, self.{{ column.column_name }})
-        {% endif %}
-        {% endfor %}
-        return self

@@ -1,6 +1,7 @@
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
@@ -76,7 +77,12 @@ class MenuService:
         search: MenuQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[dict]:
-        menu_list = await MenuCRUD(self.auth, self.db).tree_list(search=search_to_dict(search), order_by=order_by)
+        # 递归预加载所有层级 children（避免 Pydantic 校验时异步懒加载失败）
+        from .model import MenuModel
+        _loader = selectinload(MenuModel.children)
+        for _ in range(10):
+            _loader = _loader.selectinload(MenuModel.children)
+        menu_list = await MenuCRUD(self.auth, self.db).tree_list(search=search_to_dict(search), order_by=order_by, preload=[_loader])
         menu_dict_list = [MenuTreeOutSchema.model_validate(menu).model_dump() for menu in menu_list]
         return traversal_to_tree(menu_dict_list)
 

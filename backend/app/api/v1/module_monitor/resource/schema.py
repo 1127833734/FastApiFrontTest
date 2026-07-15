@@ -9,9 +9,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.common.enums import QueueEnum
-
-
 class ResourceItemSchema(BaseModel):
     """资源项目模型"""
 
@@ -186,13 +183,7 @@ class ResourceCreateDirSchema(BaseModel):
 class ResourceSearchQueryParam(BaseModel):
     """资源搜索查询参数"""
 
-    name: str | tuple[str, str] | None = Field(None, description="搜索关键词")
-    path: str | tuple[str, str] | None = Field(None, description="目录路径")
+    name: str | None = Field(None, description="搜索关键词")
+    path: str | None = Field(None, description="目录路径")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "ResourceSearchQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.path, str):
-            self.path = (QueueEnum.like.value, self.path)
-        return self
+

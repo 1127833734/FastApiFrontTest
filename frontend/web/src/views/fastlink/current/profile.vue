@@ -244,7 +244,7 @@
           </ElForm>
 
           <div class="px-5 pb-4">
-            <ElButton text size="small" @click="router.push('/module_system/log')">
+            <ElButton text size="small" @click="router.push('/system/log')">
               <FaSvgIcon icon="ri:history-line" class="mr-1" />查看登录日志
             </ElButton>
           </div>

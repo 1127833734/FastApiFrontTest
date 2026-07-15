@@ -24,7 +24,7 @@ _DEPT_NS = "dept"
 async def get_dept_tree_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dept:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[DeptQueryParam, Query(description="部门查询参数")],
+    search: Annotated[DeptQueryParam, Query()],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
     result_dict_tree = await DeptService(auth, db).tree(search=search, order_by=order_by)

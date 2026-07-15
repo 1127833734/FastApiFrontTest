@@ -36,13 +36,12 @@ async def create_token_controller(
     result = await ApiTokenService(auth, db).create(data=data)
     return SuccessResponse(data=result, msg="创建 token 成功")
 
-
 @ApiTokenRouter.get("/list", summary="查询 token 列表", response_model=ResponseSchema[PageResultSchema[ApiTokenOutSchema]])
 async def get_token_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:api_token:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[ApiTokenQueryParam, Query(description="查询参数")],
+    search: Annotated[ApiTokenQueryParam, Query()],
 ) -> JSONResponse:
     result = await ApiTokenService(auth, db).page(
         page_no=page.page_no,

@@ -100,7 +100,7 @@ async def remove_job_controller(
 async def get_job_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[JobQueryParam, Query(description="查询参数")],
+    search: Annotated[JobQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await JobService(auth, db).get_job_log_page(

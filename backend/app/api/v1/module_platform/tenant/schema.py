@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.common.enums import OrderTypeEnum, QueueEnum
+from app.common.enums import OrderTypeEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
@@ -172,19 +172,9 @@ class TenantCreateResult(BaseModel):
 class TenantQueryParam(BaseQueryParam):
     """租户查询参数"""
 
-    name: str | tuple[str, str] | None = Field(None, description="租户名称")
-    code: str | tuple[str, str] | None = Field(None, description="租户编码")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "TenantQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.code, str):
-            self.code = (QueueEnum.like.value, self.code)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    name: str | None = Field(None, description="租户名称")
+    code: str | None = Field(None, description="租户编码", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
 
 class TenantUserAddSchema(BaseModel):

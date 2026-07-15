@@ -25,7 +25,7 @@ _STATS_NS = "online_stats"
 async def get_online_list_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[OnlineQueryParam, Query(description="在线用户查询参数")],
+    search: Annotated[OnlineQueryParam, Query()],
 ) -> JSONResponse:
     result_dict_list = await OnlineService.get_online_list(redis=redis, search=search)
     result_dict = await PaginationService.paginate(

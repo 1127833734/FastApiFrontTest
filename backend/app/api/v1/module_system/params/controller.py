@@ -32,7 +32,7 @@ async def get_param_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[ParamsQueryParam, Query(description="参数查询参数")],
+    search: Annotated[ParamsQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await ParamsService(auth, db).page(
         page_no=page.page_no,
@@ -92,7 +92,7 @@ async def batch_set_status_controller(
 async def export_param_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[ParamsQueryParam, Query(description="参数查询参数")],
+    search: Annotated[ParamsQueryParam, Query()],
 ) -> StreamingResponse:
     result_dict_list = await ParamsService(auth, db).get_list(search=search)
     export_data = [item.model_dump() for item in result_dict_list]

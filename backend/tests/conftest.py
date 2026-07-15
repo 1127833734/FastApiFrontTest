@@ -181,6 +181,10 @@ async def _test_lifespan(app) -> AsyncGenerator[Any, None]:
         await db.execute(update(UserModel).where(UserModel.username == "admin").values(password=PwdUtil.hash_password("admin123")))
         await db.commit()
 
+    # 注册限流器（否则中间件访问 app.state.limiter 报 AttributeError）
+    from app.core.http_limit import limiter as _limiter
+    app.state.limiter = _limiter
+
     yield
 
 

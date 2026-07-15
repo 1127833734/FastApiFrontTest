@@ -1,6 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum, TicketTypeEnum
+from app.common.enums import TicketTypeEnum
 from app.core.base_schema import (
     BaseQueryParam,
     BaseSchema,
@@ -86,22 +86,10 @@ class TicketBatchSchema(BaseModel):
 class TicketQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """工单查询参数"""
 
-    title: str | tuple[str, str] | None = Field(None, description="工单标题")
-    ticket_type: str | tuple[str, str] | None = Field(None, description="工单类型")
-    assigned_id: int | tuple[str, int] | None = Field(None, description="处理人ID")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "TicketQueryParam":
-        if isinstance(self.title, str):
-            self.title = (QueueEnum.like.value, self.title)
-        if isinstance(self.ticket_type, str):
-            self.ticket_type = (QueueEnum.like.value, self.ticket_type)
-        if isinstance(self.assigned_id, int):
-            self.assigned_id = (QueueEnum.eq.value, self.assigned_id)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    title: str | None = Field(None, description="工单标题")
+    ticket_type: str | None = Field(None, description="工单类型", json_schema_extra={"q": "eq"})
+    assigned_id: int | None = Field(None, description="处理人ID")
+    status: int | None = Field(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)")
 
 
 class TicketCommentCreateSchema(BaseModel):

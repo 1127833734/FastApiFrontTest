@@ -26,7 +26,7 @@ async def get_role_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:role:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[RoleQueryParam, Query(description="角色查询参数")],
+    search: Annotated[RoleQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await RoleService(auth, db).page(
         page_no=page.page_no,
@@ -116,7 +116,7 @@ async def get_role_options_controller(
 async def export_role_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:role:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[RoleQueryParam, Query(description="角色查询参数")],
+    search: Annotated[RoleQueryParam, Query()],
 ) -> StreamingResponse:
     role_query_result = await RoleService(auth, db).get_list(search=search)
     role_export_result = RoleService.export_list(role_list=[item.model_dump() for item in role_query_result])

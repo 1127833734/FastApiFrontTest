@@ -63,25 +63,11 @@ class LoginLogQueryParam(BaseQueryParam, TenantByQueryParam):
 class OperationLogQueryParam(BaseQueryParam, TenantByQueryParam):
     """操作日志查询参数"""
 
-    request_path: str | tuple[str, str] | None = Field(None, description="请求路径")
-    request_method: str | tuple[str, str] | None = Field(None, description="请求方式")
-    username: str | tuple[str, str] | None = Field(None, description="用户名")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:成功 1:失败)")
-    request_ip: str | tuple[str, str] | None = Field(None, description="请求IP")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "OperationLogQueryParam":
-        if isinstance(self.request_path, str):
-            self.request_path = (QueueEnum.like.value, self.request_path)
-        if isinstance(self.request_method, str):
-            self.request_method = (QueueEnum.eq.value, self.request_method)
-        if isinstance(self.username, str):
-            self.username = (QueueEnum.like.value, self.username)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        if isinstance(self.request_ip, str):
-            self.request_ip = (QueueEnum.eq.value, self.request_ip)
-        return self
+    request_path: str | None = Field(None, description="请求路径")
+    request_method: str | None = Field(None, description="请求方式", json_schema_extra={"q": "eq"})
+    username: str | None = Field(None, description="用户名")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:成功 1:失败)")
+    request_ip: str | None = Field(None, description="请求IP")
 
 
 class OperationLogOutSchema(BaseSchema, TenantBySchema):

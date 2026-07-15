@@ -58,5 +58,8 @@ def setup_logger() -> None:
     for name in ("apscheduler", "apscheduler.schedulers", "apscheduler.jobstores"):
         logging.getLogger(name).setLevel(logging.WARNING)
 
+    # uvicorn.access 日志与 RequestLogMiddleware 重复，关闭以避免重复
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
 
 setup_logger()

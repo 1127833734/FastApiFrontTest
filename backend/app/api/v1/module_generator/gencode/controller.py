@@ -21,7 +21,7 @@ GenRouter = APIRouter(route_class=OperationLogRoute, prefix="/gencode", tags=["�
 async def gen_table_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_generator:gencode:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[GenTableQueryParam, Query(description="查询参数")],
+    search: Annotated[GenTableQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     order_by = [{"created_time": "desc"}]
@@ -40,7 +40,7 @@ async def gen_table_list_controller(
 async def get_gen_db_table_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_generator:dblist:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[GenTableQueryParam, Query(description="查询参数")],
+    search: Annotated[GenTableQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await GenTableService(auth, db).get_gen_db_table_page(

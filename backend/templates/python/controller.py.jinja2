@@ -51,7 +51,7 @@ async def get_obj_detail_controller(
 )
 async def get_obj_list_controller(
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[{{ class_name }}QueryParam, Depends()],
+    search: Annotated[{{ class_name }}QueryParam, Query()],
     auth: Annotated[AuthSchema, Security(AuthPermission(["{{ permission_prefix }}:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:

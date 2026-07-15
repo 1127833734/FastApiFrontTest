@@ -26,7 +26,7 @@ async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:position:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[PositionQueryParam, Query(description="岗位查询参数")],
+    search: Annotated[PositionQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await PositionService(auth, db).page(
         page_no=page.page_no,
@@ -105,7 +105,7 @@ async def get_position_options_controller(
 async def export_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:position:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[PositionQueryParam, Query(description="岗位查询参数")],
+    search: Annotated[PositionQueryParam, Query()],
 ) -> StreamingResponse:
     position_query_result = await PositionService(auth, db).get_list(search=search)
     position_export_result = PositionService.export_list(position_list=[item.model_dump() for item in position_query_result])

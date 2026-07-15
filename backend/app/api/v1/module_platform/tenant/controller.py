@@ -54,7 +54,7 @@ async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:tenant:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[TenantQueryParam, Depends()],
+    search: Annotated[TenantQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await TenantService(auth, db).page(
         page_no=page.page_no,

@@ -44,11 +44,12 @@ class PackageService:
         search: PackageQueryParam | None = None,
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[PackageOutSchema]:
+        search_dict = search_to_dict(search)
         return await PackageCRUD(self.auth, self.db).page(
             offset=(page_no - 1) * page_size,
             limit=page_size,
             order_by=order_by or [{"sort": "asc"}, {"id": "asc"}],
-            search=search_to_dict(search),
+            search=search_dict,
             out_schema=PackageOutSchema,
         )
 

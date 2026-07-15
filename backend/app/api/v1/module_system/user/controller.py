@@ -98,7 +98,7 @@ async def get_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[UserQueryParam, Query(description="用户查询参数")],
+    search: Annotated[UserQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await UserService(auth, db).page(
         page_no=page.page_no,
@@ -179,7 +179,7 @@ async def export_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[UserQueryParam, Query(description="用户查询参数")],
+    search: Annotated[UserQueryParam, Query()],
 ) -> StreamingResponse:
     user_list = await UserService(auth, db).get_list(search=search, order_by=page.order_by)
     user_export_result = UserService.export_list(user_list=[item.model_dump() for item in user_list])

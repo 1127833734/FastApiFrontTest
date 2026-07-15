@@ -24,7 +24,7 @@ _MENU_NS = "menu"
 async def get_menu_tree_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:menu:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[MenuQueryParam, Query(description="菜单查询参数")],
+    search: Annotated[MenuQueryParam, Query()],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
     result_dict_tree = await MenuService(auth, db).tree(search=search, order_by=order_by)

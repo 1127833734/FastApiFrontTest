@@ -40,7 +40,7 @@ async def get_obj_detail_controller(
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:node:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[NodeQueryParam, Query(description="查询参数")],
+    search: Annotated[NodeQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     service = NodeService(auth, db)

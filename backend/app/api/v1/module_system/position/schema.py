@@ -1,6 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
@@ -50,13 +49,5 @@ class PositionOutSchema(PositionCreateSchema, BaseSchema, UserBySchema, TenantBy
 class PositionQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """岗位管理查询参数"""
 
-    name: str | tuple[str, str] | None = Field(None, description="岗位名称")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "PositionQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    name: str | None = Field(None, description="岗位名称")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")

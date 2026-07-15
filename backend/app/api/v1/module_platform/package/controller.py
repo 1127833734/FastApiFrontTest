@@ -44,7 +44,7 @@ async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_package:package:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[PackageQueryParam, Query(description="查询参数")],
+    search: Annotated[PackageQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await PackageService(auth, db).page(
         page_no=page.page_no,

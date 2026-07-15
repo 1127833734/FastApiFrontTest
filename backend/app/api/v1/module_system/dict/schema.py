@@ -8,7 +8,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
@@ -81,19 +80,9 @@ class DictTypeOutSchema(DictTypeCreateSchema, BaseSchema, UserBySchema, TenantBy
 class DictTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典类型查询参数"""
 
-    dict_name: str | tuple[str, str] | None = Field(default=None, description="字典名称", max_length=100)
-    dict_type: str | tuple[str, str] | None = Field(default=None, description="字典类型", max_length=100)
-    status: int | tuple[str, int] | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "DictTypeQueryParam":
-        if isinstance(self.dict_name, str):
-            self.dict_name = (QueueEnum.like.value, self.dict_name)
-        if isinstance(self.dict_type, str):
-            self.dict_type = (QueueEnum.eq.value, self.dict_type)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    dict_name: str | None = Field(default=None, description="字典名称", max_length=100)
+    dict_type: str | None = Field(default=None, description="字典类型", max_length=100, json_schema_extra={"q": "eq"})
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
 
 class DictDataCreateSchema(BaseModel):
@@ -158,19 +147,7 @@ class DictDataOutSchema(DictDataCreateSchema, BaseSchema, UserBySchema, TenantBy
 class DictDataQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """字典数据查询参数"""
 
-    dict_label: str | tuple[str, str] | None = Field(default=None, description="字典标签", max_length=100)
-    dict_type: str | tuple[str, str] | None = Field(default=None, description="字典类型", max_length=100)
-    dict_type_id: int | tuple[str, int] | None = Field(default=None, description="字典类型ID")
-    status: int | tuple[str, int] | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "DictDataQueryParam":
-        if isinstance(self.dict_label, str):
-            self.dict_label = (QueueEnum.like.value, self.dict_label)
-        if isinstance(self.dict_type, str):
-            self.dict_type = (QueueEnum.eq.value, self.dict_type)
-        if isinstance(self.dict_type_id, int):
-            self.dict_type_id = (QueueEnum.eq.value, self.dict_type_id)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    dict_label: str | None = Field(default=None, description="字典标签", max_length=100)
+    dict_type: str | None = Field(default=None, description="字典类型", max_length=100, json_schema_extra={"q": "eq"})
+    dict_type_id: int | None = Field(default=None, description="字典类型ID")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")

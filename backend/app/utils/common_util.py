@@ -87,7 +87,8 @@ def search_to_dict(search: Any, default: Any = None) -> dict | None:
     """将 Pydantic 查询模型转为参数字典。
 
     - search 为 None 时返回 default（默认 None）。
-    - search 非空时调用 vars() 提取字段字典。
+    - search 非空时调用 model_dump() 提取字段字典，排除 None 值。
+    - 自动将 json_schema_extra={"q": "eq"} 标记的字符串字段转为 ("eq", value) 元组。
 
     参数:
     - search: Pydantic 查询模型或 None。
@@ -96,7 +97,16 @@ def search_to_dict(search: Any, default: Any = None) -> dict | None:
     返回:
     - dict | None: 查询参数字典或 None。
     """
-    return vars(search) if search else default
+    if not search:
+        return default
+    d = search.model_dump(exclude_none=True)
+    for field_name, field_info in search.model_fields.items():
+        if field_name not in d or not isinstance(d[field_name], str):
+            continue
+        q_op = (field_info.json_schema_extra or {}).get("q")
+        if q_op == "eq":
+            d[field_name] = ("eq", d[field_name])
+    return d
 
 
 def get_parent_id_map(model_list: Sequence[DeclarativeBase]) -> dict[int, int]:

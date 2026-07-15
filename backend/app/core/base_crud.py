@@ -496,6 +496,12 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             attr = getattr(self.model, key)
             if isinstance(value, tuple):
                 conditions.extend(self._resolve_condition(attr, value))
+            elif isinstance(value, str):
+                conditions.append(attr.like(f"%{value}%"))
+            elif isinstance(value, (int, bool)):
+                conditions.append(attr == value)
+            elif isinstance(value, list) and len(value) == 2:
+                conditions.append(attr.between(value[0], value[1]))
             else:
                 conditions.append(attr == value)
         return conditions
@@ -571,22 +577,26 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         返回:
         - 预加载选项列表
         """
-        options: list[Any] = []
         model_loader_options = getattr(self.model, "__loader_options__", [])
 
-        all_preloads: set[str | Any] = set(model_loader_options)
+        if preload == []:
+            return []
+
+        # 收集所有需要预加载的关系名
+        names: set[str] = set(model_loader_options)
         if preload:
             for opt in preload:
                 if isinstance(opt, str):
-                    all_preloads.add(opt)
-        elif preload == []:
-            all_preloads = set()
+                    names.add(opt)
 
-        for opt in all_preloads:
-            if isinstance(opt, str):
-                if hasattr(self.model, opt):
-                    options.append(selectinload(getattr(self.model, opt)))
-            else:
-                options.append(opt)
+        # 字符串名 → selectinload
+        options: list[Any] = []
+        for name in names:
+            if hasattr(self.model, name):
+                options.append(selectinload(getattr(self.model, name)))
+
+        # 非字符串预加载项直接追加（如递归 selectinload）
+        if preload:
+            options.extend(opt for opt in preload if not isinstance(opt, str))
 
         return options

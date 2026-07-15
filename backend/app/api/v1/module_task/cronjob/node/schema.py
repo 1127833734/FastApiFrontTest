@@ -8,7 +8,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import datetime_validator
 
@@ -72,16 +71,8 @@ class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
 class NodeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """节点查询参数"""
 
-    name: str | tuple[str, str] | None = Field(None, description="节点名称")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "NodeQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    name: str | None = Field(None, description="节点名称")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
 
 class NodeExecuteSchema(BaseModel):

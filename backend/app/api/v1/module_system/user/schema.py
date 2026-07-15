@@ -11,7 +11,6 @@ from pydantic import (
 
 from app.api.v1.module_platform.menu.schema import MenuTreeOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.core.validator import email_validator, mobile_validator
 
@@ -262,29 +261,13 @@ class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 
-    username: str | tuple[str, str] | None = Field(None, description="用户名")
-    name: str | tuple[str, str] | None = Field(None, description="名称")
-    mobile: str | tuple[str, str] | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
-    email: str | tuple[str, str] | None = Field(
+    username: str | None = Field(None, description="用户名")
+    name: str | None = Field(None, description="名称")
+    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
+    email: str | None = Field(
         None,
         description="邮箱",
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
     )
-    dept_id: int | tuple[str, int] | None = Field(None, description="部门ID")
-    status: int | tuple[str, int] | None = Field(None, description="是否可用")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "UserQueryParam":
-        if isinstance(self.username, str):
-            self.username = (QueueEnum.like.value, self.username)
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.mobile, str):
-            self.mobile = (QueueEnum.like.value, self.mobile)
-        if isinstance(self.email, str):
-            self.email = (QueueEnum.like.value, self.email)
-        if isinstance(self.dept_id, int):
-            self.dept_id = (QueueEnum.eq.value, self.dept_id)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    dept_id: int | None = Field(None, description="部门ID")
+    status: int | None = Field(None, description="是否可用")

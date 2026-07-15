@@ -56,7 +56,7 @@ async def order_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_platform:order:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[OrderQueryParam, Query(description="查询参数")],
+    search: Annotated[OrderQueryParam, Query()],
 ) -> JSONResponse:
     items, total = await OrderService.get_list(
         auth=auth,

@@ -6,7 +6,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 from app.utils.xss_util import sanitize_html
 
@@ -63,16 +62,6 @@ class NoticeOutSchema(NoticeCreateSchema, BaseSchema, UserBySchema, TenantBySche
 class NoticeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """公告通知查询参数"""
 
-    notice_title: str | tuple[str, str] | None = Field(None, description="公告标题")
-    notice_type: str | tuple[str, str] | None = Field(None, description="公告类型")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "NoticeQueryParam":
-        if isinstance(self.notice_title, str):
-            self.notice_title = (QueueEnum.like.value, self.notice_title)
-        if isinstance(self.notice_type, str):
-            self.notice_type = (QueueEnum.eq.value, self.notice_type)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    notice_title: str | None = Field(None, description="公告标题")
+    notice_type: str | None = Field(None, description="公告类型", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")

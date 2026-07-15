@@ -41,7 +41,7 @@ async def get_workflow_node_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:workflow:nodes:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[WorkflowNodeTypeQueryParam, Query(description="查询参数")],
+    search: Annotated[WorkflowNodeTypeQueryParam, Query()],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth, db)
     result_dict = await service.get_page(

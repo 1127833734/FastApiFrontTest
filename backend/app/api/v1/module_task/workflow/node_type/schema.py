@@ -2,7 +2,6 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
@@ -65,22 +64,10 @@ class WorkflowNodeTypeOutSchema(WorkflowNodeTypeCreateSchema, BaseSchema, UserBy
 class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """查询"""
 
-    name: str | tuple[str, str] | None = Field(None, description="名称")
-    code: str | tuple[str, str] | None = Field(None, description="编码")
-    category: str | tuple[str, str] | None = Field(None, description="分类")
-    is_active: bool | tuple[str, bool] | None = Field(None, description="是否启用")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="名称")
+    code: str | None = Field(None, description="编码", json_schema_extra={"q": "eq"})
+    category: str | None = Field(None, description="分类", json_schema_extra={"q": "eq"})
+    is_active: bool | None = Field(None, description="是否启用")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "WorkflowNodeTypeQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.code, str):
-            self.code = (QueueEnum.like.value, self.code)
-        if isinstance(self.category, str):
-            self.category = (QueueEnum.eq.value, self.category)
-        if isinstance(self.is_active, bool):
-            self.is_active = (QueueEnum.eq.value, self.is_active)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+

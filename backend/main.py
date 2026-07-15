@@ -9,7 +9,6 @@ from fastapi import FastAPI
 from alembic import command
 from app.common.enums import EnvironmentEnum
 from app.config.setting import settings
-from app.core.logger import logger
 from app.utils.banner import worship
 
 fastapiadmin_cli = typer.Typer()

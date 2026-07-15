@@ -1,8 +1,7 @@
 import re
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
 
 
@@ -51,19 +50,7 @@ class ParamsQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """参数管理查询参数
     """
 
-    config_name: str | tuple[str, str] | None = Field(None, description="参数名称")
-    config_key: str | tuple[str, str] | None = Field(None, description="参数键名")
-    config_type: bool | tuple[str, bool] | None = Field(None, description="是否系统内置(True:是 False:否)")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "ParamsQueryParam":
-        if isinstance(self.config_name, str):
-            self.config_name = (QueueEnum.like.value, self.config_name)
-        if isinstance(self.config_key, str):
-            self.config_key = (QueueEnum.like.value, self.config_key)
-        if isinstance(self.config_type, bool):
-            self.config_type = (QueueEnum.eq.value, self.config_type)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    config_name: str | None = Field(None, description="参数名称")
+    config_key: str | None = Field(None, description="参数键名", json_schema_extra={"q": "eq"})
+    config_type: bool | None = Field(None, description="是否系统内置(True:是 False:否)")
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")

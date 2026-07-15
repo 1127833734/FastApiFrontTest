@@ -178,53 +178,29 @@ class PaginationQueryParam(BaseModel):
 class BaseQueryParam(BaseModel):
     """created_time + updated_time —— 子类自动继承"""
 
-    created_time: list[DateTimeStr] | tuple[str, tuple[DateTimeStr, DateTimeStr]] | None = Field(
+    created_time: list[DateTimeStr] | None = Field(
         None,
         description="创建时间范围",
         examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
     )
-    updated_time: list[DateTimeStr] | tuple[str, tuple[DateTimeStr, DateTimeStr]] | None = Field(
+    updated_time: list[DateTimeStr] | None = Field(
         None,
         description="更新时间范围",
         examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
     )
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "BaseQueryParam":
-        ct = self.created_time
-        if isinstance(ct, list) and len(ct) == 2:
-            self.created_time = ("between", (ct[0], ct[1]))
-        ut = self.updated_time
-        if isinstance(ut, list) and len(ut) == 2:
-            self.updated_time = ("between", (ut[0], ut[1]))
-        return self
-
 
 class UserByQueryParam(BaseModel):
     """created_id + updated_id —— 子类自动继承"""
 
-    created_id: int | tuple[str, int] | None = Field(None, description="创建人")
-    updated_id: int | tuple[str, int] | None = Field(None, description="更新人")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "UserByQueryParam":
-        if isinstance(self.created_id, int):
-            self.created_id = ("eq", self.created_id)
-        if isinstance(self.updated_id, int):
-            self.updated_id = ("eq", self.updated_id)
-        return self
+    created_id: int | None = Field(None, description="创建人")
+    updated_id: int | None = Field(None, description="更新人")
 
 
 class TenantByQueryParam(BaseModel):
     """tenant_id —— 子类自动继承"""
 
-    tenant_id: int | tuple[str, int] | None = Field(None, description="租户ID")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "TenantByQueryParam":
-        if isinstance(self.tenant_id, int):
-            self.tenant_id = ("eq", self.tenant_id)
-        return self
+    tenant_id: int | None = Field(None, description="租户ID")
 
 
 class OptionSchema(BaseModel):

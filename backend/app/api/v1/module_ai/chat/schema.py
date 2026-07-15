@@ -1,8 +1,7 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, TenantByQueryParam, UserByQueryParam
 
 
@@ -57,13 +56,9 @@ class ChatSessionMessageSchema(BaseModel):
 class ChatSessionQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
     """会话查询参数"""
 
-    title: str | tuple[str, str] | None = Field(None, description="会话标题")
+    title: str | None = Field(None, description="会话标题")
 
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "ChatSessionQueryParam":
-        if isinstance(self.title, str):
-            self.title = (QueueEnum.like.value, self.title)
-        return self
+
 
 
 class AiChatRequestSchema(BaseModel):

@@ -34,7 +34,7 @@ async def get_notice_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:notice:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[NoticeQueryParam, Query(description="公告查询参数")],
+    search: Annotated[NoticeQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await NoticeService(auth, db).page(
         page_no=page.page_no,

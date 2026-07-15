@@ -1,6 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema
 
 
@@ -93,19 +92,9 @@ class PackageOutSchema(PackageCreateSchema, BaseSchema):
 class PackageQueryParam(BaseQueryParam):
     """套餐查询参数"""
 
-    name: str | tuple[str, str] | None = Field(None, description="套餐名称")
-    code: str | tuple[str, str] | None = Field(None, description="套餐编码")
-    status: int | tuple[str, int] | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "PackageQueryParam":
-        if isinstance(self.name, str):
-            self.name = (QueueEnum.like.value, self.name)
-        if isinstance(self.code, str):
-            self.code = (QueueEnum.like.value, self.code)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    name: str | None = Field(None, description="套餐名称")
+    code: str | None = Field(None, description="套餐编码", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
 
 
 class PackageMenuSetSchema(BaseModel):

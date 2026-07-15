@@ -26,7 +26,7 @@ async def get_version_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:version:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[VersionQueryParam, Query(description="查询参数")],
+    search: Annotated[VersionQueryParam, Query()],
 ) -> JSONResponse:
     service = VersionService(auth, db)
     result = await service.page(page_no=page.page_no, page_size=page.page_size, search=search)
