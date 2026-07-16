@@ -55,7 +55,6 @@ class ApiTokenOutSchema(BaseModel):
     last_used_at: datetime | None
     last_used_ip: str | None
     description: str | None
-    tenant_id: int
     created_id: int | None
     updated_id: int | None
     created_time: datetime | None
@@ -75,7 +74,6 @@ class ApiTokenCreatedSchema(BaseModel):
     expires_at: datetime | None
     rate_limit: int
     status: int
-    tenant_id: int
     created_time: datetime | None
     warning: str = Field(
         default="请立即保存此 token。关闭此页面后将无法再次完整查看明文，如遗失请重置。",

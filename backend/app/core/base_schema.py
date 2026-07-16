@@ -43,15 +43,6 @@ class UserBySchema(BaseModel):
     deleted_by: CommonSchema | None = Field(default=None, description="删除人信息")
 
 
-class TenantBySchema(BaseModel):
-    """租户嵌套出参（不再使用扁平 tenant_id / tenant_name / tenant_code）"""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    tenant_id: int | None = Field(default=None, description="租户ID")
-    tenant_by: CommonSchema | None = Field(default=None, description="租户信息")
-
-
 class BatchSetAvailable(BaseModel):
     """批量设置可用状态的请求模型"""
 
@@ -86,8 +77,6 @@ class SessionInfoSchema(BaseModel):
 
     session_id: str = Field(default="", description="会话ID（Redis key 后缀）")
     user_id: int | None = Field(default=None, description="用户ID")
-    tenant_id: int = Field(default=0, description="租户ID")
-    tenant_status: int = Field(default=0, description="租户状态")
     is_superuser: bool = Field(default=False, description="是否为超级管理员")
     user_status: int = Field(default=0, description="用户状态")
     name: str | None = Field(default=None, description="用户名称")
@@ -98,10 +87,7 @@ class SessionInfoSchema(BaseModel):
     gender: str | None = Field(default=None, description="性别(0:男 1:女 2:未知)")
     avatar: str | None = Field(default=None, description="头像")
     permissions: list[str] = Field(default_factory=list, description="用户权限列表")
-    permissions_with_menu: dict[str, int] = Field(default_factory=dict, description="权限→菜单ID映射")
     menu_ids: list[int] = Field(default_factory=list, description="菜单ID列表")
-    data_scopes: list[int] = Field(default_factory=list, description="数据权限范围")
-    custom_dept_ids: list[int] = Field(default_factory=list, description="自定义部门ID")
     ipaddr: str | None = Field(default=None, description="登陆IP地址")
     login_location: str | None = Field(default=None, description="登录所属地")
     os: str | None = Field(default=None, description="操作系统")
@@ -197,12 +183,6 @@ class UserByQueryParam(BaseModel):
     updated_id: int | None = Field(None, description="更新人")
 
 
-class TenantByQueryParam(BaseModel):
-    """tenant_id —— 子类自动继承"""
-
-    tenant_id: int | None = Field(None, description="租户ID")
-
-
 class OptionSchema(BaseModel):
     """通用下拉选项 Schema，返回 [{value, label}]"""
 
@@ -219,12 +199,10 @@ class CoreUserSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(default=0, description="用户ID")
-    tenant_id: int = Field(default=0, description="租户ID")
     username: str | None = Field(default=None, description="用户名")
     name: str | None = Field(default=None, description="名称")
     dept_id: int | None = Field(default=None, description="部门ID")
     is_superuser: bool = Field(default=False, description="是否超管")
-    token_version: int = Field(default=0, description="令牌版本（用于校验旧 token 失效）")
 
 
 class AuthSchema(BaseModel):
@@ -233,13 +211,5 @@ class AuthSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     user: CoreUserSchema = Field(default_factory=CoreUserSchema, description="用户信息", exclude=True)
-    check_data_scope: bool = Field(default=True, description="是否检查数据权限")
-
-    # 以下字段从缓存会话中提取，避免裸 dict
     permissions: list[str] = Field(default_factory=list, description="用户权限标识列表")
-    permissions_with_menu: dict[str, int] = Field(default_factory=dict, description="权限标识 → 菜单ID 映射")
     menu_ids: list[int] = Field(default_factory=list, description="角色授权的菜单ID列表")
-    data_scopes: list[int] = Field(default_factory=list, description="数据权限范围列表")
-    custom_dept_ids: list[int] = Field(default_factory=list, description="自定义可见部门ID列表")
-    role_ids: list[int] = Field(default_factory=list, description="用户关联的角色ID列表")
-    is_impersonate: bool = Field(default=False, description="是否模拟登录")

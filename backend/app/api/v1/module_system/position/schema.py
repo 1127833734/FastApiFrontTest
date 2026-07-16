@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
 class PositionCreateSchema(BaseModel):
@@ -40,13 +40,13 @@ class PositionUpdateSchema(PositionCreateSchema):
     """岗位更新模型"""
 
 
-class PositionOutSchema(PositionCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class PositionOutSchema(PositionCreateSchema, BaseSchema, UserBySchema):
     """岗位信息响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class PositionQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class PositionQueryParam(BaseQueryParam, UserByQueryParam):
     """岗位管理查询参数"""
 
     name: str | None = Field(None, description="岗位名称")

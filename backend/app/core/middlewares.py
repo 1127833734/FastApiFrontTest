@@ -21,7 +21,7 @@ from app.config.setting import settings
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
-from app.core.request_context import RequestContext, clear_current_tenant, reset_correlation_id, set_correlation_id, set_current_tenant
+from app.core.request_context import RequestContext, reset_correlation_id, set_correlation_id
 from app.core.security import decode_access_token
 from app.utils.ip_local_util import get_client_ip
 
@@ -33,11 +33,6 @@ MIDDLEWARE_CONFIG_KEYS: tuple[str, ...] = (
     "ip_black_list",
     "operation_log_retention_days",
 )
-
-# 内存缓存（按租户隔离）
-_MID_CONFIG_TTL: float = 60.0
-_mid_config_cache: dict[int, tuple[float, dict]] = {}
-
 
 def _parse_bool(value: object) -> bool:
     """兼容字符串 / 布尔值 / JSON 布尔值的开关字段解析。"""
@@ -91,17 +86,9 @@ def _parse_value(key: str, value: object) -> object:
     return value
 
 
-def invalidate_middleware_config_cache(tenant_id: int | None = None) -> None:
-    """失效中间件内存缓存。tenant_id 为 None 时清空所有租户。"""
-    if tenant_id is None:
-        _mid_config_cache.clear()
-    else:
-        _mid_config_cache.pop(tenant_id, None)
-
-
-async def _load_middleware_config_from_redis(redis: Redis, tenant_id: int = 1) -> dict:
+async def _load_middleware_config_from_redis(redis: Redis) -> dict:
     """从 Redis 批量拉取并解析 MIDDLEWARE_CONFIG_KEYS 中的配置。"""
-    config_keys = [f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{tenant_id}:{key}" for key in MIDDLEWARE_CONFIG_KEYS]
+    config_keys = [f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{key}" for key in MIDDLEWARE_CONFIG_KEYS]
     config_values = await RedisCURD(redis).mget(config_keys)
 
     result: dict[str, Any] = {}
@@ -128,17 +115,6 @@ async def _load_middleware_config_from_redis(redis: Redis, tenant_id: int = 1) -
         result[key] = _parse_value(key, payload.get("config_value"))
 
     return result
-
-
-async def get_middleware_config(redis: Redis, tenant_id: int = 1) -> dict:
-    """获取中间件 / 调度器所需的系统配置（带 60 秒内存缓存，按租户隔离）。"""
-    cached = _mid_config_cache.get(tenant_id)
-    if cached and time.monotonic() - cached[0] < _MID_CONFIG_TTL:
-        return cached[1]
-
-    config = await _load_middleware_config_from_redis(redis, tenant_id)
-    _mid_config_cache[tenant_id] = (time.monotonic(), config)
-    return config
 
 
 def _strip_bearer(authorization: str) -> str | None:
@@ -236,13 +212,12 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     async def _load_config(request: Request) -> dict:
-        """加载中间件配置（带 60 秒内存缓存），失败时返回全部默认值。"""
+        """加载中间件配置，失败时返回全部默认值。"""
         redis = getattr(request.app.state, "redis", None)
         if not redis:
             return dict(_DEFAULT_CONFIG)
         try:
-            tenant_id = await _extract_tenant_from_token(request) or 1
-            return await get_middleware_config(redis, tenant_id)
+            return await _load_middleware_config_from_redis(redis)
         except Exception:
             return dict(_DEFAULT_CONFIG)
 
@@ -282,65 +257,6 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             reset_correlation_id(token)
 
 
-_TENANT_WHITELIST_PREFIXES = ("/docs", "/redoc", "/openapi.json", "/metrics", "/static/")
-_WHITELIST_ALL = (
-    "/api/v1/system/auth/login",
-    "/api/v1/system/auth/captcha",
-    "/api/v1/system/auth/refresh",
-    "/api/v1/health",
-    "/api/v1/common/health",
-) + tuple(settings.TENANT_WHITELIST_PATHS)
-
-
-def _tenant_is_whitelisted(path: str) -> bool:
-    """白名单路径：精确匹配公共接口，前缀匹配文档 / 静态资源。"""
-    for prefix in (*_WHITELIST_ALL, *_TENANT_WHITELIST_PREFIXES):
-        if path == prefix or path.startswith(prefix):
-            return True
-    return False
-
-
-async def _extract_tenant_from_token(request: Request) -> int | None:
-    """从 JWT + Redis 会话解析租户 ID；结果挂到 request.state 上以便本请求内复用。
-
-    返回 None 表示未登录 / 会话过期，调用方应避免回退到平台租户（1）。
-    """
-    if hasattr(request.state, "tenant_id_resolved"):
-        return request.state.tenant_id
-
-    request.state.tenant_id_resolved = True
-    request.state.tenant_id = None
-
-    token = _strip_bearer(request.headers.get("Authorization", ""))
-    if not token:
-        return None
-    try:
-        payload = decode_access_token(token)
-        if not payload or not hasattr(payload, "sub"):
-            return None
-
-        session_id = payload.sub
-        redis = getattr(request.app.state, "redis", None)
-        raw = await await_redis_get(redis, session_id) if redis else None
-        user_info = json.loads(raw) if raw else None
-
-        base = getattr(request.state, "ctx", None) or RequestContext()
-        request.state.ctx = replace(base, jwt_payload=payload, jwt_user_info=user_info)
-        if user_info and user_info.get("tenant_id"):
-            request.state.tenant_id = int(user_info["tenant_id"])
-    except Exception:
-        pass
-    return request.state.tenant_id
-
-
-async def await_redis_get(redis, key: str) -> str | None:
-    """获取用户会话；Redis 不可用时返回 None。"""
-    try:
-        return await RedisCURD(redis).get(f"{RedisInitKeyConfig.USER_SESSION.key}:{key}")
-    except Exception:
-        return None
-
-
 def _is_path_whitelisted(path: str, whitelist: list) -> bool:
     """精确匹配；``*`` 结尾表示前缀通配。"""
     for item in whitelist:
@@ -353,19 +269,3 @@ def _is_path_whitelisted(path: str, whitelist: list) -> bool:
             return True
     return False
 
-
-class TenantMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp) -> None:
-        super().__init__(app)
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.method == "OPTIONS" or _tenant_is_whitelisted(request.url.path):
-            return await call_next(request)
-        try:
-            set_current_tenant(await _extract_tenant_from_token(request))
-        except Exception:
-            logger.exception("租户中间件异常: path={}", request.url.path)
-        try:
-            return await call_next(request)
-        finally:
-            clear_current_tenant()

@@ -1,16 +1,16 @@
 from sqlalchemy import Boolean, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.base_model import ModelMixin, TenantMixin, UserMixin
+from app.core.base_model import ModelMixin, UserMixin
 
 
-class NodeModel(ModelMixin, TenantMixin, UserMixin):
+class NodeModel(ModelMixin, UserMixin):
     """节点类型模型 - 动态定义节点类型
     """
 
     __tablename__: str = "task_node"
-    __table_args__ = (UniqueConstraint("tenant_id", "code"), {"comment": "节点类型表"})
-    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
+    __table_args__ = (UniqueConstraint("code"), {"comment": "节点类型表"})
+    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
     name: Mapped[str] = mapped_column(String(64), nullable=False, comment="节点名称")
     code: Mapped[str] = mapped_column(String(32), nullable=False, comment="节点编码")

@@ -20,8 +20,8 @@ from sqlglot.expressions import (
     Update,
 )
 
-from app.api.v1.module_platform.menu.crud import MenuCRUD
-from app.api.v1.module_platform.menu.schema import MenuCreateSchema
+from app.api.v1.module_system.menu.crud import MenuCRUD
+from app.api.v1.module_system.menu.schema import MenuCreateSchema
 from app.common.constant import GenConstant
 from app.common.enums import QueueEnum
 from app.config.path_conf import BASE_DIR

@@ -2,7 +2,7 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
 class WorkflowNodeTypeCreateSchema(BaseModel):
@@ -55,13 +55,13 @@ class WorkflowNodeTypeUpdateSchema(WorkflowNodeTypeCreateSchema):
     """更新节点类型"""
 
 
-class WorkflowNodeTypeOutSchema(WorkflowNodeTypeCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class WorkflowNodeTypeOutSchema(WorkflowNodeTypeCreateSchema, BaseSchema, UserBySchema):
     """输出（含审计与用户信息）"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam):
     """查询"""
 
     name: str | None = Field(None, description="名称")
@@ -69,5 +69,3 @@ class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQuery
     category: str | None = Field(None, description="分类", json_schema_extra={"q": "eq"})
     is_active: bool | None = Field(None, description="是否启用")
     status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
-
-

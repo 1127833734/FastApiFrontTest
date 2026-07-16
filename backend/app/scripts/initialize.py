@@ -6,9 +6,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.menu.model import MenuModel
-from app.api.v1.module_platform.package.model import PackageMenuModel, PackageModel
-from app.api.v1.module_platform.tenant.model import TenantModel, TenantUserModel
+from app.api.v1.module_system.menu.model import MenuModel
 from app.api.v1.module_system.dept.model import DeptModel
 from app.api.v1.module_system.dict.model import DictDataModel, DictTypeModel
 from app.api.v1.module_system.params.model import ParamsModel
@@ -29,11 +27,8 @@ class InitializeData:
 
     # 按依赖关系排序：先基础表，再关联表
     prepare_init_models: list[type] = [
-        # ── 平台管理：基础表 ──
-        PackageModel,
-        TenantModel,
-        MenuModel,
         # ── 系统管理：基础表 ──
+        MenuModel,
         ParamsModel,
         DeptModel,
         RoleModel,
@@ -42,14 +37,12 @@ class InitializeData:
         UserModel,
         # ── 关联表 ──
         UserRolesModel,
-        TenantUserModel,
-        PackageMenuModel,
         # ── 版本管理 ──
         VersionModel,
     ]
 
     # 树形模型：JSON 含嵌套 children，需递归创建对象
-    _RECURSIVE_TABLES: set[str] = {"platform_menu", "sys_dept"}
+    _RECURSIVE_TABLES: set[str] = {"sys_menu", "sys_dept"}
 
     async def init_db(self) -> None:
         """建表并导入种子数据"""
@@ -73,7 +66,7 @@ class InitializeData:
                 continue
 
             try:
-                # 树形表（platform_menu / sys_dept）：递归创建含 children 的对象
+                # 树形表（sys_menu / sys_dept）：递归创建含 children 的对象
                 if table_name in self._RECURSIVE_TABLES:
                     count = await db.execute(select(func.count()).select_from(model))
                     if count.scalar():

@@ -2,7 +2,7 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
 class GenDBTableSchema(BaseModel):
@@ -238,7 +238,7 @@ class GenTableSchema(BaseModel):
         return s if s else None
 
 
-class GenTableOutSchema(GenTableSchema, BaseSchema, UserBySchema, TenantBySchema):
+class GenTableOutSchema(GenTableSchema, BaseSchema, UserBySchema):
     """业务表输出模型（面向控制器/前端）。"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -279,7 +279,7 @@ class GenSyncPreviewSchema(BaseModel):
     sub: "GenSyncPreviewSchema | None" = Field(default=None, description="子表差异（若配置了主子表）")
 
 
-class GenTableQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class GenTableQueryParam(BaseQueryParam, UserByQueryParam):
     """代码生成业务表查询参数
     - 支持按`table_name`、`table_comment`进行模糊检索（由CRUD层实现like）。
     - 空值将被忽略，不参与过滤。

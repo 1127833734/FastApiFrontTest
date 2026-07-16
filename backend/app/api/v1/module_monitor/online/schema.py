@@ -30,11 +30,7 @@ class DashboardStatsSchema(BaseModel):
     """仪表盘统计数据"""
     online_users: int = 0
     total_users: int = 0
-    total_tenants: int = 0
-    total_orders: int = 0
     today_login_count: int = 0
     today_unique_users: int = 0
     week_user_created: int = 0
-    week_tenant_created: int = 0
-    paid_orders: int = 0
     recent_logins: list[RecentLoginItem] = []

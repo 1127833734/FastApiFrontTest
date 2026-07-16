@@ -2,7 +2,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.tenant.service import TenantService
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.utils.common_util import search_to_dict
@@ -104,9 +103,6 @@ class RoleService:
         obj = await RoleCRUD(self.auth, self.db).get(code=data.code)
         if obj:
             raise CustomException(msg="创建失败，编码已存在")
-
-        # 检查租户配额
-        await TenantService(self.auth, self.db).check_quota(self.auth.user.tenant_id, "role")
 
         new_role = await RoleCRUD(self.auth, self.db).create(data=data)
         return RoleOutSchema.model_validate(new_role)

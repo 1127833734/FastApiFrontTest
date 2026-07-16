@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateTimeStr
 
 
@@ -51,7 +51,7 @@ class WorkflowUpdateSchema(WorkflowCreateSchema):
         return v
 
 
-class WorkflowOutSchema(BaseSchema, UserBySchema, TenantBySchema):
+class WorkflowOutSchema(BaseSchema, UserBySchema):
     """工作流输出（status 表示流程状态 draft/published/archived，与 ModelMixin.status 区分）"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -90,7 +90,7 @@ class WorkflowOutSchema(BaseSchema, UserBySchema, TenantBySchema):
         return data
 
 
-class WorkflowQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class WorkflowQueryParam(BaseQueryParam, UserByQueryParam):
     """工作流查询"""
 
     name: str | None = Field(None, description="流程名称")

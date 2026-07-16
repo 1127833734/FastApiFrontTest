@@ -5,8 +5,6 @@ from redis.asyncio.client import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.order.model import OrderModel
-from app.api.v1.module_platform.tenant.model import TenantModel
 from app.api.v1.module_system.log.model import LoginLogModel
 from app.api.v1.module_system.user.model import UserModel
 from app.common.enums import RedisInitKeyConfig
@@ -93,24 +91,6 @@ class OnlineService:
         )
         user_week_count = (await db.execute(users_week_sql)).scalar() or 0
 
-        tenants_sql = select(func.count()).select_from(TenantModel).where(TenantModel.is_deleted.is_(False))
-        tenant_count = (await db.execute(tenants_sql)).scalar() or 0
-
-        tenants_week_sql = (
-            select(func.count()).select_from(TenantModel)
-            .where(TenantModel.is_deleted.is_(False), TenantModel.created_time >= week_start)
-        )
-        tenant_week_count = (await db.execute(tenants_week_sql)).scalar() or 0
-
-        orders_sql = select(func.count()).select_from(OrderModel).where(OrderModel.is_deleted.is_(False))
-        order_count = (await db.execute(orders_sql)).scalar() or 0
-
-        paid_sql = (
-            select(func.count()).select_from(OrderModel)
-            .where(OrderModel.is_deleted.is_(False), OrderModel.status == 1)
-        )
-        paid_count = (await db.execute(paid_sql)).scalar() or 0
-
         today_login_sql = (
             select(func.count()).select_from(LoginLogModel)
             .where(LoginLogModel.created_time >= today_start)
@@ -141,13 +121,9 @@ class OnlineService:
         result = DashboardStatsSchema(
             online_users=online_count,
             total_users=user_count,
-            total_tenants=tenant_count,
-            total_orders=order_count,
             today_login_count=today_login_count,
             today_unique_users=today_unique_count,
             week_user_created=user_week_count,
-            week_tenant_created=tenant_week_count,
-            paid_orders=paid_count,
             recent_logins=recent_logins,
         )
         return result

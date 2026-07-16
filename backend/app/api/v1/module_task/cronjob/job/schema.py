@@ -5,7 +5,7 @@ from pydantic import (
     field_validator,
 )
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
 class JobCreateSchema(BaseModel):
@@ -50,18 +50,16 @@ class JobUpdateSchema(BaseModel):
     error: str | None = Field(default=None, description="错误信息")
 
 
-class JobOutSchema(JobCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class JobOutSchema(JobCreateSchema, BaseSchema, UserBySchema):
     """执行日志响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class JobQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class JobQueryParam(BaseQueryParam, UserByQueryParam):
     """执行日志查询参数"""
 
     job_id: str | None = Field(None, description="任务ID")
     job_name: str | None = Field(None, description="任务名称")
     trigger_type: str | None = Field(None, description="触发方式", json_schema_extra={"q": "eq"})
     status: int | None = Field(None, ge=0, le=5, description="执行状态(0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消)")
-
-

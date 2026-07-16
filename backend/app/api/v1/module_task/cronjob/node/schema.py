@@ -1,14 +1,8 @@
 import re
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import datetime_validator
 
 
@@ -59,7 +53,7 @@ class NodeUpdateSchema(NodeCreateSchema):
     """节点更新模型"""
 
 
-class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema):
     """节点响应模型"""
 
     trigger: str | None = Field(default=None, description="触发器")
@@ -68,7 +62,7 @@ class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-class NodeQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class NodeQueryParam(BaseQueryParam, UserByQueryParam):
     """节点查询参数"""
 
     name: str | None = Field(None, description="节点名称")

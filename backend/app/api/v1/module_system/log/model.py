@@ -2,7 +2,7 @@ from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.config.setting import settings
-from app.core.base_model import ModelMixin, TenantMixin
+from app.core.base_model import ModelMixin
 
 
 def get_log_text_column_type():
@@ -20,14 +20,13 @@ def get_log_text_column_type():
     return Text
 
 
-class LoginLogModel(ModelMixin, TenantMixin):
+class LoginLogModel(ModelMixin):
     """登录日志模型
     """
 
     __tablename__: str = "sys_login_log"
     __table_args__: dict[str, str] = {"comment": "登录日志表"}
-    __loader_options__: list[str] = ["tenant_by"]
-
+    
     status: Mapped[int] = mapped_column(Integer, default=1, comment="登录状态(1成功 2失败)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     username: Mapped[str] = mapped_column(String(64), nullable=False, comment="用户名")
@@ -38,14 +37,14 @@ class LoginLogModel(ModelMixin, TenantMixin):
     msg: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="提示消息")
 
 
-class OperationLogModel(ModelMixin, TenantMixin):
+class OperationLogModel(ModelMixin):
     """操作日志模型
     """
 
     __tablename__: str = "sys_operation_log"
     __table_args__: dict[str, str] = {"comment": "操作日志表"}
-    __loader_options__: list[str] = ["tenant_by"]
 
+    username: Mapped[str] = mapped_column(String(64), nullable=False, comment="操作人用户名")
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="操作状态(0:成功 1:失败)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     request_path: Mapped[str] = mapped_column(String(255), comment="请求路径")

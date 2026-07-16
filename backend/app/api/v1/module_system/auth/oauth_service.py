@@ -306,7 +306,7 @@ async def ensure_oauth_user(
     unique_id: str,
     display_name: str,
 ) -> UserModel:
-    auth = AuthSchema(check_data_scope=False)
+    auth = AuthSchema()
     username = _username_for_oauth(provider, unique_id)
     existing = await UserCRUD(auth, db).get(username=username)
     if existing:
@@ -316,7 +316,6 @@ async def ensure_oauth_user(
         username=username,
         password=secrets.token_urlsafe(24),
         name=(display_name or username)[:32],
-        tenant_id=1,  # 系统租户：OAuth 用户未指定业务租户，统一落到 system tenant
         role_ids=list(settings.OAUTH_DEFAULT_ROLE_IDS),
     )
     try:
@@ -384,7 +383,7 @@ async def complete_oauth_login(
         if user.status == 1:
             raise CustomException(msg="用户已被停用")
 
-        user = await UserCRUD(AuthSchema(check_data_scope=False), db).update_last_login(id=user.id)
+        user = await UserCRUD(AuthSchema(), db).update_last_login(id=user.id)
         if not user:
             raise CustomException(msg="用户不存在")
 

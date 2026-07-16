@@ -30,19 +30,15 @@ class MenuCreateSchema(BaseModel):
     parent_id: int | None = Field(default=None, ge=1, description="父菜单ID")
     status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
-    client: Literal["pc", "app"] = Field(
-        default="pc",
-        description="终端(pc:管理端桌面 app:移动端)",
-    )
     link: str | None = Field(default=None, max_length=500, description="外链地址(仅type=4)")
     is_iframe: bool = Field(default=False, description="是否嵌入iframe")
     is_hide_tab: bool = Field(default=False, description="是否隐藏标签页")
     active_path: str | None = Field(default=None, max_length=200, description="激活菜单路径")
     show_badge: bool = Field(default=False, description="是否显示红点角标")
     show_text_badge: str | None = Field(default=None, max_length=20, description="文字角标内容")
-    scope: Literal["platform", "tenant"] | None = Field(
-        default=None,
-        description="菜单可见范围(platform:仅平台 tenant:租户可用)",
+    scope: Literal["web", "app"] = Field(
+        default="web",
+        description="菜单可见范围(web:管理端 desktop app:移动端)",
     )
 
     @field_validator("status")
@@ -73,9 +69,6 @@ class MenuCreateSchema(BaseModel):
                 if k in values and isinstance(values[k], str):
                     stripped = values[k].strip()
                     values[k] = stripped or None
-            if "client" in values and isinstance(values["client"], str):
-                cv = values["client"].strip()
-                values["client"] = cv if cv in ("pc", "app") else "pc"
             if "parent_id" in values and isinstance(values["parent_id"], str):
                 try:
                     values["parent_id"] = int(values["parent_id"].strip())
@@ -121,16 +114,15 @@ class MenuUpdateSchema(BaseModel):
     parent_id: int | None = Field(default=None, ge=1, description="父菜单ID")
     status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
-    client: Literal["pc", "app"] | None = Field(default=None, description="终端(pc:管理端桌面 app:移动端)")
     link: str | None = Field(default=None, max_length=500, description="外链地址(仅type=4)")
     is_iframe: bool | None = Field(default=None, description="是否嵌入iframe")
     is_hide_tab: bool | None = Field(default=None, description="是否隐藏标签页")
     active_path: str | None = Field(default=None, max_length=200, description="激活菜单路径")
     show_badge: bool | None = Field(default=None, description="是否显示红点角标")
     show_text_badge: str | None = Field(default=None, max_length=20, description="文字角标内容")
-    scope: Literal["platform", "tenant"] | None = Field(
+    scope: Literal["platform"] | None = Field(
         default=None,
-        description="菜单可见范围(platform:仅平台 tenant:租户可用)",
+        description="菜单可见范围",
     )
     parent_name: str | None = Field(default=None, max_length=50, description="父菜单名称")
 
@@ -164,9 +156,6 @@ class MenuUpdateSchema(BaseModel):
                 if k in values and isinstance(values[k], str):
                     stripped = values[k].strip()
                     values[k] = stripped or None
-            if "client" in values and isinstance(values["client"], str):
-                cv = values["client"].strip()
-                values["client"] = cv if cv in ("pc", "app") else None
             if "parent_id" in values and isinstance(values["parent_id"], str):
                 try:
                     values["parent_id"] = int(values["parent_id"].strip())
@@ -208,13 +197,9 @@ class MenuQueryParam(BaseQueryParam):
     permission: str | None = Field(None, description="权限标识")
     description: str | None = Field(None, description="描述")
     status: int | None = Field(None, description="是否启用")
-    client: str | None = Field(
-        None,
-        description="终端(pc:桌面端菜单 app:移动端菜单)；不传则不过滤终端",
-    )
     scope: str | None = Field(
         None,
-        description="菜单范围过滤：tenant=仅租户可用菜单",
+        description="菜单范围过滤(web:管理端 desktop app:移动端)",
         json_schema_extra={"q": "eq"},
     )
 

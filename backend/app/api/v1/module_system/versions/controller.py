@@ -37,7 +37,7 @@ async def get_version_list_controller(
 async def get_published_versions_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
-    auth = AuthSchema(check_data_scope=False)
+    auth = AuthSchema()
     service = VersionService(auth, db)
     result = await service.get_published()
     return SuccessResponse(data=result, msg="查询成功")

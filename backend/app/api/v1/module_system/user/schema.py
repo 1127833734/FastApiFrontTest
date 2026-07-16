@@ -9,9 +9,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.v1.module_platform.menu.schema import MenuTreeOutSchema
+from app.api.v1.module_system.menu.schema import MenuTreeOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
-from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, UserByQueryParam, UserBySchema
 from app.core.validator import email_validator, mobile_validator
 
 
@@ -68,7 +68,6 @@ class CurrentUserUpdateSchema(BaseModel):
 class UserForgetPasswordSchema(BaseModel):
     """忘记密码"""
 
-    tenant_name: str = Field(..., min_length=1, max_length=32, description="租户名称")
     username: str = Field(..., min_length=3, max_length=32, description="用户名")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
@@ -149,7 +148,6 @@ class UserCreateSchema(CurrentUserUpdateSchema):
     description: str | None = Field(default=None, max_length=255, description="备注")
     is_superuser: bool | None = Field(default=False, description="是否超管")
     dept_id: int | None = Field(default=None, description="部门ID")
-    tenant_id: int | None = Field(default=None, description="租户ID，仅平台管理员创建时可指定")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")
     position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
 
@@ -220,13 +218,12 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
         return v
 
 
-class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema, TenantBySchema):
+class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
     """响应"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
     id: int = Field(default=0, description="主键ID")
-    tenant_id: int = Field(default=0, description="租户ID")
     username: str | None = Field(default=None, max_length=32, description="用户名")
     name: str | None = Field(default=None, max_length=32, description="名称")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
@@ -247,17 +244,15 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema, TenantBySchema):
     positions: list[CommonSchema] | None = Field(default=[], description="岗位")
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
-    is_impersonate: bool = Field(default=False, description="是否为平台管理员代签入")
     is_superuser: bool = Field(default=False, description="是否超管")
 
 
-class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class UserQueryParam(BaseQueryParam, UserByQueryParam):
     """用户管理查询参数（继承标准 Mixin）
 
     支持：
     - 时间范围（BaseQueryParam）
     - 创建人/更新人筛选（UserByQueryParam）
-    - 租户筛选（TenantByQueryParam）
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 

@@ -51,15 +51,15 @@ class MenuService:
         else:
             raise CustomException(msg="菜单或链接类型下不允许新增子菜单")
 
-    async def _validate_parent_child_client(self, parent_id: int | None, client: str | None) -> None:
-        if parent_id is None or client is None:
+    async def _validate_parent_child_scope(self, parent_id: int | None, scope: str | None) -> None:
+        if parent_id is None or scope is None:
             return
         parent = await MenuCRUD(self.auth, self.db).get(id=parent_id)
         if not parent:
             return
-        p_client = getattr(parent, "client", None) or "pc"
-        if p_client != client:
-            raise CustomException(msg="子菜单终端须与父菜单一致（均为 pc 或均为 app）")
+        p_scope = getattr(parent, "scope", None) or "web"
+        if p_scope != scope:
+            raise CustomException(msg="子菜单可见范围须与父菜单一致")
 
     async def detail(self, id: int) -> MenuOutSchema:
         menu = await MenuCRUD(self.auth, self.db).get(id=id, preload=["roles"])
@@ -97,7 +97,7 @@ class MenuService:
                 raise CustomException(msg="创建失败，该菜单已存在")
 
         await self._validate_parent_child_type(data.parent_id, data.type)
-        await self._validate_parent_child_client(data.parent_id, data.client)
+        await self._validate_parent_child_scope(data.parent_id, data.scope)
 
         new_menu = await MenuCRUD(self.auth, self.db).create(data=data)
         return MenuOutSchema.model_validate(new_menu)
@@ -105,7 +105,7 @@ class MenuService:
     async def update(self, id: int, data: MenuUpdateSchema) -> MenuOutSchema:
         _ = await MenuCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该菜单不存在")
         await self._validate_parent_child_type(data.parent_id, data.type)
-        await self._validate_parent_child_client(data.parent_id, data.client)
+        await self._validate_parent_child_scope(data.parent_id, data.scope)
         if data.title is not None:
             search: dict[str, Any] = {"title": data.title}
             if data.parent_id is not None:

@@ -3,15 +3,12 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.menu.crud import MenuCRUD
-from app.api.v1.module_platform.menu.schema import MenuOutSchema, MenuTreeOutSchema
-from app.api.v1.module_platform.package.service import PackageService
-from app.api.v1.module_platform.tenant.model import TenantModel
-from app.api.v1.module_platform.tenant.service import TenantService
+from app.api.v1.module_system.menu.crud import MenuCRUD
+from app.api.v1.module_system.menu.schema import MenuOutSchema, MenuTreeOutSchema
 from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.api.v1.module_system.position.crud import PositionCRUD
 from app.api.v1.module_system.role.crud import RoleCRUD
-from app.core.base_schema import AuthSchema, BatchSetAvailable, CommonSchema, PageResultSchema
+from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.common_util import search_to_dict, traversal_to_tree
@@ -83,8 +80,6 @@ class UserService:
             dept = await DeptCRUD(self.auth, self.db).get(id=data.dept_id)
             if not dept:
                 raise CustomException(msg="该数据不存在")
-
-        await TenantService(self.auth, self.db).check_quota(self.auth.user.tenant_id, "user")
 
         if data.password:
             data.password = PwdUtil.hash_password(password=data.password)
@@ -196,12 +191,12 @@ class UserService:
         if not self.auth.user.id:
             raise CustomException(msg="该数据不存在")
         user = await UserCRUD(self.auth, self.db).get(id=self.auth.user.id)
+        if user is None:
+            raise CustomException(msg="该数据不存在")
         user_dict = UserOutSchema.model_validate(user)
-        if user and user.dept:
+        if user.dept:
             user_dict.dept_name = user.dept.name
-        if user and user.tenant_by:
-            user_dict.tenant_by = CommonSchema(id=user.tenant_by.id, name=user.tenant_by.name, status=user.tenant_by.status)
-        user_dict.is_impersonate = self.auth.is_impersonate
+        user_dict.is_superuser = user.is_superuser
 
         _pc_only = {"client": "pc"}
         if self.auth.user.is_superuser:
@@ -212,12 +207,6 @@ class UserService:
             menus_raw = [MenuOutSchema.model_validate(menu) for menu in menu_all]
         else:
             menu_ids = set(self.auth.menu_ids)
-
-            if menu_ids and self.auth.user.tenant_id:
-                allowed_ids = await PackageService(self.auth, self.db).get_tenant_available_menu_ids(self.auth.user.tenant_id)
-                allowed_set = set(allowed_ids)
-                menu_ids = menu_ids & allowed_set
-
             menus_raw = (
                 [
                     MenuOutSchema.model_validate(menu)
@@ -230,8 +219,6 @@ class UserService:
                 else []
             )
 
-        for menu in menus_raw:
-            menu.scope = None
         menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])]
         user_dict.menus = menu_tree
         return user_dict
@@ -262,10 +249,6 @@ class UserService:
             if user.is_superuser:
                 raise CustomException(msg="超级管理员状态不能修改")
         await UserCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
-        # 停用的用户立即让旧 token 失效
-        if data.status == 1:
-            for user in users:
-                await self._invalidate_user_sessions(user_id=user.id)
 
     async def change_password(self, data: UserChangePasswordSchema) -> UserOutSchema:
         if not self.auth.user.id:
@@ -281,8 +264,6 @@ class UserService:
 
         new_password_hash = PwdUtil.hash_password(password=data.new_password)
         new_user = await UserCRUD(self.auth, self.db).change_password(id=user.id, password_hash=new_password_hash)
-        # 改密后立即让旧 token 失效：递增 token_version + 清掉该用户的所有 Redis session
-        await self._invalidate_user_sessions(user_id=user.id)
         return UserOutSchema.model_validate(new_user)
 
     async def reset_password(self, data: ResetPasswordSchema) -> UserOutSchema:
@@ -298,56 +279,22 @@ class UserService:
 
         new_password_hash = PwdUtil.hash_password(password=data.password)
         new_user = await UserCRUD(self.auth, self.db).change_password(id=data.id, password_hash=new_password_hash)
-        # 重置密码后立即让旧 token 失效
-        await self._invalidate_user_sessions(user_id=user.id)
         return UserOutSchema.model_validate(new_user)
 
-    async def _invalidate_user_sessions(self, user_id: int) -> None:
-        """使指定用户的所有活跃 session 立即失效。
-
-        递增 ``UserModel.token_version``：JWT 中携带的旧 token_version 与 DB 不匹配 ⇒ 401。
-
-        Redis 中存储的 key 格式为 ``user_session:<session_id>``（session_id = UUID），
-        与 ``user_id`` 无直接映射关系，因此无法按 user_id 精确清理孤立 session 数据。
-        但 ``token_version`` 已确保旧 JWT 无法通过校验，安全无虞。
-        """
-        await UserCRUD(self.auth, self.db).bump_token_version(user_id=user_id)
-
     async def forget_password(self, data: UserForgetPasswordSchema) -> UserOutSchema:
-        from sqlalchemy import select
-
-        # 根据租户名称查租户
-        tenant_stmt = (
-            select(TenantModel)
-            .where(
-                TenantModel.name == data.tenant_name,
-                TenantModel.status == 0,
-                TenantModel.is_deleted.is_(False),
-            )
-            .limit(1)
-        )
-        result = await self.db.execute(tenant_stmt)
-        tenant = result.scalar_one_or_none()
-        if not tenant:
-            raise CustomException(msg="租户不存在")
-
-        # 在租户范围内查找用户
-        user = await UserCRUD(self.auth, self.db).get(username=data.username, tenant_id=tenant.id)
+        # 直接按用户名查找用户
+        user = await UserCRUD(self.auth, self.db).get(username=data.username)
         if not user:
             raise CustomException(msg="该数据不存在")
         if user.status == 1:
             raise CustomException(msg="用户已停用")
-
         if user.is_superuser:
             raise CustomException(msg="超级管理员密码不能重置")
-
         if data.mobile and user.mobile != data.mobile:
             raise CustomException(msg="手机号不匹配")
 
         new_password_hash = PwdUtil.hash_password(password=data.new_password)
         new_user = await UserCRUD(self.auth, self.db).forget_password(id=user.id, password_hash=new_password_hash)
-        # 忘记密码后使旧 token 失效
-        await self._invalidate_user_sessions(user_id=user.id)
         return UserOutSchema.model_validate(new_user)
 
     async def batch_import(self, file: UploadFile, update_support: bool = False) -> str:
@@ -437,8 +384,6 @@ class UserService:
             dept = await DeptCRUD(self.auth, self.db).get(id=dept_id)
             if not dept:
                 return 0, f"第{row_num}行: 部门ID {dept_id} 不存在"
-            if not self.auth.user.is_superuser and dept.tenant_id != self.auth.user.tenant_id:
-                return 0, f"第{row_num}行: 部门ID {dept_id} 不属于当前租户"
 
             user_data = {
                 "username": username,

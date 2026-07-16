@@ -6,7 +6,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateStr, DateTimeStr, TimeStr
 
 
@@ -68,17 +68,15 @@ class DemoUpdateSchema(DemoCreateSchema):
     """更新模型"""
 
 
-class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema):
     """响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class DemoQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class DemoQueryParam(BaseQueryParam, UserByQueryParam):
     """示例查询参数（演示 Mixin 继承用法）"""
 
     name: str | None = Field(None, description="名称")
     description: str | None = Field(None, description="描述")
     status: int | None = Field(None, description="是否启用")
-
-

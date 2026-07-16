@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.tenant.service import TenantService
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.common_util import (
@@ -24,7 +23,7 @@ from .schema import (
 class DeptService:
     """部门管理服务
 
-    提供部门 CRUD、树形结构查询、级联启/禁用、租户配额检查等业务能力。
+    提供部门 CRUD、树形结构查询、级联启/禁用等业务能力。
     """
 
     def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
@@ -56,12 +55,6 @@ class DeptService:
         obj = await DeptCRUD(self.auth, self.db).get(code=data.code)
         if obj:
             raise CustomException(msg="创建失败，编码已存在")
-
-        # 检查租户配额
-        user = self.auth.user
-        if not user:
-            raise CustomException(msg="未登录")
-        await TenantService(self.auth, self.db).check_quota(user.tenant_id, "dept")
 
         dept = await DeptCRUD(self.auth, self.db).create(data=data)
         return DeptOutSchema.model_validate(dept)

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.enums import QueueEnum
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 
 ALLOWED_REQUEST_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
 
@@ -35,7 +35,7 @@ class LoginLogCreateSchema(BaseModel):
         return v
 
 
-class LoginLogOutSchema(LoginLogCreateSchema, BaseSchema, TenantBySchema):
+class LoginLogOutSchema(LoginLogCreateSchema, BaseSchema):
     """登录日志响应"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -45,7 +45,7 @@ class LoginLogDetailOutSchema(LoginLogOutSchema):
     """登录日志详情响应"""
 
 
-class LoginLogQueryParam(BaseQueryParam, TenantByQueryParam):
+class LoginLogQueryParam(BaseQueryParam):
     """登录日志查询参数"""
 
     username: str | tuple[str, str] | None = Field(None, max_length=64, description="用户名")
@@ -60,7 +60,7 @@ class LoginLogQueryParam(BaseQueryParam, TenantByQueryParam):
         return self
 
 
-class OperationLogQueryParam(BaseQueryParam, TenantByQueryParam):
+class OperationLogQueryParam(BaseQueryParam):
     """操作日志查询参数"""
 
     request_path: str | None = Field(None, description="请求路径")
@@ -70,11 +70,12 @@ class OperationLogQueryParam(BaseQueryParam, TenantByQueryParam):
     request_ip: str | None = Field(None, description="请求IP")
 
 
-class OperationLogOutSchema(BaseSchema, TenantBySchema):
+class OperationLogOutSchema(BaseSchema):
     """操作日志响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
+    username: str = Field(..., description="操作人用户名")
     status: int | None = Field(default=None, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, description="描述")
     request_path: str = Field(..., description="请求路径")
@@ -92,6 +93,7 @@ class OperationLogDetailOutSchema(OperationLogOutSchema):
 
 
 class OperationLogCreateSchema(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64, description="操作人用户名")
     request_path: str = Field(..., min_length=1, max_length=255, description="请求路径")
     request_method: str = Field(..., description="请求方式")
     request_payload: str | None = Field(None, description="请求体")

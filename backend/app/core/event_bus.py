@@ -2,11 +2,11 @@
 
 职责：
 - 维护每个用户的 asyncio.Queue（用户退出后自动清理）
-- 提供 publish / publish_tenant / subscribe / unsubscribe 接口
+- 提供 publish / subscribe / unsubscribe 接口
 
 使用方：
 - SSE 端点 → subscribe / unsubscribe
-- 各业务服务 → publish / publish_tenant
+- 各业务服务 → publish
 """
 
 from __future__ import annotations
@@ -25,7 +25,6 @@ class _Subscriber:
     """订阅者信息"""
 
     user_id: int
-    tenant_id: int
     queue: asyncio.Queue[str] = field(default_factory=lambda: asyncio.Queue(maxsize=256))
 
 
@@ -35,14 +34,14 @@ class EventBus:
     _subscribers: dict[int, _Subscriber] = {}
 
     @classmethod
-    def subscribe(cls, user_id: int, tenant_id: int) -> asyncio.Queue[str]:
+    def subscribe(cls, user_id: int) -> asyncio.Queue[str]:
         """为用户创建一个事件队列（已存在则返回现有队列）"""
         sub = cls._subscribers.get(user_id)
         if sub:
             return sub.queue
-        sub = _Subscriber(user_id=user_id, tenant_id=tenant_id)
+        sub = _Subscriber(user_id=user_id)
         cls._subscribers[user_id] = sub
-        logger.debug(f"SSE 订阅: user_id={user_id} tenant_id={tenant_id}")
+        logger.debug(f"SSE 订阅: user_id={user_id}")
         return sub.queue
 
     @classmethod
@@ -62,17 +61,6 @@ class EventBus:
             await asyncio.wait_for(sub.queue.put(payload), timeout=2)
         except (TimeoutError, asyncio.QueueFull):
             logger.warning(f"SSE 推送超时或队列满: user_id={user_id}, event={event.get('type')}")
-
-    @classmethod
-    async def publish_tenant(cls, tenant_id: int, event: dict[str, Any]) -> None:
-        """向租户下所有在线用户推送事件"""
-        payload = _build_sse_payload(event)
-        tasks = []
-        for sub in cls._subscribers.values():
-            if sub.tenant_id == tenant_id:
-                tasks.append(_put(sub.queue, payload))
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
 
     @classmethod
     async def publish_all(cls, event: dict[str, Any]) -> None:

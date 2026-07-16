@@ -20,7 +20,6 @@ from .utils.console import console_end, console_start
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
-    from app.api.v1.module_platform.tenant.service import TenantService
     from app.api.v1.module_system.dict.service import DictDataService
     from app.api.v1.module_system.params.service import ParamsService
     from app.core.ap_scheduler import SchedulerUtil
@@ -35,8 +34,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     logger.info("✅ Redis系统参数初始化完成")
     await DictDataService.init_cache(redis=app.state.redis)
     logger.info("✅ Redis数据字典初始化完成")
-    await TenantService.init_cache(redis=app.state.redis)
-    logger.info("✅ Redis租户配置初始化完成")
     await SchedulerUtil.init_scheduler(redis=app.state.redis)
     logger.info("✅ 定时任务调度器初始化完成")
     FastAPICache.init(RedisBackend(app.state.redis), prefix="fastapi-admin-cache")
@@ -88,13 +85,11 @@ def register_routers(app: FastAPI) -> None:
     from app.api.v1.module_common import common_router
     from app.api.v1.module_generator import generator_router
     from app.api.v1.module_monitor import monitor_router
-    from app.api.v1.module_platform import platform_router
     from app.api.v1.module_system import system_router
     from app.api.v1.module_task import task_router
 
     app.include_router(common_router)
     app.include_router(monitor_router)
-    app.include_router(platform_router)
     app.include_router(system_router)
     app.include_router(ai_router)
     app.include_router(generator_router)

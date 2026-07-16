@@ -4,7 +4,6 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
-from app.common.enums import PermissionFilterStrategy
 from app.utils.common_util import uuid4_str
 
 
@@ -21,9 +20,6 @@ class MappedBase(AsyncAttrs, DeclarativeBase):
     """
 
     __abstract__: bool = True
-
-    # 权限过滤策略，子类可以覆盖
-    __permission_strategy__: PermissionFilterStrategy = PermissionFilterStrategy.DATA_SCOPE
 
 
 class ModelMixin(MappedBase):
@@ -100,31 +96,6 @@ class ModelMixin(MappedBase):
         comment="删除时间",
         index=True,
     )
-
-
-class TenantMixin(MappedBase):
-    """租户隔离字段 Mixin"""
-
-    __abstract__ = True
-
-    tenant_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("platform_tenant.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False,
-        default=1,
-        index=True,
-        comment="租户ID",
-    )
-
-    @declared_attr
-    def tenant_by(self):
-        """租户关联关系"""
-        return relationship(
-            "TenantModel",
-            lazy="selectin",
-            foreign_keys=lambda: self.tenant_id,  # pyright: ignore[reportArgumentType]
-            uselist=False,
-        )
 
 
 class UserMixin(MappedBase):

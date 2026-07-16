@@ -1,25 +1,16 @@
-"""API Token 数据模型
-
-设计要点：
-- token 全名：``fastpat_<tenant_code>_<tenant_id_hex>_<48-random>``，明文存 ``token_plain`` 字段
-  （按业务需求选择明文存储，便于长期使用的 webhook / 集成 token）
-- ``token_prefix`` 字段存前 12 字符用于列表展示，剩余部分用 ``fp_xxxx****yz`` 形式脱敏
-- 支持 ``scopes``、``expires_at``、``rate_limit``、``status`` 等运营字段
-- ``last_used_at`` 与 ``used_count`` 提供审计
-"""
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.base_model import ModelMixin, TenantMixin, UserMixin
+from app.core.base_model import ModelMixin, UserMixin
 
 
-class ApiTokenModel(ModelMixin, TenantMixin, UserMixin):
-    """租户 API 访问令牌（用于外部系统/集成调用）
+class ApiTokenModel(ModelMixin, UserMixin):
+    """API 访问令牌（用于外部系统/集成调用）
 
     token 全名格式：
-        fastpat_<tenant_code>_<tenant_id_hex>_<48-char-base64url-secret>
+        fastpat_<user_id_hex>_<48-char-base64url-secret>
 
     字段：
         - ``token_plain``：明文令牌（创建时一次性返回，后续可读但不推荐直接读）
@@ -32,11 +23,8 @@ class ApiTokenModel(ModelMixin, TenantMixin, UserMixin):
     """
 
     __tablename__: str = "sys_api_token"
-    __table_args__ = (
-        Index("idx_tenant_token_prefix", "tenant_id", "token_prefix"),
-        {"comment": "租户 API 访问令牌"},
-    )
-    __loader_options__: list[str] = ["tenant_by", "created_by", "updated_by"]
+    __table_args__: dict[str, str] = {"comment": "API 访问令牌"}
+    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
     name: Mapped[str] = mapped_column(String(64), nullable=False, comment="令牌名称（业务语义，如：CRM-对账集成）")
     token_prefix: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="明文 token 前 12 字符（用于展示）")

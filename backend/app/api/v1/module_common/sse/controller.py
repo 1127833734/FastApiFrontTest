@@ -37,10 +37,9 @@ async def sse_event_stream(
     连接保活由 FastAPI 自动处理（每 15 秒发送 ping 注释）。
     """
     user_id = auth.user.id
-    tenant_id = auth.user.tenant_id
 
-    queue = EventBus.subscribe(user_id, tenant_id)
-    logger.info(f"SSE 连接建立: user_id={user_id} tenant_id={tenant_id}")
+    queue = EventBus.subscribe(user_id)
+    logger.info(f"SSE 连接建立: user_id={user_id}")
 
     # 解析断连前最后收到的事件 ID，用于恢复
     event_id = int(last_event_id) if last_event_id and last_event_id.isdigit() else 0

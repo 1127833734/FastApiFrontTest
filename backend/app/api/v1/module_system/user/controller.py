@@ -87,7 +87,7 @@ async def forget_password_controller(
             key=data.captcha_key,
         )
 
-    auth = AuthSchema(check_data_scope=False)
+    auth = AuthSchema()
     user_forget_password_result = await UserService(auth, db).forget_password(data=data)
     logger.info(f"{data.username} 重置密码成功")
     return SuccessResponse(data=user_forget_password_result, msg="重置密码成功")

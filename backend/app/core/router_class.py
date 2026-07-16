@@ -18,7 +18,6 @@ _PUBLIC_WRITE_PATHS: set[str] = {
     "/auth/login",
     "/auth/token/refresh",
     "/auth/captcha/slider/complete",
-    "/auth/tenant/register",
     "/auth/user/register",
 }
 
@@ -32,7 +31,7 @@ async def _write_operation_log_async(log_data: dict) -> None:
         from app.core.database import async_db_session
 
         async with async_db_session() as _session, _session.begin():
-            auth = AuthSchema(check_data_scope=False)
+            auth = AuthSchema()
             await OperationLogCRUD(auth, _session).create(data=OperationLogCreateSchema(**log_data))
     except Exception:
         logger.exception("操作日志写入失败: path={}", log_data.get("request_path"))
@@ -89,6 +88,7 @@ class OperationLogRoute(APIRoute):
                 response_data = response.body if is_json else b"{}"
 
                 log_data: dict[str, Any] = {
+                    "username": getattr(getattr(request.state, "ctx", None), "user_username", "unknown"),
                     "request_path": request.url.path,
                     "request_method": request.method,
                     "request_payload": log_payload,

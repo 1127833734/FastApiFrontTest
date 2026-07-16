@@ -1,25 +1,15 @@
 from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.base_model import ModelMixin, TenantMixin, UserMixin
+from app.core.base_model import ModelMixin, UserMixin
 
 
-class ParamsModel(ModelMixin, TenantMixin, UserMixin):
-    """系统参数表
-
-    用于存储全局系统配置（如 retention_days、smtp 主机等）。
-    平台参数（tenant_id=1）对所有租户共享；租户级参数仅本租户可见。
-    """
+class ParamsModel(ModelMixin, UserMixin):
+    """系统参数表"""
 
     __tablename__: str = "sys_param"
     __table_args__: dict[str, str] = {"comment": "系统参数表"}
-    __loader_options__: list[str] = [
-        "created_by",
-        "updated_by",
-        "deleted_by",
-        "tenant_by",
-    ]
-    __platform_data_shared__: bool = True
+    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
     config_name: Mapped[str] = mapped_column(String(64), nullable=False, comment="参数名称")
     config_key: Mapped[str] = mapped_column(String(500), nullable=False, comment="参数键名")

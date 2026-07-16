@@ -2,7 +2,7 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
 class ParamsCreateSchema(BaseModel):
@@ -39,14 +39,14 @@ class ParamsUpdateSchema(ParamsCreateSchema):
     """
 
 
-class ParamsOutSchema(ParamsCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class ParamsOutSchema(ParamsCreateSchema, BaseSchema, UserBySchema):
     """参数响应模型
     """
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class ParamsQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class ParamsQueryParam(BaseQueryParam, UserByQueryParam):
     """参数管理查询参数
     """
 

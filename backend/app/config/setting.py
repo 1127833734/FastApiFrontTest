@@ -68,13 +68,6 @@ class Settings(BaseSettings):
     TOKEN_TYPE: str = "Bearer"  # token类型（RFC 6750 标准大小写）
     TOKEN_SLIDING_EXPIRE: bool = True  # 是否启用滑动过期(用户操作时自动续期)
 
-    # 多租户中间件白名单路径（不需要租户上下文的公开接口）
-    TENANT_WHITELIST_PATHS: list[str] = [
-        "/api/v1/system/auth/",
-        "/api/v1/health",
-        "/api/v1/common/health",
-    ]
-
     # ================================================= #
     # ******************* 支付配置 ******************* #
     # ================================================= #
@@ -148,11 +141,6 @@ class Settings(BaseSettings):
     OAUTH_STATE_TTL: int = 600  # OAuth state 参数过期时间（秒）
 
     # ================================================= #
-    # ******************* 租户配置 ******************* #
-    # ================================================= #
-    TENANT_TRIAL_DAYS: int = 7  # 租户注册默认试用天数
-
-    # ================================================= #
     # ******************* 外部 HTTP（httpx）******************* #
     # ================================================= #
     HTTPX_DEFAULT_TIMEOUT: float = 10.0  # 对外 HTTP 请求默认超时（秒）
@@ -199,8 +187,6 @@ class Settings(BaseSettings):
         "/api/v1/system/auth/captcha/get",
         "/api/v1/system/auth/captcha/slider/complete",
         "/api/v1/system/auth/logout",
-        "/api/v1/system/auth/tenant-options",
-        "/api/v1/system/auth/tenant-search",
         "/api/v1/system/config/info",
         "/api/v1/system/user/current/info",
         "/api/v1/system/notice/available",
@@ -283,7 +269,6 @@ class Settings(BaseSettings):
             "app.core.middlewares.RequestLogMiddleware",
             "app.core.middlewares.CustomGZipMiddleware",
             "app.core.middlewares.CorrelationIdMiddleware",  # 请求上下文
-            "app.core.middlewares.TenantMiddleware",  # 租户上下文（需 JWT）
             "slowapi.middleware.SlowAPIMiddleware",  # 接口限流（读取 app.state.limiter）
         ]
         return MIDDLEWARES

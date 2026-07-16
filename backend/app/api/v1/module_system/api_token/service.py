@@ -9,7 +9,6 @@ from redis.asyncio.client import Redis
 from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_platform.tenant.crud import TenantCRUD
 from app.api.v1.module_system.user.crud import UserCRUD
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.database import async_db_session
@@ -34,10 +33,10 @@ _TOKEN_PREFIX_DISPLAY_LEN = 12
 _REDIS_RATE_KEY_PREFIX = "api_token:rate:"
 
 
-def _generate_full_token(tenant_code: str, tenant_id: int) -> str:
-    """生成完整 token：``fastpat_<tenant_code>_<tenant_id_hex>_<48-base64url>``"""
+def _generate_full_token(user_id: int) -> str:
+    """生成完整 token：``fastpat_<user_id_hex>_<48-base64url>``"""
     secret_part = secrets.token_urlsafe(36)
-    return f"{_TOKEN_PREFIX_HEADER}{tenant_code}_{tenant_id:x}_{secret_part}"
+    return f"{_TOKEN_PREFIX_HEADER}{user_id:x}_{secret_part}"
 
 
 def _mask_token(full_token: str) -> str:
@@ -62,7 +61,6 @@ def _to_out_schema(token: ApiTokenModel) -> ApiTokenOutSchema:
         last_used_at=token.last_used_at,
         last_used_ip=token.last_used_ip,
         description=token.description,
-        tenant_id=token.tenant_id,
         created_id=token.created_id,
         updated_id=token.updated_id,
         created_time=token.created_time,
@@ -92,34 +90,23 @@ def _parse_scopes(scopes_str: str) -> list[str]:
 class ApiTokenService:
     """API Token 业务逻辑层"""
 
-    MAX_TOKENS_PER_TENANT: int = 50
+    MAX_TOKENS_PER_USER: int = 50
 
     def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         self.auth = auth
         self.db = db
 
-    # ── 租户隔离检查 ──────────────────────────────────────
-
-    def _check_tenant_access(self, token: ApiTokenModel) -> None:
-        """非超管只能访问本租户 token"""
-        if not self.auth.user.is_superuser and token.tenant_id != self.auth.user.tenant_id:
-            raise CustomException(msg="无权操作其他租户的 token")
-
     # ── 创建 ──────────────────────────────────────────────
 
     async def create(self, data: ApiTokenCreateSchema) -> ApiTokenCreatedSchema:
-        tenant = await TenantCRUD(self.auth, self.db).get(id=self.auth.user.tenant_id)
-        if not tenant:
-            raise CustomException(msg="租户上下文失效，无法创建 token")
-
         existing = await ApiTokenCRUD(self.auth, self.db).get_list(
-            search={"tenant_id": tenant.id},
+            search={},
         )
         active_count = sum(1 for t in existing if t.status == 0 and not t.is_deleted)
-        if active_count >= self.MAX_TOKENS_PER_TENANT:
-            raise CustomException(msg=f"该租户 API Token 数量已达上限 ({self.MAX_TOKENS_PER_TENANT})，请先删除或禁用旧 token")
+        if active_count >= self.MAX_TOKENS_PER_USER:
+            raise CustomException(msg=f"API Token 数量已达上限 ({self.MAX_TOKENS_PER_USER})，请先删除或禁用旧 token")
 
-        full_token = _generate_full_token(tenant_code=tenant.code, tenant_id=tenant.id)
+        full_token = _generate_full_token(user_id=self.auth.user.id)
         token_prefix = full_token[:_TOKEN_PREFIX_DISPLAY_LEN]
 
         scopes_str = ",".join(data.scopes) if data.scopes else "*"
@@ -140,7 +127,7 @@ class ApiTokenService:
         if not token_obj:
             raise CustomException(msg="创建 token 失败")
 
-        logger.info(f"租户[{tenant.id}]新 token 创建成功: id={token_obj.id} name={data.name}")
+        logger.info(f"新 token 创建成功: id={token_obj.id} name={data.name}")
         return ApiTokenCreatedSchema(
             id=token_obj.id,
             name=token_obj.name,
@@ -150,7 +137,6 @@ class ApiTokenService:
             expires_at=token_obj.expires_at,
             rate_limit=token_obj.rate_limit,
             status=token_obj.status,
-            tenant_id=token_obj.tenant_id,
             created_time=token_obj.created_time,
         )
 
@@ -187,7 +173,6 @@ class ApiTokenService:
     async def detail(self, id: int) -> ApiTokenOutSchema:
         crud = ApiTokenCRUD(self.auth, self.db)
         token = await crud.get_or_404(id=id)
-        self._check_tenant_access(token)
         return _to_out_schema(token)
 
     # ── 状态/重置 ──────────────────────────────────────────
@@ -195,13 +180,8 @@ class ApiTokenService:
     async def reset(self, id: int, data: ApiTokenResetSchema) -> ApiTokenCreatedSchema:
         crud = ApiTokenCRUD(self.auth, self.db)
         token = await crud.get_or_404(id=id)
-        self._check_tenant_access(token)
 
-        tenant = await TenantCRUD(self.auth, self.db).get(id=token.tenant_id)
-        if not tenant:
-            raise CustomException(msg="租户不存在")
-
-        full_token = _generate_full_token(tenant_code=tenant.code, tenant_id=tenant.id)
+        full_token = _generate_full_token(user_id=self.auth.user.id)
         token_prefix_new = full_token[:_TOKEN_PREFIX_DISPLAY_LEN]
 
         values: dict[str, Any] = {
@@ -222,7 +202,7 @@ class ApiTokenService:
         await self.db.flush()
         await self.db.refresh(token)
 
-        logger.info(f"租户[{tenant.id}] token[{id}] 已重置，新前缀={token_prefix_new}")
+        logger.info(f"token[{id}] 已重置，新前缀={token_prefix_new}")
         return ApiTokenCreatedSchema(
             id=token.id,
             name=token.name,
@@ -232,7 +212,6 @@ class ApiTokenService:
             expires_at=token.expires_at,
             rate_limit=token.rate_limit,
             status=token.status,
-            tenant_id=token.tenant_id,
             created_time=token.created_time,
         )
 
@@ -241,13 +220,11 @@ class ApiTokenService:
             raise CustomException(msg="状态值不合法（0:启用 1:禁用 2:吊销）")
         crud = ApiTokenCRUD(self.auth, self.db)
         token = await crud.get_or_404(id=id)
-        self._check_tenant_access(token)
         await crud.update(id=id, data={"status": status})  # pyright: ignore[reportArgumentType]
 
     async def delete(self, id: int) -> None:
         crud = ApiTokenCRUD(self.auth, self.db)
         token = await crud.get_or_404(id=id)
-        self._check_tenant_access(token)
         await crud.delete(ids=[id])
 
     # ── reveal：二次验证后展示明文 ─────────────────────────
@@ -262,7 +239,6 @@ class ApiTokenService:
 
         crud = ApiTokenCRUD(self.auth, self.db)
         token = await crud.get_or_404(id=id)
-        self._check_tenant_access(token)
 
         return ApiTokenRevealOutSchema(token=token.token_plain, name=token.name)
 
@@ -278,7 +254,7 @@ async def authenticate_api_token(token: str, request_ip: str | None = None, redi
         raise CustomException(msg="API Token 格式不合法", code=10401, status_code=401)
 
     async with async_db_session() as db:
-        crud = ApiTokenCRUD(AuthSchema(check_data_scope=False), db)
+        crud = ApiTokenCRUD(AuthSchema(), db)
         candidate = await crud.get_list(search={"token_plain": ("=", token)})
         if not candidate:
             raise CustomException(msg="API Token 无效", code=10401, status_code=401)

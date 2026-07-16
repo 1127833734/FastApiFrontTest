@@ -3,17 +3,17 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.sql import expression
 
 from app.config.setting import settings
-from app.core.base_model import ModelMixin, TenantMixin, UserMixin
+from app.core.base_model import ModelMixin, UserMixin
 from app.utils.common_util import SqlalchemyUtil
 
 
-class GenTableModel(ModelMixin, TenantMixin, UserMixin):
+class GenTableModel(ModelMixin, UserMixin):
     """代码生成表
     """
 
     __tablename__: str = "gen_table"
     __table_args__: dict[str, str] = {"comment": "代码生成表"}
-    __loader_options__: list[str] = ["columns", "created_by", "updated_by", "deleted_by", "tenant_by"]
+    __loader_options__: list[str] = ["columns", "created_by", "updated_by", "deleted_by"]
 
     table_name: Mapped[str] = mapped_column(String(200), nullable=False, default="", comment="表名称")
     table_comment: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="表描述")
@@ -44,12 +44,12 @@ class GenTableModel(ModelMixin, TenantMixin, UserMixin):
         return class_name.strip()
 
 
-class GenTableColumnModel(ModelMixin, TenantMixin, UserMixin):
+class GenTableColumnModel(ModelMixin, UserMixin):
     """代码生成表字段"""
 
     __tablename__: str = "gen_table_column"
     __table_args__: dict[str, str] = {"comment": "代码生成表字段"}
-    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
+    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
     column_name: Mapped[str] = mapped_column(String(200), nullable=False, comment="列名称")
     column_comment: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="列描述")

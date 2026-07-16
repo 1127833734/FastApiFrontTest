@@ -9,7 +9,7 @@ from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
-from app.core.middlewares import invalidate_middleware_config_cache
+
 from app.core.redis_crud import RedisCURD
 from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
@@ -126,7 +126,7 @@ class ParamsService:
         user = self.auth.user
         if not user:
             raise CustomException(msg="未登录")
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{data.config_key}"
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{data.config_key}"
         try:
             redis_payload = out.model_dump(mode="json")
             value = json.dumps(redis_payload, ensure_ascii=False)
@@ -169,7 +169,7 @@ class ParamsService:
         user = self.auth.user
         if not user:
             raise CustomException(msg="未登录")
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{new_obj.config_key}"
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{new_obj.config_key}"
         try:
             value = json.dumps(redis_payload, ensure_ascii=False)
             result = await RedisCURD(redis).set(
@@ -183,9 +183,6 @@ class ParamsService:
         except Exception as e:
             logger.error(f"更新系统配置失败: {e}")
             raise CustomException(msg="同步配置到缓存失败") from e
-
-        # 失效中间件内存缓存，让下次请求重新加载
-        invalidate_middleware_config_cache(user.tenant_id)
 
         return out
 
@@ -218,15 +215,12 @@ class ParamsService:
         if not user:
             raise CustomException(msg="未登录")
         for obj in objs:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{user.tenant_id}:{obj.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{obj.config_key}"
             try:
                 await RedisCURD(redis).delete(redis_key)
             except Exception as e:
                 logger.error(f"删除系统配置失败: {e}")
                 raise CustomException(msg="同步删除缓存失败") from e
-
-        # 失效中间件内存缓存
-        invalidate_middleware_config_cache(user.tenant_id)
 
     async def batch_set_status(self, redis: Redis, ids: list[int], status: int) -> None:
         """批量设置系统参数状态
@@ -242,17 +236,16 @@ class ParamsService:
         if not ids:
             raise CustomException(msg="请选择要操作的数据")
 
-        # 先查参数列表获取 config_key 和 tenant_id
+        # 先查参数列表获取 config_key
         params = await ParamsCRUD(self.auth, self.db).get_list(search={"id": ("in", list(ids))})
         await ParamsCRUD(self.auth, self.db).set(ids=ids, status=status)
         # 同步删除对应 Redis 缓存
         for param in params:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{param.tenant_id}:{param.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{param.config_key}"
             try:
                 await RedisCURD(redis).delete(redis_key)
             except Exception as e:
                 logger.error(f"同步删除系统配置缓存失败: {e}")
-        invalidate_middleware_config_cache(None)
 
     @staticmethod
     def export(data_list: list[dict]) -> bytes:
@@ -288,7 +281,7 @@ class ParamsService:
     @staticmethod
     async def _load_all_configs_from_db() -> Sequence[object]:
         async with async_db_session() as session, session.begin():
-            init_auth = AuthSchema(check_data_scope=False)
+            init_auth = AuthSchema()
             return await ParamsCRUD(init_auth, session).get_list()
 
     @staticmethod
@@ -296,7 +289,7 @@ class ParamsService:
         """将 DB 配置写入 Redis，返回对应的 dict 列表。"""
         configs: list[dict] = []
         for config in config_obj:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{config.tenant_id}:{config.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{config.config_key}"
             out = ParamsOutSchema.model_validate(config)
             payload = out.model_dump(mode="json")
             try:
@@ -319,9 +312,9 @@ class ParamsService:
             raise CustomException(msg="初始化系统参数到 Redis 失败") from e
 
     @staticmethod
-    async def get_init_cache(redis: Redis, tenant_id: int = 1) -> list[dict]:
+    async def get_init_cache(redis: Redis) -> list[dict]:
         """从 Redis 读取系统配置；为空时自动回源 DB。"""
-        redis_keys = await RedisCURD(redis).get_keys(f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{tenant_id}:*")
+        redis_keys = await RedisCURD(redis).get_keys(f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:*")
         redis_configs = await RedisCURD(redis).mget(redis_keys)
         configs = []
         for raw in redis_configs:

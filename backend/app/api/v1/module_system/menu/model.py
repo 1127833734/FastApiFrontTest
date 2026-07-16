@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.common.enums import PermissionFilterStrategy
 from app.core.base_model import ModelMixin
 
 if TYPE_CHECKING:
@@ -24,7 +23,6 @@ class MenuModel(ModelMixin):
     __table_args__: dict[str, str] = {"comment": "平台菜单表"}
     __tree_children_attr__: str = "children"
     __loader_options__: list[str] = ["roles", "children"]
-    __permission_strategy__: PermissionFilterStrategy = PermissionFilterStrategy.MENU_AUTH
 
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="菜单名称")
     type: Mapped[int] = mapped_column(Integer, nullable=False, default=2, comment="菜单类型(1:目录 2:菜单 3:按钮 4:链接)")
@@ -41,14 +39,13 @@ class MenuModel(ModelMixin):
     title: Mapped[str | None] = mapped_column(String(50), comment="菜单标题")
     params: Mapped[list[dict[str, str]] | None] = mapped_column(JSON, comment="路由参数(JSON对象)")
     affix: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否固定标签页(True:是 False:否)")
-    client: Mapped[str] = mapped_column(String(20), nullable=False, default="pc", server_default="pc", comment="终端(pc:管理端桌面 app:移动端)")
     link: Mapped[str | None] = mapped_column(String(500), comment="外链地址(仅type=4)")
     is_iframe: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否嵌入iframe(True:是 False:否)")
     is_hide_tab: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否隐藏标签页(True:是 False:否)")
     active_path: Mapped[str | None] = mapped_column(String(200), comment="激活菜单路径(用于高亮父级)")
     show_badge: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否显示红点角标(True:是 False:否)")
     show_text_badge: Mapped[str | None] = mapped_column(String(20), comment="文字角标内容")
-    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="tenant", server_default="tenant", comment="菜单可见范围(platform:仅平台 tenant:租户可用)")
+    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="web", server_default="web", comment="菜单可见范围(web:管理端 desktop app:移动端)")
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("platform_menu.id", ondelete="SET NULL"), default=None, index=True, comment="父菜单ID")

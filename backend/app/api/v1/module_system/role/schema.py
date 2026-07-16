@@ -6,9 +6,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.v1.module_platform.menu.schema import MenuOutSchema
+from app.api.v1.module_system.menu.schema import MenuOutSchema
 from app.api.v1.module_system.dept.schema import DeptOutSchema
-from app.core.base_schema import BaseQueryParam, BaseSchema, TenantByQueryParam, TenantBySchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import (
     role_permission_request_validator,
     validate_required_code,
@@ -84,7 +84,7 @@ class RoleUpdateSchema(RoleCreateSchema):
     """
 
 
-class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema):
     """角色信息响应模型
     """
 
@@ -94,7 +94,7 @@ class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema, TenantBySchema):
     depts: list[DeptOutSchema] = Field(default_factory=list, description="角色部门列表")
 
 
-class RoleQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class RoleQueryParam(BaseQueryParam, UserByQueryParam):
     """角色管理查询参数
     """
 

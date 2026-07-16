@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, TenantByQueryParam, UserByQueryParam
+from app.core.base_schema import BaseQueryParam, UserByQueryParam
 
 
 class ChatQuerySchema(BaseModel):
@@ -53,7 +53,7 @@ class ChatSessionMessageSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ChatSessionQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class ChatSessionQueryParam(BaseQueryParam, UserByQueryParam):
     """会话查询参数"""
 
     title: str | None = Field(None, description="会话标题")
