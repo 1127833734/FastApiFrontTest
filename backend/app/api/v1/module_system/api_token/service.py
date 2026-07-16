@@ -219,12 +219,12 @@ class ApiTokenService:
         if status not in (0, 1, 2):
             raise CustomException(msg="状态值不合法（0:启用 1:禁用 2:吊销）")
         crud = ApiTokenCRUD(self.auth, self.db)
-        token = await crud.get_or_404(id=id)
+        await crud.get_or_404(id=id)
         await crud.update(id=id, data={"status": status})  # pyright: ignore[reportArgumentType]
 
     async def delete(self, id: int) -> None:
         crud = ApiTokenCRUD(self.auth, self.db)
-        token = await crud.get_or_404(id=id)
+        await crud.get_or_404(id=id)
         await crud.delete(ids=[id])
 
     # ── reveal：二次验证后展示明文 ─────────────────────────

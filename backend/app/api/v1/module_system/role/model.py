@@ -6,8 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base_model import MappedBase, ModelMixin, UserMixin
 
 if TYPE_CHECKING:
-    from app.api.v1.module_system.menu.model import MenuModel
     from app.api.v1.module_system.dept.model import DeptModel
+    from app.api.v1.module_system.menu.model import MenuModel
     from app.api.v1.module_system.user.model import UserModel
 
 
@@ -28,7 +28,7 @@ class RoleMenusModel(MappedBase):
     )
     menu_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("platform_menu.id", ondelete="CASCADE", onupdate="CASCADE"),
+        ForeignKey("sys_menu.id", ondelete="CASCADE", onupdate="CASCADE"),
         primary_key=True,
         comment="菜单ID",
     )

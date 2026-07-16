@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from app.core.base_model import ModelMixin, TenantMixin, UserMixin
+from app.core.base_model import ModelMixin, UserMixin
 
 if TYPE_CHECKING:
     from app.api.v1.module_system.user.model import UserModel
 
 
-class TicketModel(ModelMixin, TenantMixin, UserMixin):
+class TicketModel(ModelMixin, UserMixin):
     """工单模型 — 用户提交的建议和反馈
     status: 0=待处理 1=处理中 2=已完成 3=已关闭
     """
@@ -21,7 +21,6 @@ class TicketModel(ModelMixin, TenantMixin, UserMixin):
         "updated_by",
         "deleted_by",
         "assigned_by",
-        "tenant_by",
     ]
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, comment="工单标题")

@@ -69,17 +69,6 @@ class Settings(BaseSettings):
     TOKEN_SLIDING_EXPIRE: bool = True  # 是否启用滑动过期(用户操作时自动续期)
 
     # ================================================= #
-    # ******************* 支付配置 ******************* #
-    # ================================================= #
-    # 支付宝
-    PAYMENT_ALIPAY_APP_ID: str = ""
-    PAYMENT_ALIPAY_PRIVATE_KEY: str = ""
-    PAYMENT_ALIPAY_PUBLIC_KEY: str = ""
-    PAYMENT_ALIPAY_SANDBOX: bool = True
-    # 站点 URL（用于生成支付通知 URL）
-    SITE_URL: str = "http://localhost:8001"
-
-    # ================================================= #
     # ******************** 数据库配置 ******************* #
     # ================================================= #
     DATABASE_ECHO: bool | Literal["debug"] = False  # 是否显示SQL日志
@@ -120,15 +109,12 @@ class Settings(BaseSettings):
     # ================================================= #
     CAPTCHA_ENABLE: bool = True  # 是否启用验证码
     CAPTCHA_EXPIRE_SECONDS: int = 60 * 1  # 验证码过期时间(秒) 1分钟
-    CAPTCHA_FONT_SIZE: int = 32  # 字体大小
-    CAPTCHA_FONT_PATH: str = "static/assets/font/Arial.ttf"  # 字体路径
 
     # ================================================= #
     # ***************** 第三方 OAuth 登录（可选）********* #
     # ================================================= #
     # 自动注册用户的默认角色 ID 列表（须与库中角色主键一致）
     OAUTH_DEFAULT_ROLE_IDS: list[int] = [2]
-    # 回调异常时回跳的前端地址（与前端实际 /login 一致，含协议与端口）
     OAUTH_FRONTEND_FALLBACK: str = "http://127.0.0.1:5173/login"
     OAUTH_GITHUB_CLIENT_ID: str = ""
     OAUTH_GITHUB_CLIENT_SECRET: str = ""
@@ -147,12 +133,6 @@ class Settings(BaseSettings):
     IP_LOCATION_ENABLE: bool = True  # 是否启用 IP 归属地查询（登录时对外发起 HTTP 请求）
     IP_LOCATION_CACHE_TTL: int = 604800  # IP 归属地缓存时间（秒，默认 7 天）
     IP_LOCATION_QUERY_TIMEOUT: float = 3.0  # IP 归属地查询单次 HTTP 超时（秒）
-
-    # ================================================= #
-    # ******************* SSE 事件推送 ******************* #
-    # ================================================= #
-    SSE_PUSH_TIMEOUT: int = 2  # SSE 单用户推送超时（秒）
-    EVENT_QUEUE_TIMEOUT: int = 1  # 事件队列写入超时（秒）
 
     # ================================================= #
     # ********************* 日志配置 ******************* #
@@ -240,7 +220,7 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = ""  # API Base URL，如 https://api.minimax.chat/v1
 
     # ================================================= #
-    # ******************* 请求限制配置 ****************** #
+    # ******************* 动态配置 ******************* #
     # ================================================= #
     @property
     def REDIS_URI(self) -> str:
@@ -252,9 +232,6 @@ class Settings(BaseSettings):
             auth_part = f":{self.REDIS_PASSWORD}@"
         return f"redis://{auth_part}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB_NAME}"
 
-    # ================================================= #
-    # ******************* 动态配置 ******************* #
-    # ================================================= #
     @property
     def MIDDLEWARE_LIST(self) -> list[str | None]:
         # 中间件列表（注册时逆序叠加：下列第一项在列表中最前，最终位于最外层，优先生效）
@@ -310,44 +287,6 @@ class Settings(BaseSettings):
             "docs_url": None,
             "redoc_url": None,
             "root_path": self.ROOT_PATH,
-            "openapi_tags": [
-                # ── 系统管理 ──
-                {"name": "认证授权", "description": "用户登录、Token刷新、密码找回等"},
-                {"name": "用户管理", "description": "系统用户的新增、编辑、导入导出"},
-                {"name": "部门管理", "description": "组织架构的维护"},
-                {"name": "角色管理", "description": "角色权限分配"},
-                {"name": "岗位管理", "description": "岗位信息的维护"},
-                {"name": "菜单管理", "description": "系统菜单与权限按钮管理"},
-                {"name": "字典管理", "description": "数据字典的类型与值维护"},
-                {"name": "参数管理", "description": "系统参数配置"},
-                {"name": "公告通知", "description": "系统公告发布与维护"},
-                {"name": "工单管理", "description": "用户工单提交与处理"},
-                {"name": "日志管理", "description": "操作日志、登录日志的查询"},
-                {"name": "SSE 事件推送", "description": "服务端实时事件推送"},
-                # ── 租户运营 ──
-                {"name": "租户管理", "description": "多租户的创建、配置与套餐管理"},
-                {"name": "套餐管理", "description": "套餐定义与定价"},
-                {"name": "订单管理", "description": "套餐订单的支付与退款"},
-                {"name": "发票管理", "description": "发票申请与PDF导出"},
-                # ── 系统监控 ──
-                {"name": "在线用户", "description": "查看当前在线用户"},
-                {"name": "缓存监控", "description": "Redis 缓存管理与监控"},
-                {"name": "资源管理", "description": "服务器资源文件管理"},
-                {"name": "服务器监控", "description": "服务器性能指标查看"},
-                # ── 通用功能 ──
-                {"name": "文件管理", "description": "文件上传与存储"},
-                {"name": "健康检查", "description": "服务健康状态检查"},
-                # ── AI 助手 ──
-                {"name": "AI管理", "description": "AI 对话会话与模型管理"},
-                {"name": "智能助手WebSocket", "description": "AI 智能助手实时对话"},
-                # ── 任务编排 ──
-                {"name": "流程编排", "description": "工作流流程定义与管理"},
-                {"name": "工作流节点", "description": "工作流节点类型管理"},
-                {"name": "定时任务管理", "description": "定时任务的创建与执行"},
-                {"name": "定时任务节点管理", "description": "定时任务节点处理器管理"},
-                # ── 代码生成 ──
-                {"name": "代码生成", "description": "根据数据表生成 CRUD 代码"},
-            ],
             "responses": {
                 200: {"description": "成功"},
                 400: {"description": "请求参数错误"},
@@ -356,7 +295,7 @@ class Settings(BaseSettings):
                 404: {"description": "资源不存在"},
                 422: {"description": "请求参数验证错误"},
                 500: {"description": "服务器内部错误"},
-            },
+            }
         }
 
 

@@ -19,8 +19,8 @@ class MenuModel(ModelMixin):
     - 4: 外部链接
     """
 
-    __tablename__: str = "platform_menu"
-    __table_args__: dict[str, str] = {"comment": "平台菜单表"}
+    __tablename__: str = "sys_menu"
+    __table_args__: dict[str, str] = {"comment": "系统菜单表"}
     __tree_children_attr__: str = "children"
     __loader_options__: list[str] = ["roles", "children"]
 
@@ -48,7 +48,7 @@ class MenuModel(ModelMixin):
     scope: Mapped[str] = mapped_column(String(20), nullable=False, default="web", server_default="web", comment="菜单可见范围(web:管理端 desktop app:移动端)")
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
-    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("platform_menu.id", ondelete="SET NULL"), default=None, index=True, comment="父菜单ID")
+    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sys_menu.id", ondelete="SET NULL"), default=None, index=True, comment="父菜单ID")
     parent: Mapped["MenuModel | None"] = relationship(back_populates="children", remote_side="MenuModel.id", foreign_keys="MenuModel.parent_id", uselist=False)
     children: Mapped[list["MenuModel"] | None] = relationship(back_populates="parent", foreign_keys="MenuModel.parent_id", order_by="MenuModel.order", lazy="selectin")
     roles: Mapped[list["RoleModel"]] = relationship(secondary="sys_role_menus", back_populates="menus", lazy="selectin")

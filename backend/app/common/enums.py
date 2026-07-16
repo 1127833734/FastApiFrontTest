@@ -106,6 +106,16 @@ class InvoiceTypeEnum(str, Enum):
     VAT_SPECIAL = "vat_special"
 
 
+@unique
+class TicketTypeEnum(str, Enum):
+    """工单类型"""
+
+    SUGGESTION = "suggestion"
+    BUG = "bug"
+    OPTIMIZE = "optimize"
+    OTHER = "other"
+
+
 # ==================== 系统返回码 ====================
 
 

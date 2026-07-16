@@ -6,8 +6,8 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.v1.module_system.menu.schema import MenuOutSchema
 from app.api.v1.module_system.dept.schema import DeptOutSchema
+from app.api.v1.module_system.menu.schema import MenuOutSchema
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import (
     role_permission_request_validator,

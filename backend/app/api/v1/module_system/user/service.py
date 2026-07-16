@@ -3,9 +3,9 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.api.v1.module_system.menu.crud import MenuCRUD
 from app.api.v1.module_system.menu.schema import MenuOutSchema, MenuTreeOutSchema
-from app.api.v1.module_system.dept.crud import DeptCRUD
 from app.api.v1.module_system.position.crud import PositionCRUD
 from app.api.v1.module_system.role.crud import RoleCRUD
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema

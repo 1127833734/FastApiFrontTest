@@ -112,8 +112,6 @@ class TicketService:
             assigned_user = user_result.scalar_one_or_none()
             if not assigned_user:
                 raise CustomException(msg="指定的处理人不存在")
-            if assigned_user.tenant_id != obj.tenant_id:
-                raise CustomException(msg="处理人必须与工单属于同一租户")
 
         updated = await TicketCRUD(self.auth, self.db).update(id=id, data=data)
         if not updated:

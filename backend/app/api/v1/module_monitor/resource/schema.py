@@ -9,6 +9,7 @@ from pydantic import (
     model_validator,
 )
 
+
 class ResourceItemSchema(BaseModel):
     """资源项目模型"""
 

@@ -54,7 +54,7 @@ class DemoCreateSchema(BaseModel):
         if len(self.name) < 2 or len(self.name) > 50:
             raise ValueError("名称长度必须在2-50个字符之间")
         # 格式校验：名称只能包含字母、数字、下划线和中划线
-        if not self.name.isalnum() and not all(c in "-_" for c in self.name):
+        if not all(c.isalnum() or c in "-_" for c in self.name):
             raise ValueError("名称只能包含字母、数字、下划线和中划线")
         if self.status not in [0, 1]:
             raise ValueError("是否启用必须为0或1")
@@ -64,8 +64,21 @@ class DemoCreateSchema(BaseModel):
         return self
 
 
-class DemoUpdateSchema(DemoCreateSchema):
+class DemoUpdateSchema(BaseModel):
     """更新模型"""
+
+    name: str | None = Field(default=None, description="名称")
+    status: int | None = Field(default=None, ge=0, le=1, description="是否启用(0:启用 1:禁用)")
+    description: str | None = Field(default=None, description="描述")
+    int_val: int | None = Field(default=None, description="整数")
+    bigint_val: int | None = Field(default=None, description="大整数")
+    float_val: float | None = Field(default=None, description="浮点数")
+    bool_val: bool | None = Field(default=None, description="布尔型")
+    date_val: DateStr | None = Field(default=None, description="日期")
+    time_val: TimeStr | None = Field(default=None, description="时间")
+    datetime_val: DateTimeStr | None = Field(default=None, description="日期时间")
+    text_val: str | None = Field(default=None, description="长文本")
+    json_val: dict | None = Field(default=None, description="元数据(JSON格式)")
 
 
 class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema):

@@ -66,8 +66,8 @@ def handle_service_exception(func: Callable) -> Callable:
     return wrapper
 
 
-_MENU_TYPE_CATALOG = 1  # 与 platform_menu.type、前端 MenuTypeEnum.CATALOG 一致
-_MENU_TYPE_MENU = 2
+_MENU_TYPE_CATALOG = 1  # 与 sys_menu.type、前端 MenuTypeEnum.CATALOG 一致
+_MENU_TYPE_MENU = 2  # 与 sys_menu.type、前端 MenuTypeEnum.MENU 一致
 
 
 class GenTableService:

@@ -23,7 +23,7 @@ class DeptModel(ModelMixin, UserMixin):
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=999, comment="显示排序")
-    code: Mapped[str] = mapped_column(String(64), nullable=False, comment="部门编码")
+    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="部门编码")
     leader: Mapped[str | None] = mapped_column(String(32), default=None, comment="部门负责人")
     phone: Mapped[str | None] = mapped_column(String(20), default=None, comment="手机")
     email: Mapped[str | None] = mapped_column(String(128), default=None, comment="邮箱")

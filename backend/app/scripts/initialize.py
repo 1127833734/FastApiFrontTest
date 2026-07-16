@@ -6,9 +6,9 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_system.menu.model import MenuModel
 from app.api.v1.module_system.dept.model import DeptModel
 from app.api.v1.module_system.dict.model import DictDataModel, DictTypeModel
+from app.api.v1.module_system.menu.model import MenuModel
 from app.api.v1.module_system.params.model import ParamsModel
 from app.api.v1.module_system.role.model import RoleModel
 from app.api.v1.module_system.user.model import UserModel, UserRolesModel

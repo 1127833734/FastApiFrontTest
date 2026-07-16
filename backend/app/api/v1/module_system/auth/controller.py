@@ -2,14 +2,14 @@ import json
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ErrorResponse, RedirectContentResponse, ResponseSchema, SuccessResponse
 from app.config.setting import settings
-from app.core.base_schema import AuthSchema, JWTOutSchema
+from app.core.base_schema import JWTOutSchema
 from app.core.dependencies import db_getter, get_current_user, redis_getter
 from app.core.exceptions import CustomException
 from app.core.logger import logger

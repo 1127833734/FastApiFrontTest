@@ -1,4 +1,3 @@
-import enum
 from datetime import date, datetime, time
 
 from sqlalchemy import (
@@ -16,13 +15,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.base_model import ModelMixin, UserMixin
-
-
-class StatusEnum(enum.Enum):
-    """状态枚举"""
-
-    ACTIVE = "active"
-    INACTIVE = "inactive"
 
 
 class DemoModel(ModelMixin, UserMixin):

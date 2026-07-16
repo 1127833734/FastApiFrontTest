@@ -2,8 +2,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_system.menu.crud import MenuCRUD
 from app.api.v1.module_system.dept.crud import DeptCRUD
+from app.api.v1.module_system.menu.crud import MenuCRUD
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 from app.core.exceptions import CustomException

@@ -339,8 +339,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             return [cmp(val)]
         return []
 
-    @staticmethod
-    def _parse_order(order: list[dict[str, str]]) -> list[ColumnElement]:
+    def _parse_order(self, order: list[dict[str, str]]) -> list[ColumnElement]:
         columns: list[ColumnElement] = []
         for item in order:
             for field, direction in item.items():

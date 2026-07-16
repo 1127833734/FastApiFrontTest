@@ -5,8 +5,6 @@ from app.core.base_schema import (
     BaseQueryParam,
     BaseSchema,
     CommonSchema,
-    TenantByQueryParam,
-    TenantBySchema,
     UserByQueryParam,
     UserBySchema,
 )
@@ -53,7 +51,7 @@ class TicketUpdateSchema(BaseModel):
         return v
 
 
-class TicketOutSchema(BaseSchema, UserBySchema, TenantBySchema):
+class TicketOutSchema(BaseSchema, UserBySchema):
     """工单响应"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -83,7 +81,7 @@ class TicketBatchSchema(BaseModel):
         return v
 
 
-class TicketQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class TicketQueryParam(BaseQueryParam, UserByQueryParam):
     """工单查询参数"""
 
     title: str | None = Field(None, description="工单标题")

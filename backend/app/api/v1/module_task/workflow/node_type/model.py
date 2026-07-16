@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.base_model import ModelMixin, UserMixin
@@ -8,14 +8,11 @@ class WorkflowNodeTypeModel(ModelMixin, UserMixin):
     """节点类型：用于 Vue Flow 左侧 palette 与执行引擎解析。"""
 
     __tablename__: str = "task_workflow_node_type"
-    __table_args__ = (
-        UniqueConstraint("code"),
-        {"comment": "工作流节点类型（非定时任务节点）"},
-    )
+    __table_args__: dict[str, str] = {"comment": "工作流节点类型（非定时任务节点）"}
     __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
     name: Mapped[str] = mapped_column(String(128), nullable=False, comment="显示名称")
-    code: Mapped[str] = mapped_column(String(64), nullable=False, comment="节点编码，对应画布 node.type")
+    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="节点编码，对应画布 node.type")
     category: Mapped[str] = mapped_column(String(32), nullable=False, default="action", comment="分类: trigger/action/condition/control")
     func: Mapped[str] = mapped_column(Text, nullable=False, comment="Python 代码块，须定义 handler(*args,**kwargs)")
     args: Mapped[str | None] = mapped_column(Text, nullable=True, comment="默认位置参数，逗号分隔")
