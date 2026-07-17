@@ -9,40 +9,29 @@
 - 各业务服务 → publish
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
 from app.core.logger import logger
 
 
-@dataclass
-class _Subscriber:
-    """订阅者信息"""
-
-    user_id: int
-    queue: asyncio.Queue[str] = field(default_factory=lambda: asyncio.Queue(maxsize=256))
-
-
 class EventBus:
     """异步事件总线（全局单例）"""
 
-    _subscribers: dict[int, _Subscriber] = {}
+    _subscribers: dict[int, asyncio.Queue[str]] = {}
 
     @classmethod
     def subscribe(cls, user_id: int) -> asyncio.Queue[str]:
         """为用户创建一个事件队列（已存在则返回现有队列）"""
-        sub = cls._subscribers.get(user_id)
-        if sub:
-            return sub.queue
-        sub = _Subscriber(user_id=user_id)
-        cls._subscribers[user_id] = sub
+        queue = cls._subscribers.get(user_id)
+        if queue:
+            return queue
+        queue = asyncio.Queue(maxsize=256)
+        cls._subscribers[user_id] = queue
         logger.debug(f"SSE 订阅: user_id={user_id}")
-        return sub.queue
+        return queue
 
     @classmethod
     def unsubscribe(cls, user_id: int) -> None:
@@ -53,27 +42,14 @@ class EventBus:
     @classmethod
     async def publish(cls, user_id: int, event: dict[str, Any]) -> None:
         """向指定用户推送事件（用户不在线则静默丢弃）"""
-        sub = cls._subscribers.get(user_id)
-        if sub is None:
+        queue = cls._subscribers.get(user_id)
+        if queue is None:
             return
         payload = _build_sse_payload(event)
         try:
-            await asyncio.wait_for(sub.queue.put(payload), timeout=2)
+            await asyncio.wait_for(queue.put(payload), timeout=2)
         except (TimeoutError, asyncio.QueueFull):
             logger.warning(f"SSE 推送超时或队列满: user_id={user_id}, event={event.get('type')}")
-
-    @classmethod
-    async def publish_all(cls, event: dict[str, Any]) -> None:
-        """向所有在线用户广播事件"""
-        payload = _build_sse_payload(event)
-        tasks = [_put(sub.queue, payload) for sub in cls._subscribers.values()]
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-
-    @classmethod
-    def online_count(cls) -> int:
-        """当前在线 SSE 连接数"""
-        return len(cls._subscribers)
 
 
 def _build_sse_payload(event: dict[str, Any]) -> str:
@@ -82,8 +58,3 @@ def _build_sse_payload(event: dict[str, Any]) -> str:
     return json.dumps(event, ensure_ascii=False)
 
 
-async def _put(queue: asyncio.Queue[str], payload: str) -> None:
-    try:
-        await asyncio.wait_for(queue.put(payload), timeout=1)
-    except (TimeoutError, asyncio.QueueFull):
-        pass

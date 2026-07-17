@@ -125,7 +125,7 @@ class ParamsService:
         user = self.auth.user
         if not user:
             raise CustomException(msg="未登录")
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{data.config_key}"
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{data.config_key}"
         try:
             redis_payload = out.model_dump(mode="json")
             value = json.dumps(redis_payload, ensure_ascii=False)
@@ -168,7 +168,7 @@ class ParamsService:
         user = self.auth.user
         if not user:
             raise CustomException(msg="未登录")
-        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{new_obj.config_key}"
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{new_obj.config_key}"
         try:
             value = json.dumps(redis_payload, ensure_ascii=False)
             result = await RedisCURD(redis).set(
@@ -214,7 +214,7 @@ class ParamsService:
         if not user:
             raise CustomException(msg="未登录")
         for obj in objs:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{obj.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{obj.config_key}"
             try:
                 await RedisCURD(redis).delete(redis_key)
             except Exception as e:
@@ -240,7 +240,7 @@ class ParamsService:
         await ParamsCRUD(self.auth, self.db).set(ids=ids, status=status)
         # 同步删除对应 Redis 缓存
         for param in params:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{param.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{param.config_key}"
             try:
                 await RedisCURD(redis).delete(redis_key)
             except Exception as e:
@@ -288,7 +288,7 @@ class ParamsService:
         """将 DB 配置写入 Redis，返回对应的 dict 列表。"""
         configs: list[dict] = []
         for config in config_obj:
-            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{config.config_key}"
+            redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{config.config_key}"
             out = ParamsOutSchema.model_validate(config)
             payload = out.model_dump(mode="json")
             try:
@@ -313,7 +313,7 @@ class ParamsService:
     @staticmethod
     async def get_init_cache(redis: Redis) -> list[dict]:
         """从 Redis 读取系统配置；为空时自动回源 DB。"""
-        redis_keys = await RedisCURD(redis).get_keys(f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:*")
+        redis_keys = await RedisCURD(redis).get_keys(f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:*")
         redis_configs = await RedisCURD(redis).mget(redis_keys)
         configs = []
         for raw in redis_configs:

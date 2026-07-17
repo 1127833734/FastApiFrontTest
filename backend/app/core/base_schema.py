@@ -161,6 +161,7 @@ class PaginationQueryParam(BaseModel):
             return v
         raise ValueError(f"order_by 类型无效: {type(v).__name__}，预期为 JSON 数组字符串或列表")
 
+
 class BaseQueryParam(BaseModel):
     """created_time + updated_time —— 子类自动继承"""
 

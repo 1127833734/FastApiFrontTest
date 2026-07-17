@@ -2,12 +2,7 @@ from fastapi import FastAPI
 from redis import exceptions
 from redis.asyncio import Redis
 from sqlalchemy import Engine, create_engine
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.config.setting import settings

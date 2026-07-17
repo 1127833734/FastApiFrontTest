@@ -1,4 +1,4 @@
-from math import ceil
+import time
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -14,15 +14,6 @@ limiter = Limiter(
 )
 
 
-async def ws_limit_callback(ws: WebSocket, expire: int) -> None:
-    """WebSocket 触发限流时的默认回调：关闭连接。"""
-    expires = ceil(expire / 1000)
-    await ws.close(
-        code=1008,
-        reason=f"请求过于频繁，请稍后重试！{expires} 秒后重试",
-    )
-
-
 class WebSocketRateLimiter:
     """WebSocket 限流依赖（slowapi 不内置支持 WS，自行实现）。"""
 
@@ -31,15 +22,13 @@ class WebSocketRateLimiter:
         self.period = period
 
     async def __call__(self, ws: WebSocket) -> None:
-        import time
-
         redis = getattr(ws.app.state, "redis", None)
         if not redis:
             return
 
         now = int(time.time())
         window = now // self.period
-        key = f"fastapiadmin:request_limiter:ws:{ws.client.host if ws.client else 'unknown'}:{window}"
+        key = f"request_limiter:ws:{ws.client.host if ws.client else 'unknown'}:{window}"
 
         count = await redis.incr(key)
         if count == 1:

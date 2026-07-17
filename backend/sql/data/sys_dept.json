@@ -1,6 +1,6 @@
 [
     {
-        "name": "默认部门",
+        "name": "系统部门",
         "code": "DEFAULT",
         "order": 1,
         "status": 0,

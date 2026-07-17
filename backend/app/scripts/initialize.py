@@ -1,6 +1,4 @@
 import json
-import re
-from datetime import datetime, time
 from typing import Any
 
 from sqlalchemy import func, select
@@ -21,23 +19,16 @@ from app.core.logger import logger
 class InitializeData:
     """初始化数据库和基础数据"""
 
-    _DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
-    _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-    _TIME_RE = re.compile(r"^\d{2}:\d{2}:\d{2}(\.\d+)?$")
-
     # 按依赖关系排序：先基础表，再关联表
     prepare_init_models: list[type] = [
-        # ── 系统管理：基础表 ──
         MenuModel,
-        ParamsModel,
         DeptModel,
+        ParamsModel,
         RoleModel,
         DictTypeModel,
         DictDataModel,
         UserModel,
-        # ── 关联表 ──
         UserRolesModel,
-        # ── 版本管理 ──
         VersionModel,
     ]
 
@@ -55,7 +46,7 @@ class InitializeData:
 
     async def __init_data(self, db: AsyncSession) -> None:
         """按依赖顺序初始化各表种子数据"""
-        dict_type_mapping: dict[str, Any] = {}  # dict_type → DictTypeModel 实例
+        dict_type_mapping: dict[str, Any] = {}
 
         for model in self.prepare_init_models:
             table_name = model.__tablename__
@@ -65,41 +56,22 @@ class InitializeData:
                 logger.info(f"⏭️  跳过 {table_name} 表，无初始化数据")
                 continue
 
-            try:
-                # 树形表（sys_menu / sys_dept）：递归创建含 children 的对象
-                if table_name in self._RECURSIVE_TABLES:
-                    count = await db.execute(select(func.count()).select_from(model))
-                    if count.scalar():
-                        logger.info(f"⏭️  跳过 {table_name} 表数据初始化（表已有数据）")
-                        continue
-                    objs = self.__create_objects_with_children(data, model)
-                    db.add_all(objs)
-                    await db.flush()
-                    logger.info(f"✅️ 已向 {table_name} 写入初始化数据")
-                    continue
+            # 已有数据则跳过
+            count = await db.execute(select(func.count()).select_from(model))
+            if count.scalar():
+                logger.info(f"⏭️  跳过 {table_name} 表数据初始化（表已有数据）")
+                continue
 
-                # 字典类型表：存储类型映射供字典数据使用
-                if table_name == "sys_dict_type":
-                    count = await db.execute(select(func.count()).select_from(model))
-                    if count.scalar():
-                        logger.info(f"⏭️  跳过 {table_name} 表数据初始化（表已有数据）")
-                        continue
+            try:
+                if table_name in self._RECURSIVE_TABLES:
+                    objs = self.__create_objects_with_children(data, model)
+                elif table_name == "sys_dict_type":
                     objs = []
                     for item in data:
                         obj = model(**item)
                         objs.append(obj)
                         dict_type_mapping[item["dict_type"]] = obj
-                    db.add_all(objs)
-                    await db.flush()
-                    logger.info(f"✅️ 已向 {table_name} 写入初始化数据")
-                    continue
-
-                # 字典数据表：关联 dict_type_id
-                if table_name == "sys_dict_data":
-                    count = await db.execute(select(func.count()).select_from(model))
-                    if count.scalar():
-                        logger.info(f"⏭️  跳过 {table_name} 表数据初始化（表已有数据）")
-                        continue
+                elif table_name == "sys_dict_data":
                     objs = []
                     for item in data:
                         dict_type_str = item.get("dict_type")
@@ -108,20 +80,15 @@ class InitializeData:
                             continue
                         item["dict_type_id"] = dict_type_mapping[dict_type_str].id
                         objs.append(model(**item))
+                else:
+                    objs = [model(**item) for item in data]
+
+                if objs:
                     db.add_all(objs)
                     await db.flush()
                     logger.info(f"✅️ 已向 {table_name} 写入初始化数据")
-                    continue
-
-                # 普通表：空表时插入，已有数据跳过
-                count = await db.execute(select(func.count()).select_from(model))
-                if count.scalar():
-                    logger.info(f"⏭️  跳过 {table_name} 表数据初始化（表已有数据）")
-                    continue
-                objs = [model(**item) for item in data]
-                db.add_all(objs)
-                await db.flush()
-                logger.info(f"✅️ 已向 {table_name} 写入初始化数据")
+                else:
+                    logger.info(f"⏭️  跳过 {table_name} 表数据初始化（无有效数据）")
 
             except Exception:
                 logger.error(f"❌️ 初始化 {table_name} 表数据失败")
@@ -133,10 +100,9 @@ class InitializeData:
 
         def _create(obj_data: dict) -> Any:
             children_data = obj_data.pop("children", [])
-
-            # JSON 中子节点 parent_id 通常为 null，先按原始值创建
             obj = model_class(**obj_data)
 
+            # 子节点通过 relationship 自动设置 parent_id
             if children_data:
                 obj.children = [_create(child) for child in children_data]
 
@@ -152,31 +118,10 @@ class InitializeData:
 
         try:
             with open(json_path, encoding="utf-8") as f:
-                raw = json.loads(f.read())
-            return [self._parse_date_strings(item) for item in raw]
+                return json.load(f)
         except json.JSONDecodeError as e:
             logger.error(f"❌️ 解析 {json_path} 失败: {e!s}")
             raise
         except Exception as e:
             logger.error(f"❌️ 读取 {json_path} 失败: {e!s}")
             raise
-
-    @classmethod
-    def _parse_date_strings(cls, data: dict) -> dict:
-        """递归转换 JSON 中的日期时间字符串为 datetime 对象（兼容 PostgreSQL）"""
-        result = {}
-        for key, value in data.items():
-            if isinstance(value, str):
-                if cls._DATETIME_RE.match(value):
-                    result[key] = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-                elif cls._DATE_RE.match(value):
-                    result[key] = datetime.strptime(value, "%Y-%m-%d").date()
-                elif cls._TIME_RE.match(value):
-                    result[key] = time.fromisoformat(value)
-                else:
-                    result[key] = value
-            elif isinstance(value, dict):
-                result[key] = cls._parse_date_strings(value)
-            else:
-                result[key] = value
-        return result

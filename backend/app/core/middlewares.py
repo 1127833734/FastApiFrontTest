@@ -1,11 +1,7 @@
 import json
-import time
 import uuid
-from dataclasses import replace
-from types import MappingProxyType
 from typing import Any
 
-from redis.asyncio.client import Redis
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -19,128 +15,14 @@ from app.common.enums import RedisInitKeyConfig
 from app.common.response import ErrorResponse
 from app.config.setting import settings
 from app.core.exceptions import CustomException
-from app.core.logger import logger
+from app.core.logger import logger, reset_correlation_id, set_correlation_id
 from app.core.redis_crud import RedisCURD
-from app.core.request_context import RequestContext, reset_correlation_id, set_correlation_id
-from app.core.security import decode_access_token
 from app.utils.ip_local_util import get_client_ip
-
-# ── 中间件配置（Redis 缓存读取） ──────────────────────────────
-# 中间件高频读取的 sys_param 配置键集合
-MIDDLEWARE_CONFIG_KEYS: tuple[str, ...] = (
-    "demo_enable",
-    "ip_white_list",
-    "ip_black_list",
-    "operation_log_retention_days",
-)
-
-def _parse_bool(value: object) -> bool:
-    """兼容字符串 / 布尔值 / JSON 布尔值的开关字段解析。"""
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"true", "1", "yes", "on"}:
-            return True
-        if normalized in {"false", "0", "no", "off", ""}:
-            return False
-        try:
-            return bool(json.loads(normalized))
-        except (json.JSONDecodeError, ValueError):
-            return False
-    if value is None:
-        return False
-    return bool(value)
-
-
-def _parse_json_list(value: object) -> list:
-    """兼容 JSON 字符串 / 列表 / 空值的数组字段解析。"""
-    if isinstance(value, list):
-        return value
-    if isinstance(value, str):
-        try:
-            parsed = json.loads(value)
-            return parsed if isinstance(parsed, list) else []
-        except (json.JSONDecodeError, ValueError):
-            return []
-    return []
-
-
-def _default_for(key: str) -> object:
-    """缺省值表：新增 MIDDLEWARE_CONFIG_KEYS 时只需在这里登记默认值。"""
-    if key in {"ip_white_list", "ip_black_list"}:
-        return []
-    if key == "demo_enable":
-        return False
-    if key == "operation_log_retention_days":
-        return 90
-    return None
-
-
-def _parse_value(key: str, value: object) -> object:
-    """按 key 的语义解析 config_value。"""
-    if key == "demo_enable":
-        return _parse_bool(value)
-    if key in {"ip_white_list", "ip_black_list"}:
-        return _parse_json_list(value)
-    return value
-
-
-async def _load_middleware_config_from_redis(redis: Redis) -> dict:
-    """从 Redis 批量拉取并解析 MIDDLEWARE_CONFIG_KEYS 中的配置。"""
-    config_keys = [f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:1:{key}" for key in MIDDLEWARE_CONFIG_KEYS]
-    config_values = await RedisCURD(redis).mget(config_keys)
-
-    result: dict[str, Any] = {}
-    for key, raw in zip(MIDDLEWARE_CONFIG_KEYS, config_values, strict=True):
-        if not raw:
-            result[key] = _default_for(key)
-            continue
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError:
-            logger.error("解析系统配置 %s 失败", key)
-            result[key] = _default_for(key)
-            continue
-
-        if not isinstance(payload, dict):
-            result[key] = _default_for(key)
-            continue
-
-        # 停用的配置视为未启用，使用默认值
-        if payload.get("status", 0) != 0:
-            result[key] = _default_for(key)
-            continue
-
-        result[key] = _parse_value(key, payload.get("config_value"))
-
-    return result
-
-
-def _strip_bearer(authorization: str) -> str | None:
-    """从 Authorization header 提取 token，非 Bearer 返回 None。"""
-    v = authorization.strip()
-    if v[:7].lower() == "bearer ":
-        v = v[7:].strip()
-    elif v[:6].lower() == "bearer":
-        v = v[6:].strip()
-    else:
-        return None
-    return v or None
-
-
-# 中间件配置的「安全默认值」：Redis 不可用 / 解析异常时启用，确保中间件行为可预测。
-# 使用 MappingProxyType 防止任何地方误改导致跨请求污染。
-_DEFAULT_CONFIG: MappingProxyType = MappingProxyType(
-    {
-        "demo_enable": False,
-        "ip_white_list": (),
-        "ip_black_list": (),
-    },
-)
 
 
 class CustomCORSMiddleware(CORSMiddleware):
+    """CORS 中间件"""
+
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(
             app,
@@ -153,42 +35,27 @@ class CustomCORSMiddleware(CORSMiddleware):
 
 
 class RequestLogMiddleware(BaseHTTPMiddleware):
-    """请求日志 & 演示模式拦截"""
+    """演示模式 & IP黑名单拦截"""
 
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
 
-    @staticmethod
-    def _hydrate_session_id(request: Request) -> None:
-        """从 ctx / JWT 中提取 session_id 并写入 ctx。"""
-        ctx = getattr(request.state, "ctx", None)
-        sid = ctx.session_id if ctx else None
-        if not sid and ctx and ctx.jwt_user_info:
-            sid = ctx.jwt_user_info.get("session_id")
-        if not sid:
-            token = _strip_bearer(request.headers.get("Authorization", ""))
-            if token:
-                try:
-                    payload = decode_access_token(token)
-                    sid = getattr(payload, "sub", None) if payload else None
-                except Exception:
-                    sid = None
-        if sid:
-            request.state.ctx = replace(ctx or RequestContext(), session_id=sid)
-
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        start_time = time.perf_counter()
-        self._hydrate_session_id(request)
-
         client_ip = get_client_ip(request)
-        logger.info("请求: {} {} | client={}", request.method, request.url.path, client_ip or "unknown")
 
         try:
             path = request.url.path
             config = await self._load_config(request)
             is_blacklisted = bool(client_ip and client_ip in config["ip_black_list"])
             in_demo = (
-                config["demo_enable"] and request.method != "GET" and (client_ip is None or client_ip not in config["ip_white_list"]) and not _is_path_whitelisted(path, settings.WHITE_API_LIST_PATH)
+                config.get("demo_enable", False)
+                and request.method != "GET"
+                and (client_ip is None or client_ip not in config.get("ip_white_list", ()))
+                and not any(
+                    path.startswith(item.rstrip("*")) if item.endswith("*") else path == item
+                    for item in settings.WHITE_API_LIST_PATH
+                    if isinstance(item, str) and item
+                )
             )
 
             if is_blacklisted or in_demo:
@@ -201,11 +68,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
                 )
                 return ErrorResponse(msg="IP已被黑名单" if is_blacklisted else "演示环境，禁止操作")
 
-            response = await call_next(request)
-            process_time = time.perf_counter() - start_time
-            response.headers["X-Process-Time"] = str(process_time)
-            logger.info("响应: {} | {:.4f}秒", response.status_code, process_time)
-            return response
+            return await call_next(request)
         except CustomException as e:
             logger.exception(f"中间件异常: {e!s}")
             return ErrorResponse(msg="系统异常，请联系管理员", data=str(e))
@@ -215,14 +78,41 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
         """加载中间件配置，失败时返回全部默认值。"""
         redis = getattr(request.app.state, "redis", None)
         if not redis:
-            return dict(_DEFAULT_CONFIG)
+            return {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
         try:
-            return await _load_middleware_config_from_redis(redis)
+            config_keys = [
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:demo_enable",
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:ip_white_list",
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:ip_black_list",
+            ]
+            config_values = await RedisCURD(redis).mget(config_keys)
+            result: dict[str, Any] = {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
+            raw_demo, raw_white, raw_black = config_values
+            for raw, key in ((raw_demo, "demo_enable"), (raw_white, "ip_white_list"), (raw_black, "ip_black_list")):
+                if not raw:
+                    continue
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError:
+                    logger.error("解析系统配置 %s 失败", key)
+                    continue
+                if not isinstance(payload, dict) or payload.get("status", 0) != 0:
+                    continue
+                cv = payload.get("config_value")
+                if cv is None:
+                    continue
+                if key == "demo_enable":
+                    result[key] = cv in (True, "true", "1", "yes", "on")
+                else:
+                    result[key] = json.loads(cv) if isinstance(cv, str) else cv
+            return result
         except Exception:
-            return dict(_DEFAULT_CONFIG)
+            return {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
 
 
 class CustomGZipMiddleware(GZipMiddleware):
+    """GZip 压缩中间件"""
+
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app, minimum_size=settings.GZIP_MIN_SIZE, compresslevel=settings.GZIP_COMPRESS_LEVEL)
 
@@ -242,6 +132,8 @@ class CustomTrustedHostMiddleware(TrustedHostMiddleware):
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
+    """请求 ID 中间件"""
+
     def __init__(self, app: ASGIApp) -> None:
         self._header = "X-Correlation-ID"
         super().__init__(app)
@@ -255,17 +147,4 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             return response
         finally:
             reset_correlation_id(token)
-
-
-def _is_path_whitelisted(path: str, whitelist: list) -> bool:
-    """精确匹配；``*`` 结尾表示前缀通配。"""
-    for item in whitelist:
-        if not isinstance(item, str) or not item:
-            continue
-        if item.endswith("*"):
-            if path.startswith(item.rstrip("*")):
-                return True
-        elif path == item:
-            return True
-    return False
 

@@ -4,6 +4,7 @@ aiofiles==24.1.0                       # 文件操作
 aiosqlite==0.22.1                      # sqlite 异步操作数据库
 alembic==1.18.4                        # 数据库迁移
 apscheduler==3.11.0                    # 定时任务
+croniter==6.2.4                        # cron 表达式校验
 aiomysql>=0.2.0                        # 异步mysql操作数据库
 asyncpg==0.31.0                        # 异步postgresql操作数据库
 bleach==6.4.0                          # 过滤 HTML 标签

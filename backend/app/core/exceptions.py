@@ -136,7 +136,7 @@ def handle_exception(app: FastAPI) -> None:
                 return ErrorResponse(msg="必填字段缺失", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
             return ErrorResponse(msg="数据已存在或违反完整性约束", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
 
-        logger.error("[数据库异常] %s %s | type=%s | detail=%s", request.method, request.url.path, exc_type, exc)
+        logger.error("[数据库异常] {} {} | type={} | detail={}", request.method, request.url.path, exc_type, exc)
         return ErrorResponse(msg=f"数据库操作失败: {exc_type}", status_code=status.HTTP_400_BAD_REQUEST, data=str(exc))
 
     @app.exception_handler(ValueError)

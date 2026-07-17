@@ -95,7 +95,7 @@ class JobService:
     def get_scheduler_status() -> dict:
         status = SchedulerUtil.get_scheduler_state()
         is_running = SchedulerUtil.is_running()
-        jobs = SchedulerUtil.get_all_jobs()
+        jobs = SchedulerUtil.get_jobs()
         return {
             "status": status,
             "is_running": is_running,
@@ -104,7 +104,7 @@ class JobService:
 
     @staticmethod
     def get_scheduler_jobs() -> list[dict]:
-        jobs = SchedulerUtil.get_all_jobs()
+        jobs = SchedulerUtil.get_jobs()
         return [
             {
                 "id": job.id,

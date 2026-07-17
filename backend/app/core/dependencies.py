@@ -1,6 +1,5 @@
 import json
 from collections.abc import AsyncGenerator
-from dataclasses import replace
 from typing import Any
 
 from fastapi import Depends, Query, Request
@@ -15,7 +14,6 @@ from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
-from app.core.request_context import RequestContext
 from app.core.security import OAuth2Schema, decode_access_token
 
 
@@ -42,26 +40,12 @@ async def redis_getter(request: Request) -> Redis:
 
 
 async def get_current_user(
-    request: Request,
     db: AsyncSession = Depends(db_getter),
     redis: Redis = Depends(redis_getter),
     token: str = Depends(OAuth2Schema),
 ) -> AuthSchema:
-    """获取当前用户
-
-    用户查询使用独立的只读数据库会话（不参与请求事务，查询完成后立即释放快照），
-    返回的 auth.db 指向请求级事务会话供后续写操作使用。
-
-    参数:
-    - request (Request): 请求对象
-    - db (AsyncSession): 请求级事务会话
-    - redis (Redis): Redis连接
-    - token (str): 访问令牌
-
-    返回:
-    - AuthSchema: 已认证的信息模型
-    """
-    return await _authenticate(token, db, redis, request)
+    """获取当前用户"""
+    return await _authenticate(token, db, redis)
 
 
 async def get_current_user_ws(
@@ -86,19 +70,8 @@ async def _authenticate(
     token: str,
     db: AsyncSession,
     redis: Redis,
-    request: Request | None = None,
 ) -> AuthSchema:
-    """核心认证逻辑（HTTP 与 WebSocket 共享）
-
-    参数:
-    - token: 访问令牌
-    - db: 请求级事务会话
-    - redis: Redis连接
-    - request: HTTP 请求对象（WebSocket 场景为 None）
-
-    返回:
-    - AuthSchema: 认证信息模型
-    """
+    """核心认证逻辑（HTTP 与 WebSocket 共享）"""
     if not token:
         raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)
 
@@ -147,15 +120,6 @@ async def _authenticate(
 
     if user_status == 1:
         raise CustomException(msg="用户已被停用", code=RET.UNAUTHORIZED.code, status_code=401)
-
-    if request:
-        request.state.ctx = replace(
-            (getattr(request.state, "ctx", None) or RequestContext()),
-            user_id=user_id,
-            user_username=username,
-            session_id=session_id,
-            session_info=user_info,
-        )
 
     if not user_id:
         raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code, status_code=401)

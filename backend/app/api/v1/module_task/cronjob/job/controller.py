@@ -48,7 +48,7 @@ async def resume_scheduler_controller() -> JSONResponse:
 
 @JobRouter.post("/scheduler/shutdown", summary="关闭调度器", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_task:cronjob:job:scheduler"]))])
 async def shutdown_scheduler_controller() -> JSONResponse:
-    await SchedulerUtil.shutdown()
+    SchedulerUtil.shutdown()
     return SuccessResponse(msg="调度器已关闭")
 
 
@@ -86,6 +86,15 @@ async def run_job_controller(
 ) -> JSONResponse:
     SchedulerUtil.run_job_now(job_id=job_id)
     return SuccessResponse(msg="立即执行任务成功")
+
+
+@JobRouter.put("/task/modify/{job_id}", summary="修改任务", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_task:cronjob:job:task"]))])
+async def modify_job_controller(
+    job_id: Annotated[str, Path(description="调度器任务ID")],
+    changes: Annotated[dict, Body(description="要修改的任务属性，如 name、coalesce、max_instances 等")],
+) -> JSONResponse:
+    SchedulerUtil.modify_job(job_id=job_id, **changes)
+    return SuccessResponse(msg="修改任务成功")
 
 
 @JobRouter.delete("/task/remove/{job_id}", summary="移除任务", response_model=ResponseSchema[None], dependencies=[Security(AuthPermission(["module_task:cronjob:job:delete"]))])

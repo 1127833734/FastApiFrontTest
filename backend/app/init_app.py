@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     yield
 
     try:
-        await SchedulerUtil.shutdown(wait=True)
+        SchedulerUtil.shutdown(wait=True)
         logger.info("✅ 定时任务调度器已关闭")
         await FastAPICache.clear()
         logger.info("✅ fastapi-admin-cache 已关闭")

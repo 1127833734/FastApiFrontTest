@@ -1,6 +1,5 @@
 import json
 import uuid
-from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, NewType
 
@@ -22,7 +21,6 @@ from app.core.database import async_db_session
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
-from app.core.request_context import RequestContext
 from app.core.security import (
     CustomOAuth2PasswordRequestForm,
     create_access_token,
@@ -284,14 +282,6 @@ class LoginService:
         request_ip = get_client_ip(request)
 
         login_location = await IpLocalUtil.resolve_location_for_log(redis, request_ip)
-
-        base_ctx = getattr(request.state, "ctx", None) or RequestContext()
-        request.state.ctx = replace(
-            base_ctx,
-            session_id=session_id,
-            user_username=user.username,
-            login_location=login_location,
-        )
 
         access_expires = timedelta(seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS)
         refresh_expires = timedelta(seconds=settings.REFRESH_TOKEN_EXPIRE_SECONDS)

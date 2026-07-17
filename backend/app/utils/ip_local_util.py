@@ -1,4 +1,7 @@
 import ipaddress
+import json
+import re
+from collections.abc import Callable
 
 import httpx
 from starlette.requests import Request
@@ -82,21 +85,21 @@ class IpLocalUtil:
     @classmethod
     async def _query_with_timeout(cls, ip: str) -> str:
         """在硬超时内依次尝试多个 API，全部失败返回未知。"""
-        apis = [
+        apis: list[tuple[str, Callable, dict[str, str]]] = [
             ("http://ip-api.com/json", cls._parse_ipapi, {"lang": "zh-CN"}),
             ("https://whois.pconline.com.cn/ipJson.jsp", cls._parse_pconline, {"ip": ip, "json": "true"}),
         ]
-        for url, parser, params in apis:
-            try:
-                async with httpx.AsyncClient(timeout=_IP_QUERY_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=_IP_QUERY_TIMEOUT) as client:
+            for url, parser, params in apis:
+                try:
                     resp = await client.get(f"{url}/{ip}" if "ip-api" in url else url, params=params)
                     if resp.status_code == 200:
                         data = resp.json() if "ip-api" in url else resp.text
                         location = parser(data)
                         if location:
                             return location
-            except Exception as e:
-                logger.warning(f"IP 归属地 API 失败: {url} - {e}")
+                except Exception as e:
+                    logger.warning(f"IP 归属地 API 失败: {url} - {e}")
         return "未知"
 
     @staticmethod
@@ -111,13 +114,9 @@ class IpLocalUtil:
     def _parse_pconline(text: str) -> str | None:
         """解析 pconline 返回的 JSONP 文本，格式如 'if( {\"ip\":\"...\",\"pro\":\"省\",\"city\":\"市\"} )'。"""
         try:
-            import re
-
             match = re.search(r"\{.*\}", text)
             if not match:
                 return None
-            import json
-
             data = json.loads(match.group())
             parts = [data.get("pro"), data.get("city"), data.get("addr")]
             joined = " ".join(filter(None, parts))
@@ -129,9 +128,7 @@ class IpLocalUtil:
     async def _cache_get(redis, ip: str) -> str | None:
         try:
             value = await RedisCURD(redis).get(f"ip:location:{ip}")
-            if value is None:
-                return None
-            return value.decode("utf-8") if isinstance(value, bytes) else str(value)
+            return value.decode("utf-8") if value else None
         except Exception:
             return None
 
