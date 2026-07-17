@@ -1,6 +1,6 @@
 import { request } from "@utils";
 
-const API_PATH = "/platform/menu";
+const API_PATH = "/system/menu";
 
 const MenuAPI = {
   listMenu(query?: MenuPageQuery) {
@@ -55,14 +55,13 @@ export default MenuAPI;
 
 export interface MenuPageQuery extends BaseQueryParams {
   name?: string;
-  menu_client?: "pc" | "app";
   status?: number;
   type?: number;
   permission?: string;
   route_path?: string;
   component_path?: string;
   description?: string;
-  scope?: "platform" | "tenant";
+  scope?: "web" | "app";
 }
 
 export interface MenuTable extends BaseType {
@@ -84,14 +83,13 @@ export interface MenuTable extends BaseType {
   params?: { key: string; value: string }[];
   affix?: boolean;
   children?: MenuTable[];
-  client?: "pc" | "app";
   link?: string;
   is_iframe?: boolean;
   is_hide_tab?: boolean;
   active_path?: string;
   show_badge?: boolean;
   show_text_badge?: string;
-  scope?: "platform" | "tenant";
+  scope?: "web" | "app";
   status?: number;
   description?: string;
 }
@@ -113,14 +111,13 @@ export interface MenuForm extends BaseFormType {
   title?: string;
   params?: KeyValue[];
   affix?: boolean;
-  client?: "pc" | "app";
   link?: string;
   is_iframe?: boolean;
   is_hide_tab?: boolean;
   active_path?: string;
   show_badge?: boolean;
   show_text_badge?: string;
-  scope?: "platform" | "tenant";
+  scope?: "web" | "app";
   status?: number;
   description?: string;
 }

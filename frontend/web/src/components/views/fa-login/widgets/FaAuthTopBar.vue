@@ -18,7 +18,6 @@
     <div
       class="auth-top-bar-actions-panel pointer-events-auto flex shrink-0 items-center justify-center gap-1.5 px-2 py-1.5 max-sm:mr-1"
     >
-      
       <div class="color-picker-expandable relative flex items-center max-sm:hidden!">
         <div
           class="color-dots absolute right-0 rounded-full flex items-center gap-2 rounded-5 px-2.5 py-2 pr-9 pl-2.5 opacity-0"
@@ -106,38 +105,12 @@
           class="text-xl text-g-800 transition-colors duration-300"
         />
       </div>
-      <!-- 租户切换 -->
-      <ElDropdown
-        @command="onTenantChange"
-        popper-class="langDropDownStyle"
-        trigger="hover"
-      >
-        <div
-          class="btn tenant-btn auth-top-bar__action h-8 w-8 cursor-pointer flex items-center justify-center transition duration-300"
-          :title="currentTenantName"
-        >
-          <FaSvgIcon icon="ri:building-line" class="text-xl transition-colors duration-300 text-g-800" />
-        </div>
-        <template #dropdown>
-          <ElDropdownMenu>
-            <div v-for="t in tenantOptions" :key="t.id" class="lang-btn-item">
-              <ElDropdownItem
-                :command="t.id"
-                :class="{ 'is-selected': t.id === (currentTenantId || 1) }"
-              >
-                <span class="menu-txt">{{ t.name }}</span>
-                <FaSvgIcon icon="ri:check-fill" class="text-base" v-if="t.id === (currentTenantId || 1)" />
-              </ElDropdownItem>
-            </div>
-          </ElDropdownMenu>
-        </template>
-      </ElDropdown>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import { useSettingsStore, useUserStore, useConfigStore } from "@stores";
@@ -147,7 +120,6 @@ import { languageOptions } from "@/locales";
 import { LanguageEnum } from "@/enums/appEnum";
 import AppConfig from "@/config";
 import { LoginPanelAlign } from "@/components/views/fa-login/composables/useLoginPanelAlign";
-import AuthAPI from "@/api/module_system/auth";
 
 defineOptions({ name: "AuthTopBar" });
 
@@ -162,7 +134,6 @@ const props = withDefaults(defineProps<Props>(), {});
 
 interface Emits {
   "update:panelAlign": [value: LoginPanelAlign];
-  "tenantChange": [tenantId: number];
 }
 
 const emit = defineEmits<Emits>();
@@ -219,41 +190,6 @@ const changeLanguage = (lang: LanguageEnum) => {
   locale.value = lang;
   userStore.setLanguage(lang);
 };
-
-// ── 租户切换 ──
-interface TenantItem {
-  id: number;
-  name: string;
-  code: string;
-}
-
-const tenantOptions = ref<TenantItem[]>([]);
-const currentTenantId = computed(() => {
-  const val = configStore.configData?.tenant_id?.config_value;
-  return val ? Number(val) : undefined;
-});
-const currentTenantName = computed(() => {
-  return configStore.configData?.name?.config_value?.trim() || "选择租户";
-});
-
-async function fetchTenantOptions() {
-  try {
-    const { data } = await AuthAPI.getTenantOptions();
-    tenantOptions.value = data?.data || [];
-  } catch {
-    tenantOptions.value = [];
-  }
-}
-
-function onTenantChange(tenantId: number) {
-  const numId = Number(tenantId);
-  if (numId === currentTenantId.value) return;
-  emit("tenantChange", numId);
-}
-
-onMounted(() => {
-  fetchTenantOptions();
-});
 
 const changeThemeColor = (color: string) => {
   if (systemThemeColor.value === color) return;

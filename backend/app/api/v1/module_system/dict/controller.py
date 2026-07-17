@@ -117,7 +117,7 @@ async def batch_set_available_dict_type_controller(
 @DictRouter.post("/type/export", summary="导出字典类型")
 async def export_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:export"]))],
-    search: Annotated[DictTypeQueryParam, Query()],
+    search: Annotated[DictTypeQueryParam, Body()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> StreamingResponse:
     # 获取全量数据并转为dict列表
@@ -209,7 +209,7 @@ async def batch_set_available_dict_data_controller(
 async def export_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:export"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictDataQueryParam, Query()],
+    search: Annotated[DictDataQueryParam, Body()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> StreamingResponse:
     result_dict_list = await DictDataService(auth, db).get_list(search=search, order_by=page.order_by)

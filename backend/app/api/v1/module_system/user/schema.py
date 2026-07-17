@@ -183,6 +183,40 @@ class UserCreateSchema(CurrentUserUpdateSchema):
         return value
 
 
+class UserRegisterSchema(BaseModel):
+    """用户注册"""
+
+    username: str = Field(..., min_length=3, max_length=32, description="用户名")
+    password: str = Field(..., min_length=6, max_length=128, description="密码")
+    email: EmailStr | None = Field(default=None, description="邮箱")
+    name: str | None = Field(default=None, max_length=32, description="名称")
+    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
+    captcha: str | None = Field(default=None, description="图形验证码")
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str):
+        """校验账号：字母开头，3-32 位"""
+        v = value.strip()
+        if not v:
+            raise ValueError("账号不能为空")
+        import re
+
+        if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
+            raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str):
+        """校验密码：6-128 位"""
+        if len(value) < 6:
+            raise ValueError("密码长度不能少于 6 位")
+        if len(value) > 128:
+            raise ValueError("密码长度不能超过 128 位")
+        return value
+
+
 class UserUpdateSchema(CurrentUserUpdateSchema):
     """更新"""
 

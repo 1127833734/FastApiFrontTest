@@ -11,7 +11,6 @@
       :disabled-search="false"
       :default-expanded="false"
       include-audit
-      :audit-item-options="{ showTenantId: true }"
       @search="handleSearchBarSearch"
       @reset="onResetSearch"
     />
@@ -599,7 +598,6 @@ const ticketDetailItems: import("@/components/others/fa-descriptions/index.vue")
     { label: "更新人", prop: "updated_by.name" },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
-    { label: "所属租户", prop: "tenant_by.name" },
   ];
 
 const detailContentHtml = computed({

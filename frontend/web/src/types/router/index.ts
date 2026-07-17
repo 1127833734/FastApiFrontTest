@@ -133,8 +133,8 @@ export interface RouteMeta extends Record<string | number | symbol, unknown> {
   shellRoute?: boolean;
   /** @see RouteMeta（vue-router 模块扩展） */
   remountOnFullPath?: boolean;
-  /** 菜单作用域: platform=平台管理端, tenant=租户端 */
-  scope?: "platform" | "tenant";
+  /** 菜单作用域: web=web端, app=移动端 */
+  scope?: "web" | "app";
 }
 
 /**

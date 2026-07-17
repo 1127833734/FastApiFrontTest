@@ -24,6 +24,7 @@ from .schema import (
     UserForgetPasswordSchema,
     UserOutSchema,
     UserQueryParam,
+    UserRegisterSchema,
     UserUpdateSchema,
 )
 
@@ -295,6 +296,23 @@ class UserService:
 
         new_password_hash = PwdUtil.hash_password(password=data.new_password)
         new_user = await UserCRUD(self.auth, self.db).forget_password(id=user.id, password_hash=new_password_hash)
+        return UserOutSchema.model_validate(new_user)
+
+    async def register(self, data: UserRegisterSchema) -> UserOutSchema:
+        """用户注册"""
+        exists_user = await UserCRUD(self.auth, self.db).get(username=data.username)
+        if exists_user:
+            raise CustomException(msg="已存在相同用户名称的账号")
+
+        create_data = UserCreateSchema(
+            username=data.username,
+            password=PwdUtil.hash_password(password=data.password),
+            name=data.name or data.username,
+            email=data.email,
+            status=0,
+        )
+        new_user = await UserCRUD(self.auth, self.db).create_obj_crud(data=create_data)
+        logger.info(f"新用户注册成功: {data.username}")
         return UserOutSchema.model_validate(new_user)
 
     async def batch_import(self, file: UploadFile, update_support: bool = False) -> str:

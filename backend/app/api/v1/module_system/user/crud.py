@@ -17,6 +17,17 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
     def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
         super().__init__(model=UserModel, auth=auth, db=db)
 
+    async def create_obj_crud(self, data: UserCreateSchema) -> UserModel | None:
+        """创建用户
+
+        参数:
+        - data (UserCreateSchema): 创建模型。
+
+        返回:
+        - UserModel | None: 新建实体。
+        """
+        return await self.create(data=data)
+
     async def update_last_login(self, id: int) -> None:
         """更新用户最后登录时间
 

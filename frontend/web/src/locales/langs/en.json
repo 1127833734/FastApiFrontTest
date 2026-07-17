@@ -372,7 +372,6 @@
       "username": "Please enter username",
       "password": "Please enter password",
       "email": "Please enter email",
-      "tenantName": "Please enter tenant name",
       "slider": "Please slide to verify"
     },
     "email": {
@@ -401,9 +400,6 @@
     "captchaClickHint": "Click to refresh captcha",
     "capsLock": "Caps Lock is On",
     "message": {
-      "tenantName": {
-        "required": "Please enter tenant name"
-      },
       "username": {
         "required": "Please enter Username"
       },

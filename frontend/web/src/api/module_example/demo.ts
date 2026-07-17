@@ -81,7 +81,7 @@ const DemoAPI = {
 
 export default DemoAPI;
 
-export interface DemoPageQuery extends PageQuery, UserByQueryParams, TenantByQueryParams {
+export interface DemoPageQuery extends PageQuery, UserByQueryParams {
   name?: string;
   status?: number;
 }

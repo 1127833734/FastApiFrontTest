@@ -1,5 +1,5 @@
 import { request } from "@utils";
-import { MenuTable, MenuForm } from "@/api/module_platform/menu";
+import { MenuTable, MenuForm } from "@/api/module_system/menu";
 
 const API_PATH = "/system/user";
 
@@ -30,7 +30,7 @@ export const UserAPI = {
 
   changeCurrentUserPassword(body: PasswordFormState) {
     return request<ApiResponse>({
-      url: `${API_PATH}/current/password/change`,
+      url: `${API_PATH}/password/change`,
       method: "put",
       data: body,
     });
@@ -47,6 +47,14 @@ export const UserAPI = {
   forgetPassword(body: ForgetPasswordForm) {
     return request<ApiResponse>({
       url: `${API_PATH}/password/forget`,
+      method: "post",
+      data: body,
+    });
+  },
+
+  register(body: RegisterForm) {
+    return request<ApiResponse>({
+      url: `${API_PATH}/register`,
       method: "post",
       data: body,
     });
@@ -102,8 +110,8 @@ export const UserAPI = {
   exportUser(query: UserPageQuery) {
     return request<Blob>({
       url: `${API_PATH}/export`,
-      method: "get",
-      params: query,
+      method: "post",
+      data: query,
       responseType: "blob",
     });
   },
@@ -131,7 +139,6 @@ export const UserAPI = {
 export default UserAPI;
 
 export interface ForgetPasswordForm {
-  tenant_name: string;
   username: string;
   new_password: string;
   mobile?: string;
@@ -139,19 +146,19 @@ export interface ForgetPasswordForm {
 }
 
 export interface RegisterForm {
-  tenant_name: string;
   username: string;
   password: string;
   confirmPassword: string;
   email?: string;
 }
 
-export interface UserPageQuery extends PageQuery, UserByQueryParams, TenantByQueryParams {
+export interface UserPageQuery extends PageQuery, UserByQueryParams {
   username?: string;
   name?: string;
   mobile?: string;
   email?: string;
   dept_id?: number;
+  status?: number;
 }
 
 export interface searchSelectDataType {
@@ -183,7 +190,6 @@ export interface UserInfo extends BaseType {
   created_by?: CommonType;
   updated_by?: CommonType;
   deleted_by?: CommonType;
-  tenant_by?: CommonType;
   gitee_login?: string;
   github_login?: string;
   wx_login?: string;
@@ -231,7 +237,6 @@ export interface InfoFormState {
   updated_time?: string;
   status?: number;
   description?: string;
-  tenant_by?: CommonType;
   gitee_login?: string;
   github_login?: string;
   wx_login?: string;
@@ -263,7 +268,6 @@ export interface UserForm extends BaseFormType {
   mobile?: string;
   is_superuser?: boolean;
   avatar?: string;
-  tenant_id?: number;
   status?: number;
   description?: string;
 }

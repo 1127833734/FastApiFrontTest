@@ -204,13 +204,11 @@ const createInitialFormData = (): DemoForm => ({
 type DemoSearchFormParams = {
   name?: string;
   status?: number;
-  tenant_id?: number;
 } & AuditSearchFormParams;
 
 const searchForm = ref<DemoSearchFormParams>({
   name: undefined,
   status: undefined,
-  tenant_id: undefined,
   created_id: undefined,
   updated_id: undefined,
   created_time: [],
@@ -499,7 +497,6 @@ const handleSearch = async (params: DemoSearchFormParams) => {
   replaceSearchParams({
     name: params.name,
     status: params.status,
-    tenant_id: params.tenant_id,
     created_id: params.created_id ?? undefined,
     updated_id: params.updated_id ?? undefined,
     created_time:
@@ -518,7 +515,6 @@ const onResetSearch = async () => {
   searchForm.value = {
     name: undefined,
     status: undefined,
-    tenant_id: undefined,
     created_id: undefined,
     updated_id: undefined,
     created_time: [],

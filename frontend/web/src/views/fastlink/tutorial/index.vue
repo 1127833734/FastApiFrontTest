@@ -139,10 +139,6 @@
                               通知公告
                             </ElLink>
                             ·
-                            <ElLink href="#page-tenant" type="primary" underline="never">
-                              租户管理
-                            </ElLink>
-                            ·
                             <ElLink href="#page-log" type="primary" underline="never">
                               操作日志
                             </ElLink>
@@ -1076,7 +1072,6 @@ const MANUAL_TOC: ManualModule[] = [
       { anchor: "page-dict", title: "字典管理" },
       { anchor: "page-param", title: "参数配置" },
       { anchor: "page-notice", title: "通知公告" },
-      { anchor: "page-tenant", title: "租户管理" },
       { anchor: "page-log", title: "操作日志" },
       { anchor: "page-login", title: "登录页" },
     ],

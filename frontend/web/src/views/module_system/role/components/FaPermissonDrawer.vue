@@ -113,7 +113,7 @@ import { listToTree, formatTree, type CascaderNode } from "@utils";
 import FaMenuTreeTable from "@/components/others/fa-menu-tree-table/index.vue";
 import RoleAPI, { permissionDataType } from "@/api/module_system/role";
 import DeptAPI from "@/api/module_system/dept";
-import MenuAPI, { MenuTable } from "@/api/module_platform/menu";
+import MenuAPI, { MenuTable } from "@/api/module_system/menu";
 import { DeviceEnum } from "@/enums/settings/device.enum";
 import { useUserStore, useAppStore } from "@stores";
 import { ElMessage } from "element-plus";

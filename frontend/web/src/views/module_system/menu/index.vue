@@ -34,9 +34,9 @@
           <div class="inline-flex flex-wrap items-center gap-2">
             <FaTableHeaderLeft
               :remove-ids="selectedIds"
-              :perm-create="['module_platform:menu:create']"
-              :perm-delete="['module_platform:menu:delete']"
-              :perm-patch="['module_platform:menu:patch']"
+              :perm-create="['module_system:menu:create']"
+              :perm-delete="['module_system:menu:delete']"
+              :perm-patch="['module_system:menu:patch']"
               :delete-loading="batchDeleting"
               :create-loading="createLoading"
               :more-loading="moreLoading"
@@ -86,13 +86,9 @@
             <FaStatusTag v-if="row?.type === MenuTypeEnum.EXTLINK" type="info" label="外链" />
           </template>
           <template #client="{ row }">
-            <FaStatusTag v-if="row?.client === MenuClientEnum.PC" type="primary" label="PC" />
-            <FaStatusTag
-              v-else-if="row?.client === MenuClientEnum.APP"
-              type="success"
-              label="APP"
-            />
-            <FaStatusTag v-else type="info" :label="(row as unknown as MenuTable)?.client || '—'" />
+            <FaStatusTag v-if="row?.scope === MenuClientEnum.PC" type="primary" label="PC" />
+            <FaStatusTag v-else-if="row?.scope === MenuClientEnum.APP" type="success" label="APP" />
+            <FaStatusTag v-else type="info" :label="(row?.scope as string) || '—'" />
           </template>
           <template #icon="{ row }">
             <template v-if="row?.icon">
@@ -167,8 +163,8 @@
           </template>
 
           <!-- 终端(禁用态+提示) -->
-          <template #client>
-            <ElRadioGroup v-model="formData.client" :disabled="createParentLocked">
+          <template #scope>
+            <ElRadioGroup v-model="formData.scope" :disabled="createParentLocked">
               <ElRadio :value="MenuClientEnum.PC">PC 桌面</ElRadio>
               <ElRadio :value="MenuClientEnum.APP">APP 移动</ElRadio>
             </ElRadioGroup>
@@ -349,7 +345,7 @@ import MenuAPI, {
   type MenuForm,
   type MenuPageQuery,
   type MenuTable,
-} from "@/api/module_platform/menu";
+} from "@/api/module_system/menu";
 import { MenuClientEnum, MenuTypeEnum } from "@/enums/system/menu.enum";
 import { formatTree } from "@utils/common";
 import { useAuth } from "@/hooks/core/useAuth";
@@ -394,7 +390,7 @@ function buildMenuRowActions(
       key: "add",
       label: "新增",
       artType: "add",
-      perm: "module_platform:menu:create",
+      perm: "module_system:menu:create",
       run: () => ctx.onAdd!(row),
     });
   }
@@ -403,21 +399,21 @@ function buildMenuRowActions(
       key: "detail",
       label: "详情",
       artType: "view",
-      perm: "module_platform:menu:detail",
+      perm: "module_system:menu:detail",
       run: () => ctx.onDetail(row.id!),
     },
     {
       key: "edit",
       label: "编辑",
       artType: "edit",
-      perm: "module_platform:menu:update",
+      perm: "module_system:menu:update",
       run: () => ctx.onEdit(row.id!),
     },
     {
       key: "delete",
       label: "删除",
       artType: "delete",
-      perm: "module_platform:menu:delete",
+      perm: "module_system:menu:delete",
       run: () => ctx.onDelete(row.id!),
     }
   );
@@ -430,7 +426,6 @@ function formatMenuOperationCell(row: MenuTable, ctx: Parameters<typeof buildMen
     wrapperClass: "inline-flex flex-wrap items-center justify-end gap-1 menu-table-actions",
   });
 }
-
 const menuClientTab = ref<"pc" | "app">("pc");
 const searchForm = ref<MenuSearchForm>({
   name: undefined,
@@ -495,16 +490,6 @@ const menuDetailItems: import("@/components/others/fa-descriptions/index.vue").D
     { label: "菜单名称", prop: "name" },
     { label: "菜单类型", prop: "type", slot: "type" },
     { label: "终端", prop: "client", slot: "client" },
-    {
-      label: "可见范围",
-      prop: "scope",
-      tag: {
-        map: {
-          platform: { type: "warning", text: "仅平台" },
-          tenant: { type: "success", text: "租户可用" },
-        },
-      },
-    },
     { label: "图标", prop: "icon", slot: "icon" },
     { label: "权限标识", prop: "permission" },
     { label: "路由名称", prop: "route_name" },
@@ -653,18 +638,6 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       hidden: t !== MenuTypeEnum.MENU,
     },
     { key: "client", label: "终端", type: "input" },
-    {
-      key: "scope",
-      label: "可见范围",
-      type: "radiogroup",
-      props: {
-        options: [
-          { label: "租户可用", value: "tenant" },
-          { label: "仅平台", value: "platform" },
-        ],
-      },
-      hidden: t === MenuTypeEnum.BUTTON,
-    },
     { key: "affix", label: "常驻标签栏", type: "input", hidden: t === MenuTypeEnum.BUTTON },
     { key: "is_hide_tab", label: "隐藏标签页", type: "input", hidden: t === MenuTypeEnum.BUTTON },
     { key: "show_badge", label: "显示红点角标", type: "input", hidden: t === MenuTypeEnum.BUTTON },
@@ -722,9 +695,8 @@ const formData = ref<MenuForm>({
   show_badge: false,
   show_text_badge: undefined,
   status: 0,
-  scope: "tenant" as "platform" | "tenant",
   description: undefined,
-  client: MenuClientEnum.PC,
+  scope: MenuClientEnum.PC,
 });
 
 const dialogVisible = reactive({
@@ -779,7 +751,7 @@ async function loadMenuData() {
   try {
     const res = await MenuAPI.listMenu({
       ...buildMenuListQuery(searchForm.value),
-      menu_client: menuClientTab.value,
+      scope: menuClientTab.value === "pc" ? "web" : ("app" as const),
     });
     const tree = res.data.data || [];
     fullMenuTree.value = tree;
@@ -894,23 +866,13 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       },
     },
     {
-      prop: "client",
+      prop: "scope",
       label: "终端",
       width: 88,
       align: "center",
       status: {
         pc: { type: "primary", text: "PC" },
         app: { type: "success", text: "APP" },
-      },
-    },
-    {
-      prop: "scope",
-      label: "可见范围",
-      width: 96,
-      align: "center",
-      status: {
-        platform: { type: "warning", text: "仅平台" },
-        tenant: { type: "success", text: "租户可用" },
       },
     },
     { prop: "order", label: "排序", width: 80 },
@@ -1076,8 +1038,7 @@ const initialFormData: MenuForm = {
   show_text_badge: undefined,
   status: 0,
   description: undefined,
-  client: MenuClientEnum.PC,
-  scope: "tenant" as "platform" | "tenant",
+  scope: MenuClientEnum.PC,
 };
 
 const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
@@ -1141,7 +1102,8 @@ async function handleOpenDialog(
     menuFormRenderKey.value += 1;
     if (parentRow?.id != null) {
       formData.value.parent_id = parentRow.id;
-      formData.value.client = (parentRow.client as MenuClientEnum) || menuClientTab.value;
+      formData.value.scope =
+        (parentRow.scope as MenuClientEnum) || (menuClientTab.value === "pc" ? "web" : "app");
       if (parentRow.type === MenuTypeEnum.MENU) {
         createParentLocked.value = true;
         formData.value.type = MenuTypeEnum.BUTTON;
@@ -1149,7 +1111,7 @@ async function handleOpenDialog(
         formData.value.type = MenuTypeEnum.MENU;
       }
     } else {
-      formData.value.client = menuClientTab.value;
+      formData.value.scope = menuClientTab.value === "pc" ? "web" : "app";
     }
   }
   dialogVisible.visible = true;

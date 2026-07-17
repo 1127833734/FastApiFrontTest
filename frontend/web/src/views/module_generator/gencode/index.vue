@@ -150,7 +150,7 @@ import GencodeAPI, {
   type DBTableSchema,
   type GenTablePageQuery,
 } from "@/api/module_generator/gencode";
-import MenuAPI, { MenuTable } from "@/api/module_platform/menu";
+import MenuAPI, { MenuTable } from "@/api/module_system/menu";
 import DictAPI, { DictTable } from "@/api/module_system/dict";
 import { MenuTypeEnum } from "@/enums";
 import { useSettingsStore } from "@stores";

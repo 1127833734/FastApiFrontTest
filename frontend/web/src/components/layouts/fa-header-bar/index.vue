@@ -9,14 +9,6 @@
     ]"
   >
     <div
-      v-if="isImpersonate"
-      class="h-8 bg-warning/10 flex items-center justify-center gap-2 text-sm text-warning border-b border-warning/20"
-    >
-      <FaSvgIcon icon="ri:shield-alert-line" class="text-warning" />
-      <span>当前为平台管理员代签入模式 · 租户：{{ impersonateTenantName }}</span>
-      <ElButton type="primary" size="small" @click="handleExitImpersonate">退出工作区</ElButton>
-    </div>
-    <div
       class="relative box-border flex justify-between h-15 leading-15 select-none"
       :class="[
         tabStyle === 'tab-card' || tabStyle === 'tab-google' || tabStyle === 'tab-default'
@@ -189,9 +181,6 @@
           :icon="isDark ? 'ri:sun-fill' : 'ri:moon-line'"
         />
 
-        <!-- 租户切换器（全局可见，1步切换） -->
-        <FaTenantSwitcher />
-
         <!-- 用户头像、菜单 -->
         <FaUserMenu />
       </div>
@@ -223,7 +212,6 @@ import { mittBus, themeAnimation } from "@utils";
 import { useCommon } from "@/hooks/core/useCommon";
 import { useHeaderBar } from "@/hooks/core/useHeaderBar";
 import FaUserMenu from "./widgets/FaUserMenu.vue";
-import FaTenantSwitcher from "./widgets/FaTenantSwitcher.vue";
 
 defineOptions({ name: "FaHeaderBar" });
 
@@ -277,16 +265,6 @@ const { visibleMenus: menuList } = storeToRefs(menuStore);
 
 const showNotice = ref(false);
 const notice = ref(null);
-
-const isImpersonate = computed(() => userStore.info.is_impersonate === true);
-
-const impersonateTenantName = computed(() => {
-  return userStore.workspaceTenant?.name || userStore.currentTenant?.name || "未知";
-});
-
-async function handleExitImpersonate() {
-  await userStore.exitTenantWorkspace();
-}
 
 // 菜单类型判断
 const isLeftMenu = computed(() => menuType.value === MenuTypeEnum.LEFT);

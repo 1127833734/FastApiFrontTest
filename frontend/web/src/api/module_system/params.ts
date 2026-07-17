@@ -70,11 +70,11 @@ const ParamsAPI = {
     });
   },
 
-  exportParams(body: ConfigPageQuery) {
+  exportParams(query: ConfigPageQuery) {
     return request<Blob>({
       url: `${API_PATH}/export`,
       method: "post",
-      data: body,
+      data: query,
       responseType: "blob",
     });
   },

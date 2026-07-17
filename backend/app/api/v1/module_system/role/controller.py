@@ -112,11 +112,11 @@ async def get_role_options_controller(
     return SuccessResponse(data=options, msg="获取角色选项成功")
 
 
-@RoleRouter.get("/export", summary="导出角色")
+@RoleRouter.post("/export", summary="导出角色")
 async def export_role_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:role:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[RoleQueryParam, Query()],
+    search: Annotated[RoleQueryParam, Body()],
 ) -> StreamingResponse:
     role_query_result = await RoleService(auth, db).get_list(search=search)
     role_export_result = RoleService.export_list(role_list=[item.model_dump() for item in role_query_result])

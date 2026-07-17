@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.response import ResponseSchema, SuccessResponse
+from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
 from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter
 from app.core.router_class import OperationLogRoute
+from app.utils.common_util import bytes2file_response
 
 from .schema import TicketBatchSchema, TicketCommentCreateSchema, TicketCommentOutSchema, TicketCreateSchema, TicketOutSchema, TicketQueryParam, TicketUpdateSchema
 from .service import TicketCommentService, TicketService
@@ -80,6 +81,22 @@ async def ticket_delete_controller(
 ) -> JSONResponse:
     await TicketService(auth, db).delete(ids=ids)
     return SuccessResponse(msg="删除成功")
+
+
+@TicketRouter.post("/export", summary="导出工单")
+async def ticket_export_controller(
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:export"]))],
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    search: Annotated[TicketQueryParam, Body()],
+) -> StreamingResponse:
+    ticket_list = await TicketService(auth, db).get_list(search=search)
+    export_result = TicketService.export_list(ticket_list=[item.model_dump() for item in ticket_list])
+
+    return StreamResponse(
+        data=bytes2file_response(export_result),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=ticket.xlsx"},
+    )
 
 
 @TicketRouter.get("/{ticket_id}/comments", summary="工单评论列表", response_model=ResponseSchema[PageResultSchema[TicketCommentOutSchema]])

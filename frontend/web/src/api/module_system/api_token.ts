@@ -75,14 +75,16 @@ export interface ApiTokenPageQuery extends PageQuery {
 export interface ApiTokenTable extends BaseType {
   name?: string;
   token_prefix?: string;
-  scopes?: string[];
+  token_mask?: string;
+  owner_user_id?: number;
+  scopes?: string;
   expires_at?: string;
   rate_limit?: number;
   status?: number;
   last_used_at?: string;
+  last_used_ip?: string;
   used_count?: number;
   description?: string;
-  tenant_id?: number;
 }
 
 export interface ApiTokenCreateForm extends BaseFormType {

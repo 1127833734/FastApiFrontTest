@@ -113,11 +113,11 @@ const DictAPI = {
     });
   },
 
-  exportDictData(body: DictDataPageQuery) {
+  exportDictData(query: DictDataPageQuery) {
     return request<Blob>({
       url: `${API_PATH}/data/export`,
       method: "post",
-      data: body,
+      data: query,
       responseType: "blob",
     });
   },

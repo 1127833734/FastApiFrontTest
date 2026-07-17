@@ -1,6 +1,6 @@
 import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import type { UserInfo } from "@/api/module_system/user";
-import type { MenuTable } from "@/api/module_platform/menu";
+import type { MenuTable } from "@/api/module_system/menu";
 import { useUserStore } from "@stores";
 import { useAppMode } from "@/hooks/core/useAppMode";
 
@@ -115,7 +115,6 @@ function mapMenuNode(item: MenuTable, depth = 0): AppRouteRecord {
     activePath: item.active_path || undefined,
     showBadge: !!item.show_badge,
     showTextBadge: item.show_text_badge || undefined,
-    client: item.client,
     scope: item.scope,
   };
 

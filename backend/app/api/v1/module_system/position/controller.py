@@ -101,11 +101,11 @@ async def get_position_options_controller(
     return SuccessResponse(data=options, msg="获取岗位选项成功")
 
 
-@PositionRouter.get("/export", summary="导出岗位")
+@PositionRouter.post("/export", summary="导出岗位")
 async def export_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:position:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[PositionQueryParam, Query()],
+    search: Annotated[PositionQueryParam, Body()],
 ) -> StreamingResponse:
     position_query_result = await PositionService(auth, db).get_list(search=search)
     position_export_result = PositionService.export_list(position_list=[item.model_dump() for item in position_query_result])

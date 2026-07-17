@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Path, Query, Security
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.response import ResponseSchema, SuccessResponse
+from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
 from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter, get_current_user
 from app.core.router_class import OperationLogRoute
+from app.utils.common_util import bytes2file_response
 
 from .schema import (
     LoginLogDetailOutSchema,
@@ -94,3 +95,19 @@ async def delete_operation_log_controller(
 ) -> JSONResponse:
     await OperationLogService(auth, db).delete(ids=ids)
     return SuccessResponse(msg="删除操作日志成功")
+
+
+@LogRouter.post("/operation/export", summary="导出操作日志", dependencies=[Security(AuthPermission(["module_system:log:export"]))])
+async def export_operation_log_list_controller(
+    auth: Annotated[AuthSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    search: Annotated[OperationLogQueryParam, Body()],
+) -> StreamingResponse:
+    operation_log_query_result = await OperationLogService(auth, db).get_list(search=search)
+    operation_log_export_result = OperationLogService.export_list(operation_log_list=[item.model_dump() for item in operation_log_query_result])
+
+    return StreamResponse(
+        data=bytes2file_response(operation_log_export_result),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=operation_log.xlsx"},
+    )

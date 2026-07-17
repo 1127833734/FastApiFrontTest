@@ -372,7 +372,6 @@
       "username": "请输入用户名",
       "password": "请输入密码",
       "email": "请输入邮箱",
-      "tenantName": "请输入租户名称",
       "slider": "请拖动滑块完成验证"
     },
     "email": {
@@ -401,9 +400,6 @@
     "captchaClickHint": "点击刷新验证码",
     "capsLock": "大写锁定已打开",
     "message": {
-      "tenantName": {
-        "required": "请输入租户名称"
-      },
       "username": {
         "required": "请输入账号"
       },

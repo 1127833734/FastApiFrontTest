@@ -76,7 +76,7 @@
             </div>
           </template>
           <template #token_prefix="{ row }">
-            <span class="font-mono text-sm">{{ (row as any)?.token_prefix || '—' }}</span>
+            <span class="font-mono text-sm">{{ (row as any)?.token_prefix || "—" }}</span>
           </template>
         </FaDescriptions>
       </template>
@@ -151,11 +151,7 @@
           <div>
             <div class="text-sm text-g-500 mb-1">Token 明文</div>
             <div class="flex items-center gap-2">
-              <ElInput
-                :model-value="revealResult.token_plain"
-                readonly
-                class="font-mono"
-              />
+              <ElInput :model-value="revealResult.token_plain" readonly class="font-mono" />
               <ElButton type="primary" @click="copyTokenPlain">复制</ElButton>
             </div>
           </div>
@@ -181,11 +177,7 @@
       <div>
         <div class="text-sm text-g-500 mb-1">Token</div>
         <div class="flex items-center gap-2">
-          <ElInput
-            :model-value="createdDialog.tokenPlain"
-            readonly
-            class="font-mono"
-          />
+          <ElInput :model-value="createdDialog.tokenPlain" readonly class="font-mono" />
           <ElButton type="primary" @click="copyCreatedToken">复制</ElButton>
         </div>
       </div>
@@ -305,11 +297,9 @@ const {
         minWidth: 120,
         showOverflowTooltip: true,
         formatter: (row: ApiTokenTable) =>
-          row.token_prefix ? (
-            h("span", { class: "font-mono text-sm" }, row.token_prefix + "***")
-          ) : (
-            h("span", { class: "text-g-400" }, "—")
-          ),
+          row.token_prefix
+            ? h("span", { class: "font-mono text-sm" }, row.token_prefix + "***")
+            : h("span", { class: "text-g-400" }, "—"),
       },
       {
         prop: "status",

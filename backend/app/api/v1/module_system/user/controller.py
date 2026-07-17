@@ -24,6 +24,7 @@ from .schema import (
     UserForgetPasswordSchema,
     UserOutSchema,
     UserQueryParam,
+    UserRegisterSchema,
     UserUpdateSchema,
 )
 from .service import UserService
@@ -91,6 +92,27 @@ async def forget_password_controller(
     user_forget_password_result = await UserService(auth, db).forget_password(data=data)
     logger.info(f"{data.username} 重置密码成功")
     return SuccessResponse(data=user_forget_password_result, msg="重置密码成功")
+
+
+@UserRouter.post("/register", summary="用户注册", response_model=ResponseSchema[UserOutSchema])
+async def register_controller(
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    redis: Annotated[Redis, Depends(redis_getter)],
+    data: Annotated[UserRegisterSchema, Body(description="用户注册参数")],
+) -> JSONResponse:
+    # 安全加固：注册必须先校验图形验证码（防暴力注册）
+    if settings.CAPTCHA_ENABLE:
+        if not data.captcha_key or not data.captcha:
+            raise CustomException(msg="验证码不能为空")
+        await CaptchaService.check_captcha(
+            redis=redis,
+            key=data.captcha_key,
+        )
+
+    auth = AuthSchema()
+    register_result = await UserService(auth, db).register(data=data)
+    logger.info(f"新用户注册成功: {data.username}")
+    return SuccessResponse(data=register_result, msg="注册成功")
 
 
 @UserRouter.get("/list", summary="查询用户", response_model=ResponseSchema[PageResultSchema[UserOutSchema]])
@@ -174,12 +196,12 @@ async def export_user_import_template_controller() -> StreamingResponse:
     )
 
 
-@UserRouter.get("/export", summary="导出用户")
+@UserRouter.post("/export", summary="导出用户")
 async def export_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[UserQueryParam, Query()],
+    search: Annotated[UserQueryParam, Body()],
 ) -> StreamingResponse:
     user_list = await UserService(auth, db).get_list(search=search, order_by=page.order_by)
     user_export_result = UserService.export_list(user_list=[item.model_dump() for item in user_list])

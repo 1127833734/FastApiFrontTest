@@ -88,11 +88,11 @@ async def batch_set_status_controller(
     return SuccessResponse(msg="批量设置参数状态成功")
 
 
-@ParamsRouter.get("/export", summary="导出参数")
+@ParamsRouter.post("/export", summary="导出参数")
 async def export_param_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:param:export"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[ParamsQueryParam, Query()],
+    search: Annotated[ParamsQueryParam, Body()],
 ) -> StreamingResponse:
     result_dict_list = await ParamsService(auth, db).get_list(search=search)
     export_data = [item.model_dump() for item in result_dict_list]

@@ -438,28 +438,6 @@ export const staticRoutes: AppRouteRecordRaw[] = [
           },
         ],
       },
-      /** 支付页面（订单模块子组件） */
-      {
-        path: "payment/:orderId",
-        name: "Payment",
-        component: () => import("@views/module_platform/order/components/PaymentPage.vue"),
-        meta: {
-          title: "订单支付",
-          hidden: true,
-          keepAlive: false,
-        },
-      },
-      /** 租户工作台概览 — 复用自助服务页面 */
-      {
-        path: "workspace",
-        name: "TenantWorkspace",
-        component: () => import("@views/module_platform/tenant/tenant_workspace.vue"),
-        meta: {
-          title: "工作台",
-          hidden: true,
-          keepAlive: false,
-        },
-      },
     ],
   },
   {
