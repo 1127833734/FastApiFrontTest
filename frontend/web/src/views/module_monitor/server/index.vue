@@ -3,7 +3,7 @@
     <ElRow :gutter="16">
       <!-- CPU 使用情况 -->
       <ElCol :xs="24" :sm="12" class="mb-5">
-        <ElCard :loading="loading" shadow="hover">
+        <ElCard shadow="hover">
           <template #header>
             <div class="flex items-center gap-2">
               <FaSvgIcon icon="ri:cpu-line" class="text-lg" />
@@ -46,7 +46,7 @@
 
       <!-- 内存使用情况 -->
       <ElCol :xs="24" :sm="12" class="mb-5">
-        <ElCard :loading="loading" shadow="hover">
+        <ElCard shadow="hover">
           <template #header>
             <div class="flex items-center gap-2">
               <FaSvgIcon icon="ri:ram-line" class="text-lg" />
@@ -91,7 +91,7 @@
     <ElRow :gutter="16">
       <!-- 服务器基本信息 -->
       <ElCol :xs="24" :sm="12" class="mb-5">
-        <ElCard :loading="loading" shadow="hover">
+        <ElCard shadow="hover">
           <template #header>
             <div class="flex items-center gap-2">
               <FaSvgIcon icon="ri:server-line" class="text-lg" />
@@ -117,7 +117,7 @@
 
       <!-- Python运行环境 -->
       <ElCol :xs="24" :sm="12" class="mb-5">
-        <ElCard :loading="loading" shadow="hover">
+        <ElCard shadow="hover">
           <template #header>
             <div class="flex items-center gap-2">
               <FaSvgIcon icon="ri:code-s-slash-line" class="text-lg" />
@@ -151,7 +151,7 @@
     <!-- 磁盘使用情况 -->
     <ElRow :gutter="16">
       <ElCol :span="24" class="mb-5">
-        <ElCard :loading="loading" shadow="hover">
+        <ElCard shadow="hover">
           <template #header>
             <div class="flex items-center gap-2">
               <FaSvgIcon icon="ri:hard-drive-2-line" class="text-lg" />
@@ -186,11 +186,11 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, onMounted } from "vue";
 import ServerAPI, { type ServerInfo } from "@/api/module_monitor/server";
 
 defineOptions({ name: "ServerMonitor" });
 
-const loading = ref(false);
 const server = ref<ServerInfo>({
   cpu: { cpu_num: 0, used: 0, sys: 0, free: 0 },
   mem: { total: "", used: "", free: "", usage: 0 },
@@ -209,21 +209,18 @@ const server = ref<ServerInfo>({
   disks: [],
 });
 
-async function getList() {
-  loading.value = true;
+async function fetchServerInfo() {
   try {
-    const response = await ServerAPI.getServer();
-    server.value = response.data.data;
-  } catch (error) {
-    console.error("获取服务器信息失败:", error);
-  } finally {
-    loading.value = false;
+    const res = await ServerAPI.getServer();
+    if (res.data?.data) {
+      server.value = res.data.data;
+    }
+  } catch {
+    // 静默忽略错误
   }
 }
 
-onMounted(() => {
-  getList();
-});
+onMounted(fetchServerInfo);
 </script>
 
 <style scoped lang="scss">

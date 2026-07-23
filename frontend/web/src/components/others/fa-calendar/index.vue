@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { dayjs } from "element-plus";
+import dayjs from "dayjs";
 
 defineOptions({ name: "FaCalendar" });
 

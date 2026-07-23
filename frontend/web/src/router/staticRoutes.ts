@@ -11,7 +11,7 @@ import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { defineComponent, h, onMounted, ref } from "vue";
 import type { RouteRecordRaw } from "vue-router";
 import { RouterView, useRoute } from "vue-router";
-import { t } from "@wangeditor-next/editor";
+import { $t } from "@/locales";
 
 /** 首页 / 仪表盘父级 meta（侧栏、静态子路由共用） */
 export const HOME_MENU_META: RouteMeta = {
@@ -102,10 +102,10 @@ export const ROUTE_COMPONENT_NESTED_PARENT = "/nested/router-view-parent";
 export const ROUTE_PATH_LOGIN_ALT = "/auth/login";
 
 /**
- * 主框架布局：新版 art 体系（`src/components/layouts/index.vue` + `src/components/layouts/fa-*` 组件）。
- * 旧版 Left/Top/Mix 壳子已移除，统一使用 `@/components/layouts/index.vue`。
+ * 主框架布局：新版 art 体系（`src/layouts/index.vue` + `src/layouts/fa-*` 组件）。
+ * 旧版 Left/Top/Mix 壳子已移除，统一使用 `@/layouts/index.vue`。
  */
-export const Layout = () => import("@/components/layouts/index.vue");
+export const Layout = () => import("@/layouts/index.vue");
 
 /** iframe 内跳页面：内联组件（无需 views/outside/Iframe.vue） */
 const IframeView = defineComponent({
@@ -297,7 +297,7 @@ export function mergeShellRoutesIntoMenu(menuList: AppRouteRecord[]): AppRouteRe
   tryPush(mergeShellHomeMenu);
 
   if (!paths.has("/dashboard")) {
-    tryPush(dashboardRoutesToShellMenu(structuredClone(getDashboardMenuTreeForMerge())));
+    tryPush(dashboardRoutesToShellMenu(getDashboardMenuTreeForMerge()));
   }
 
   if (additions.length === 0) return menuList;
@@ -389,14 +389,14 @@ export const staticRoutes: AppRouteRecordRaw[] = [
           {
             path: "profile",
             name: "FastlinkProfile",
-            meta: { title: t("menus.system.userCenter"), icon: "ri:user-line", hidden: true },
+            meta: { title: $t("menus.system.userCenter"), icon: "ri:user-line", hidden: true },
             component: () => import("@views/fastlink/current/profile.vue"),
           },
           {
             path: "changelog",
             name: "FastlinkChangeLog",
             meta: {
-              title: t("menus.changelog.title"),
+              title: $t("menus.changelog.title"),
               icon: "ri:draft-line",
               hidden: true,
               keepAlive: true,
@@ -407,7 +407,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
             path: "pricing",
             name: "FastlinkPricing",
             meta: {
-              title: t("menus.dashboard.pricing"),
+              title: $t("menus.dashboard.pricing"),
               icon: "ri:money-cny-box-line",
               hidden: true,
               keepAlive: true,
@@ -415,21 +415,10 @@ export const staticRoutes: AppRouteRecordRaw[] = [
             component: () => import("@views/fastlink/pricing/index.vue"),
           },
           {
-            path: "article/list",
-            name: "FastlinkArticleList",
-            meta: {
-              title: t("menus.article.articleList"),
-              icon: "ri:article-line",
-              hidden: true,
-              keepAlive: true,
-            },
-            component: () => import("@views/fastlink/article/index.vue"),
-          },
-          {
             path: "tutorial",
             name: "FastlinkTutorial",
             meta: {
-              title: t("menus.dashboard.tutorial"),
+              title: $t("menus.dashboard.tutorial"),
               icon: "ri:book-2-line",
               hidden: true,
               keepAlive: true,
@@ -440,7 +429,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
             path: "fachat",
             name: "FastlinkFachat",
             meta: {
-              title: t("menus.fachat.title"),
+              title: $t("menus.fachat.title"),
               icon: "ri:message-3-line",
               hidden: true,
               keepAlive: true,
@@ -449,33 +438,11 @@ export const staticRoutes: AppRouteRecordRaw[] = [
           },
         ],
       },
-      /** 支付页面（订单模块子组件） */
-      {
-        path: "payment/:orderId",
-        name: "Payment",
-        component: () => import("@views/module_platform/order/components/PaymentPage.vue"),
-        meta: {
-          title: "订单支付",
-          hidden: true,
-          keepAlive: false,
-        },
-      },
-      /** 租户工作台概览 — 复用自助服务页面 */
-      {
-        path: "workspace",
-        name: "TenantWorkspace",
-        component: () => import("@views/module_platform/self_service/index.vue"),
-        meta: {
-          title: "工作台",
-          hidden: true,
-          keepAlive: false,
-        },
-      },
     ],
   },
   {
     path: "/outside",
-    component: () => import("@/components/layouts/index.vue"),
+    component: () => import("@/layouts/index.vue"),
     name: "Outside",
     meta: { title: "menus.outside.title" },
     children: [

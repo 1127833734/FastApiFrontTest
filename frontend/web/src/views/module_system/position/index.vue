@@ -14,7 +14,6 @@
       :disabled-search="false"
       :default-expanded="false"
       include-audit
-      :audit-item-options="{ showTenantId: true }"
       @search="handleSearchBarSearch"
       @reset="onResetSearch"
     />
@@ -114,28 +113,22 @@
 </template>
 
 <script setup lang="ts">
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
-import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
-import type { ColumnOption } from "@/types/component";
+import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 import PositionAPI, {
   type PositionForm,
   type PositionPageQuery,
   type PositionTable,
 } from "@/api/module_system/position";
-import { useAuth } from "@/hooks/core/useAuth";
 import { useUserStore } from "@stores";
 import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
-import { resolveStatusColumns, renderTableOperationCell } from "@utils";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import { ElMessage } from "element-plus";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 defineOptions({
   name: "Position",
@@ -181,7 +174,7 @@ function buildPositionRowActions(
   ctx: {
     onDetail: (id: number) => void;
     onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number, name: string) => void;
   }
 ): RowAction[] {
   const all: RowAction[] = [
@@ -204,7 +197,7 @@ function buildPositionRowActions(
       label: "删除",
       artType: "delete",
       perm: "module_system:position:delete",
-      run: () => ctx.onDelete(row.id!),
+      run: () => ctx.onDelete(row.id!, row.name ?? ""),
     },
   ];
   return all.filter((a) => hasAuth(a.perm));
@@ -335,7 +328,7 @@ const {
 });
 
 const positionCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<PositionTable>) => {
+  columns!.value.map((c: ColumnOption<PositionTable>) => {
     const t = (c as { type?: string }).type;
     return {
       prop: c.prop,
@@ -510,9 +503,9 @@ function onResetSearch() {
   void resetSearchParams();
 }
 
-async function deletePositionRow(id: number) {
+async function deletePositionRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await PositionAPI.deletePosition([id]);
     await userStore.getUserInfo();
     faTableRef.value?.elTableRef?.clearSelection();
@@ -526,7 +519,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r.name ?? r.id))
+    );
     batchDeleting.value = true;
     await PositionAPI.deletePosition(ids);
     await userStore.getUserInfo();

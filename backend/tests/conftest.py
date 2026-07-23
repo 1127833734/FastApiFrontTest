@@ -1,5 +1,4 @@
-"""
-conftest — 模块化 API 接口测试共享 fixture。
+"""conftest — 模块化 API 接口测试共享 fixture。
 
 提供:
 - test_client: FastAPI TestClient 实例 (session 级复用)
@@ -9,7 +8,7 @@ conftest — 模块化 API 接口测试共享 fixture。
 import os
 import sys
 import tempfile
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -28,7 +27,6 @@ _TEST_DB_PATH = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name
 
 os.environ["DATABASE_TYPE"] = "sqlite"
 os.environ["DATABASE_NAME"] = _TEST_DB_PATH
-os.environ["REDIS_ENABLE"] = "true"
 os.environ["POOL_SIZE"] = "1"
 os.environ["MAX_OVERFLOW"] = "1"
 
@@ -36,7 +34,6 @@ from app.config.setting import settings
 
 settings.DATABASE_TYPE = "sqlite"
 settings.DATABASE_NAME = _TEST_DB_PATH
-settings.REDIS_ENABLE = True
 settings.POOL_SIZE = 1
 settings.MAX_OVERFLOW = 1
 settings.CAPTCHA_ENABLE = False  # 测试环境关闭验证码
@@ -86,12 +83,12 @@ async def _redis_expire(name: bytes, time: int) -> bool:
     return name in _mock_redis_store
 
 
-async def _redis_flushall( asynchronous: bool = False) -> bool:
+async def _redis_flushall(asynchronous: bool = False) -> bool:
     _mock_redis_store.clear()
     return True
 
 
-async def _redis_flushdb( asynchronous: bool = False) -> bool:
+async def _redis_flushdb(asynchronous: bool = False) -> bool:
     _mock_redis_store.clear()
     return True
 
@@ -115,7 +112,7 @@ async def _redis_hset(name: bytes, key: bytes, value: bytes) -> int:
 
 async def _redis_hgetall(name: bytes) -> dict[bytes, bytes]:
     prefix = name + b":"
-    return {k[len(prefix):]: v for k, v in _mock_redis_store.items() if k.startswith(prefix)}
+    return {k[len(prefix) :]: v for k, v in _mock_redis_store.items() if k.startswith(prefix)}
 
 
 async def _redis_hdel(name: bytes, *keys: bytes) -> int:
@@ -155,23 +152,11 @@ _mock_redis.info = AsyncMock(side_effect=_redis_info)
 _mock_redis.dbsize = AsyncMock(side_effect=_redis_dbsize)
 
 patch("redis.asyncio.Redis.from_url", return_value=_mock_redis).start()
-patch("app.init_app.FastAPILimiter.init", new=AsyncMock()).start()
-patch("app.init_app.FastAPILimiter.close", new=AsyncMock()).start()
+# slowapi 限流器由中间件处理，测试中无需 mock
 patch("app.core.ap_scheduler.SchedulerUtil.init_scheduler", new=AsyncMock()).start()
 patch("app.core.ap_scheduler.SchedulerUtil.shutdown", new=AsyncMock()).start()
 
-# RateLimiter → no-op（需匹配 FastAPI 依赖注入签名）
-from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
-from starlette.requests import Request
-from starlette.responses import Response
-
-
-async def _noop_rate_limit(request: Request, response: Response) -> None:
-    pass
-
-
-RateLimiter.__call__ = _noop_rate_limit
-WebSocketRateLimiter.__call__ = _noop_rate_limit
+# slowapi 通过中间件限流，测试无需 mock
 
 # ============================================================
 # 精简 lifespan — 仅做数据库初始化
@@ -190,14 +175,10 @@ async def _test_lifespan(app) -> AsyncGenerator[Any, None]:
 
     from app.api.v1.module_system.user.model import UserModel
     from app.core.database import async_db_session
-    from app.utils.hash_bcrpy_util import PwdUtil
+    from app.utils.password_util import PwdUtil
 
     async with async_db_session() as db:
-        await db.execute(
-            update(UserModel)
-            .where(UserModel.username == "admin")
-            .values(password=PwdUtil.hash_password("admin123"))
-        )
+        await db.execute(update(UserModel).where(UserModel.username == "admin").values(password=PwdUtil.hash_password("admin123")))
         await db.commit()
 
     yield
@@ -214,8 +195,8 @@ _app.router.lifespan_context = _test_lifespan
 
 
 @pytest.fixture(scope="session")
-def _api_client() -> TestClient:
-    """session 级共享 TestClient，所有测试复用同一个 app 实例。"""
+def _api_client() -> Generator[TestClient, Any, None]:
+    """Session 级共享 TestClient，所有测试复用同一个 app 实例。"""
     with TestClient(_app) as c:
         yield c
 
@@ -228,7 +209,7 @@ def test_client(_api_client: TestClient) -> TestClient:
 
 @pytest.fixture(scope="session")
 def auth_headers(_api_client: TestClient) -> dict[str, str]:
-    """session 级 admin 认证头，登录一次，所有测试复用。"""
+    """Session 级 admin 认证头，登录一次，所有测试复用。"""
     resp = _api_client.post(
         "/system/auth/login",
         data={"username": "admin", "password": "admin123"},
@@ -261,6 +242,7 @@ def assert_route(
         expected_status: 期望的 HTTP 状态码。为 None 时仅校验路由存在 (!= 404)。
         auth: 认证 headers（dict），传入则合并到请求头。
         **kwargs: 传递给 TestClient 请求方法的额外参数 (json/data/params/headers 等)。
+
     """
     headers: dict[str, str] = {}
     if auth:
@@ -277,10 +259,6 @@ def assert_route(
         return
 
     if expected_status is not None:
-        assert response.status_code == expected_status, (
-            f"{method} {path} 期望 {expected_status}，实际 {response.status_code}"
-        )
+        assert response.status_code == expected_status, f"{method} {path} 期望 {expected_status}，实际 {response.status_code}"
     else:
-        assert response.status_code != 404, (
-            f"{method} {path} 返回 404，路由未注册"
-        )
+        assert response.status_code != 404, f"{method} {path} 返回 404，路由未注册"

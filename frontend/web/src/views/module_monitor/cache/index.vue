@@ -126,8 +126,8 @@
                         </ElButton>
                       </template>
                     </ElTableColumn>
-                    <ElTableColumn prop="remark" label="备注" show-overflow-tooltip />
-                    <ElTableColumn label="操作" width="60" align="center">
+                    <ElTableColumn prop="remark" label="备注" width="200" show-overflow-tooltip />
+                    <ElTableColumn label="操作" width="100" fixed="right" align="center">
                       <template #default="{ row }">
                         <ElPopconfirm
                           :title="`确认删除缓存 ${row.cache_name} 吗？`"
@@ -172,7 +172,7 @@
                 <div class="cache-table-wrap">
                   <ElTable
                     :loading="subLoading"
-                    :data="cacheKeys.map((key) => ({ cacheKey: key }))"
+                    :data="filteredCacheKeys.map((key) => ({ cacheKey: key }))"
                     row-key="cacheKey"
                   >
                     <template #empty>
@@ -190,7 +190,7 @@
                         </ElButton>
                       </template>
                     </ElTableColumn>
-                    <ElTableColumn label="操作" width="60" align="center">
+                    <ElTableColumn label="操作" width="100" fixed="right" align="center">
                       <template #default="{ row }">
                         <ElPopconfirm
                           :title="`确认删除键 ${row.cacheKey} 吗？`"
@@ -269,7 +269,7 @@ import CacheAPI, {
   type CacheMonitor,
   type RedisInfo,
 } from "@/api/module_monitor/cache";
-import * as echarts from "echarts";
+import { echarts } from "@/plugins/echarts";
 import { useWindowSize } from "@vueuse/core";
 
 defineOptions({ name: "CacheMonitor" });
@@ -282,6 +282,14 @@ const cacheKeys = ref<string[]>([]);
 const loading = ref(true);
 const subLoading = ref(false);
 const nowCacheName = ref("");
+const cacheKeySearch = ref("");
+
+/** 根据搜索关键词过滤缓存键名列表 */
+const filteredCacheKeys = computed(() => {
+  const query = cacheKeySearch.value.trim().toLowerCase();
+  if (!query) return cacheKeys.value;
+  return cacheKeys.value.filter((key) => key.toLowerCase().includes(query));
+});
 const commandstats = ref<HTMLElement | null>(null);
 const usedmemory = ref<HTMLElement | null>(null);
 const cache = ref<CacheMonitor>({
@@ -309,8 +317,8 @@ const getCacheNameList = async () => {
     const response = await CacheAPI.getCacheNames();
     cacheNames.value = response.data.data;
     resetCacheForm();
-  } catch (error) {
-    console.error("获取缓存列表出错:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("获取缓存列表出错:", error);
   } finally {
     loading.value = false;
   }
@@ -320,16 +328,16 @@ const refreshCacheNames = () => {
   getCacheNameList();
 };
 
-const handleClearCacheName = async (row: CacheInfo) => {
+const handleClearCacheName = async (row: any) => {
   try {
     await CacheAPI.deleteCacheName(row.cache_name);
     refreshCacheNames();
-  } catch (error) {
-    console.error("清理缓存名称出错:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("清理缓存名称出错:", error);
   }
 };
 
-const getCacheKeyList = async (row?: CacheInfo) => {
+const getCacheKeyList = async (row?: any) => {
   try {
     const cacheName = row?.cache_name || nowCacheName.value;
     if (!cacheName) return;
@@ -338,8 +346,8 @@ const getCacheKeyList = async (row?: CacheInfo) => {
     cacheKeys.value = response.data.data;
     nowCacheName.value = cacheName;
     cacheForm.value = { cache_name: cacheName, cache_key: "", cache_value: "" };
-  } catch (error) {
-    console.error("获取缓存键名列表出错:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("获取缓存键名列表出错:", error);
   } finally {
     subLoading.value = false;
   }
@@ -353,8 +361,10 @@ async function handleClearCacheKey(cacheKey: string) {
   try {
     await CacheAPI.deleteCacheKey(cacheKey);
     getCacheKeyList();
-  } catch (error) {
-    console.error("清理缓存键名出错:", error);
+    ElMessage.success("缓存键已清理");
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("清理缓存键名出错:", error);
+    ElMessage.error("清理缓存键失败，请稍后重试");
   }
 }
 
@@ -363,8 +373,9 @@ async function handleCacheValue(cacheKey: string) {
     loading.value = true;
     const response = await CacheAPI.getCacheValue(nowCacheName.value, cacheKey);
     cacheForm.value = response.data.data;
-  } catch (error) {
-    console.error("获取缓存内容失败:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("获取缓存内容失败:", error);
+    ElMessage.error("获取缓存内容失败，请稍后重试");
   } finally {
     loading.value = false;
   }
@@ -379,9 +390,11 @@ const handleClearCacheAll = async () => {
     });
     await CacheAPI.deleteCacheAll();
     getCacheNameList();
+    ElMessage.success("全部缓存已清理");
   } catch (error: unknown) {
     if (error !== "cancel") {
-      console.error("清理全部缓存失败:", error);
+      if (import.meta.env.DEV) console.error("清理全部缓存失败:", error);
+      ElMessage.error("清理全部缓存失败，请稍后重试");
     }
   }
 };
@@ -390,10 +403,11 @@ const getInfo = async () => {
   try {
     loading.value = true;
     const response = await CacheAPI.getCacheInfo();
-    cache.value = response.data.data || { info: {}, command_stats: [], dbSize: 0 };
+    cache.value = response.data.data || { info: {}, command_stats: [], db_size: 0 };
     initCharts();
-  } catch (error) {
-    console.error("获取缓存监控数据失败:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("获取缓存监控数据失败:", error);
+    ElMessage.error("获取缓存监控数据失败");
   } finally {
     loading.value = false;
   }
@@ -449,12 +463,21 @@ const initCharts = () => {
   });
 };
 
+const handleChartResize = () => {
+  commandstatsInstance?.resize();
+  usedmemoryInstance?.resize();
+};
+
 onMounted(() => {
   getCacheNameList();
   getInfo();
+  // Redis 监控信息加载一次，不自动轮询
+  // 窗口 resize 时自适应图表
+  window.addEventListener("resize", handleChartResize);
 });
 
 onUnmounted(() => {
+  window.removeEventListener("resize", handleChartResize);
   commandstatsInstance?.dispose();
   usedmemoryInstance?.dispose();
 });
@@ -498,7 +521,6 @@ onUnmounted(() => {
   gap: 16px;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
 }
 
 .chart-card {
@@ -526,7 +548,6 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
 }
 
 .cache-mgmt-col {

@@ -58,12 +58,19 @@ const RoleAPI = {
     });
   },
 
-  exportRole(body: TablePageQuery) {
+  exportRole(query: TablePageQuery) {
     return request<Blob>({
       url: `${API_PATH}/export`,
       method: "post",
-      data: body,
+      data: query,
       responseType: "blob",
+    });
+  },
+
+  getRoleOptions() {
+    return request<ApiResponse<OptionType[]>>({
+      url: `${API_PATH}/options`,
+      method: "get",
     });
   },
 };
@@ -72,6 +79,8 @@ export default RoleAPI;
 
 export interface TablePageQuery extends PageQuery, UserByQueryParams {
   name?: string;
+  code?: string;
+  status?: number;
 }
 
 export interface RoleTable extends BaseType {

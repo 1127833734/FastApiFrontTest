@@ -33,7 +33,6 @@
           :disabled-search="false"
           :default-expanded="false"
           include-audit
-          :audit-item-options="{ showTenantId: true }"
           @search="handleSearchBarSearch"
           @reset="onResetSearch"
         />
@@ -155,7 +154,7 @@
             />
           </template>
           <template #role_ids>
-            <ElSelect v-model="formData.role_ids" multiple placeholder="请选择角色">
+            <ElSelect v-model="formData.role_ids" multiple placeholder="请选择角色" filterable>
               <ElOption
                 v-for="item in roleOptions"
                 :key="item.value"
@@ -166,7 +165,7 @@
             </ElSelect>
           </template>
           <template #position_ids>
-            <ElSelect v-model="formData.position_ids" multiple placeholder="请选择岗位">
+            <ElSelect v-model="formData.position_ids" multiple placeholder="请选择岗位" filterable>
               <ElOption
                 v-for="item in positionOptions"
                 :key="item.value"
@@ -206,41 +205,34 @@ defineOptions({
 
 import { h } from "vue";
 import { UserFilled } from "@element-plus/icons-vue";
-import { ElAvatar } from "element-plus";
-import { ResultEnum } from "@/enums/api/result.enum";
+
 import { useAppStore } from "@stores";
 import { DeviceEnum } from "@/enums/settings/device.enum";
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
+import { confirmToggleStatus } from "@/hooks/core/useConfirm";
+
 import UserAPI, {
   type UserForm,
   type UserInfo,
   type UserPageQuery,
 } from "@/api/module_system/user";
-import {
-  formatTree,
-  renderTableOperationCell,
-  type TableOperationAction,
-  resolveStatusColumns,
-} from "@utils";
+import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
 import PositionAPI from "@/api/module_system/position";
 import DeptAPI from "@/api/module_system/dept";
 import RoleAPI from "@/api/module_system/role";
 import { useUserStore } from "@stores";
-import { useAuth } from "@/hooks/core/useAuth";
-import type { ColumnOption } from "@/types/component";
 import type { DescriptionsItem } from "@/components/others/fa-descriptions/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
-import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
+import FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDrawer from "@/components/modal/fa-drawer/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import FaDeptTree from "./components/FaDeptTree.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import type { ColumnOption } from "@/types/component";
 
 const { hasAuth } = useAuth();
 const userStore = useUserStore();
@@ -282,7 +274,7 @@ function buildUserRowActions(
     onResetPwd: (row: UserInfo) => void;
     onDetail: (id: number) => void;
     onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number, name: string) => void;
   }
 ): TableOperationAction[] {
   const sys = row.is_superuser === true;
@@ -325,7 +317,7 @@ function buildUserRowActions(
       disabled: sys,
       run: () => {
         if (sys) return;
-        ctx.onDelete(row.id!);
+        ctx.onDelete(row.id!, row.name ?? row.username ?? "");
       },
     },
   ];
@@ -515,7 +507,13 @@ async function handleResetPassword(row: UserInfo) {
     const { value } = await ElMessageBox.prompt(
       `请输入用户【${row.username ?? ""}】的新密码`,
       "重置密码",
-      { confirmButtonText: "确定", cancelButtonText: "取消" }
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputErrorMessage: "请输入密码",
+        draggable: true,
+      }
     );
     if (!value || value.length < 6) {
       ElMessage.warning("密码至少需要6位字符，请重新输入");
@@ -527,9 +525,9 @@ async function handleResetPassword(row: UserInfo) {
   }
 }
 
-async function deleteUserRow(id: number) {
+async function deleteUserRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await UserAPI.deleteUser([id]);
     const idSet = [id];
     if (userStore.basicInfo.id && idSet.includes(userStore.basicInfo.id)) {
@@ -632,7 +630,7 @@ const {
 });
 
 const userCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<UserInfo>) => {
+  (columns?.value ?? []).map((c: ColumnOption<UserInfo>) => {
     const t = (c as { type?: string }).type;
     return {
       prop: c.prop,
@@ -710,9 +708,22 @@ const formData = ref<UserForm>({
 const { dialogVisible } = useCrudDialog();
 
 const rules = reactive({
-  username: [{ required: true, message: "请输入账号", trigger: "blur" }],
-  name: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+  username: [
+    { required: true, message: "请输入账号", trigger: "blur" },
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_.-]{1,31}$/,
+      message: "账号需以字母开头，2-32位字母/数字/_.-",
+      trigger: "blur",
+    },
+  ],
+  name: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+    { max: 32, message: "用户名不能超过32位", trigger: "blur" },
+  ],
+  password: [
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 6, message: "密码不能少于6位", trigger: "blur" },
+  ],
   gender: [{ required: false, message: "请选择性别", trigger: "blur" }],
   email: [
     {
@@ -723,7 +734,7 @@ const rules = reactive({
   ],
   mobile: [
     {
-      pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/,
+      pattern: /^1[3-9]\d{9}$/,
       message: "请输入正确的手机号码",
       trigger: "blur",
     },
@@ -784,7 +795,7 @@ async function handleImportUpload(formDataUpload: FormData) {
     }
     // 失败分支提示由 axios 拦截器统一处理
   } catch (error: unknown) {
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
     // 接口错误已由拦截器提示
   } finally {
     uploadLoading.value = false;
@@ -843,27 +854,12 @@ async function handleOpenDialog(type: "create" | "update" | "detail", id?: numbe
   const deptResponse = await DeptAPI.listDept({});
   deptOptions.value = formatTree(deptResponse.data.data);
 
-  const roleResponse = await RoleAPI.listRole();
-  const roleRows = roleResponse.data.data.items ?? [];
-  roleOptions.value = roleRows
-    .filter((item) => item.id !== undefined && item.name !== undefined)
-    .map((item) => ({
-      value: item.id as number,
-      label: item.name as string,
-      disabled: item.status === 1,
-    }))
-    .filter((opt) => !opt.disabled);
-
-  const positionResponse = await PositionAPI.listPosition();
-  const positionRows = positionResponse.data.data.items ?? [];
-  positionOptions.value = positionRows
-    .filter((item) => item.id !== undefined && item.name !== undefined)
-    .map((item) => ({
-      value: item.id as number,
-      label: item.name as string,
-      disabled: item.status === 1,
-    }))
-    .filter((opt) => !opt.disabled);
+  const [roleRes, positionRes] = await Promise.all([
+    RoleAPI.getRoleOptions(),
+    PositionAPI.getPositionOptions(),
+  ]);
+  roleOptions.value = (roleRes.data.data ?? []) as typeof roleOptions.value;
+  positionOptions.value = (positionRes.data.data ?? []) as typeof positionOptions.value;
 }
 
 async function handleSubmit() {
@@ -885,7 +881,7 @@ async function handleSubmit() {
         await userStore.getUserInfo();
       }
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       submitLoading.value = false;
     }
@@ -896,7 +892,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r.name ?? r.username ?? r.id))
+    );
     batchDeleting.value = true;
     await UserAPI.deleteUser(ids);
     if (userStore.basicInfo.id && ids.includes(userStore.basicInfo.id)) {

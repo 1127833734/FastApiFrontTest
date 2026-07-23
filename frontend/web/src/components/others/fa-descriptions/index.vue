@@ -90,8 +90,18 @@
 <script setup lang="ts">
 defineOptions({ name: "FaDescriptions" });
 
+defineSlots<{
+  default(props: object): any;
+  title(props: object): any;
+  [slotName: string]: (props: {
+    item: DescriptionsItem;
+    value: unknown;
+    row: Record<string, unknown> | null;
+  }) => any;
+}>();
+
 import { computed, useAttrs } from "vue";
-import { useNamespace } from "element-plus";
+import { useNamespace } from "element-plus/es/hooks/use-namespace/index";
 
 export type TagType = "primary" | "success" | "warning" | "danger" | "info";
 

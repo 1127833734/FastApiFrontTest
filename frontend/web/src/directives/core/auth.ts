@@ -10,7 +10,7 @@
  * ```vue
  * <el-button v-auth="'module_system:user:create'">新增</el-button>
  * <el-button v-auth="'module_system:user:update'">编辑</el-button>
- * <el-button v-auth="'module_platform:order:create'">创建订单</el-button>
+ * <el-button v-auth="'module_system:menu:create'">新增菜单</el-button>
  * ```
  *
  * @module directives/auth

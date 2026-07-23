@@ -49,7 +49,7 @@ export const useNoticeStore = defineStore(
      */
     async function getNotice() {
       const response = await NoticeAPI.listNoticeAvailable();
-      const items = response.data.data.items || [];
+      const items = response.data.data || [];
       // 过滤掉已读的通知
       const readSet = new Set(readIds.value);
       const filtered = items.filter(

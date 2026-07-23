@@ -91,7 +91,6 @@ declare global {
   }
 
   /**
-   * 兼容 web 工程遗留的 `Api.*` 命名空间类型引用
    * web 目前以真实接口模块导出的类型为准，这里先提供最小声明避免 vue-tsc 阻断。
    */
   namespace Api {
@@ -119,13 +118,6 @@ declare global {
   }
 
   /**
-   * 租户查询参数（继承基础查询 + 租户ID）
-   */
-  interface TenantByQueryParams extends BaseQueryParams {
-    tenant_id?: number;
-  }
-
-  /**
    * 分页查询参数（继承基础查询 + 分页字段）
    */
   interface PageQuery extends BaseQueryParams {
@@ -135,7 +127,6 @@ declare global {
 
   /**
    * 分页响应对象（列表接口 `data` 统一为该结构）
-   * 前端 `useTable` 仅通过 `@utils/table` 的 `defaultResponseAdapter` 解析该形状（及 ApiResponse 包装）
    */
   interface PageResult<T = any> {
     items: T[];
@@ -146,17 +137,9 @@ declare global {
   }
 
   /**
-   * 创建人
+   * 创建人/更新人/删除人
    */
   interface CommonType {
-    id?: number;
-    name?: string;
-  }
-
-  /**
-   * 租户
-   */
-  interface TenantType {
     id?: number;
     name?: string;
   }
@@ -181,7 +164,6 @@ declare global {
     created_by?: CommonType;
     updated_by?: CommonType;
     deleted_by?: CommonType;
-    tenant_by?: TenantType;
   }
 
   /**
@@ -211,6 +193,66 @@ declare global {
    * 启用状态
    */
   type EnableStatus = "0" | "1";
+
+  // ====== 通用类型（原 common/index.ts） ======
+
+  /** 状态类型（0: 禁用, 1: 启用） */
+  type Status = 0 | 1;
+  /** 性别类型 */
+  type Gender = "male" | "female" | "unknown";
+  /** 排序方向 */
+  type SortOrder = "ascending" | "descending";
+  /** 操作类型 */
+  type ActionType =
+    | "create"
+    | "update"
+    | "delete"
+    | "view"
+    | "export"
+    | "import"
+    | "patch"
+    | "download";
+  /** 可选的记录类型 */
+  type Recordable<T = any> = Record<string, T>;
+  /** 键值对类型 */
+  interface KeyValue<T = any> {
+    key: string;
+    value: T;
+    label?: string;
+  }
+  /** 时间范围类型 */
+  interface TimeRange {
+    startTime: string;
+    endTime: string;
+  }
+  /** 文件类型 */
+  interface FileInfo {
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+    lastModified?: number;
+  }
+  /** 坐标类型 */
+  interface Position {
+    x: number;
+    y: number;
+  }
+  /** 尺寸类型 */
+  interface Size {
+    width: number;
+    height: number;
+  }
+  /** 响应式断点类型 */
+  type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl";
+  /** 主题模式（轻量字面量类型，区别于 enums 中的 ThemeMode const enum） */
+  type ThemeMode = "light" | "dark" | "auto";
+  /** 语言类型 */
+  type Language = "zh-CN" | "en-US";
+  /** 环境类型 */
+  type Environment = "dev" | "prod" | "test";
+  /** 弹窗类型 */
+  type DialogType = "add" | "edit";
 
   /**
    * 登录参数
@@ -296,7 +338,7 @@ declare global {
   /**
    * 角色列表
    */
-  type RoleList = PaginatedResponse<RoleListItem>;
+  type RoleList = PageResult<RoleListItem>;
 
   /**
    * 角色列表项

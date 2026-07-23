@@ -2,7 +2,7 @@
  * 路由后置守卫：滚动置顶、结束 NProgress、关闭 beforeEach 开启的全局 loading。
  */
 import { nextTick } from "vue";
-import { useSettingsStore } from "@stores";
+import { useSettingsStore, useWorktabStore } from "@stores";
 import { Router } from "vue-router";
 import { useCommon } from "@/hooks/core/useCommon";
 import { NProgress, loadingService } from "@utils";
@@ -24,8 +24,13 @@ export async function setupAfterEachGuard(router: Router) {
   // 延迟加载 beforeEach 中导出的守卫状态函数，避免静态循环依赖
   const { getPendingLoading, resetPendingLoading } = await import("./beforeEach");
 
-  router.afterEach(() => {
-    scrollToTop();
+  router.afterEach((to) => {
+    // 切换到已有标签时不滚动到顶，保留浏览位置
+    const worktabStore = useWorktabStore();
+    const isExistingTab = worktabStore.opened.some((tab) => tab.path === to.path);
+    if (!isExistingTab) {
+      scrollToTop();
+    }
 
     const settingStore = useSettingsStore();
     if (settingStore.showNprogress) {

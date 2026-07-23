@@ -143,28 +143,28 @@ import { useClipboard } from "@vueuse/core";
 import { useRoute } from "vue-router";
 import type { EditorConfiguration } from "codemirror";
 import type { CmComponentRef } from "codemirror-editor-vue3";
-import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
+import type { FormInstance } from "element-plus";
 import { Plus, Upload, Delete, Download } from "@element-plus/icons-vue";
 import GencodeAPI, {
   type GenTableSchema,
   type DBTableSchema,
   type GenTablePageQuery,
 } from "@/api/module_generator/gencode";
-import MenuAPI, { MenuTable } from "@/api/module_platform/menu";
+import MenuAPI, { MenuTable } from "@/api/module_system/menu";
 import DictAPI, { DictTable } from "@/api/module_system/dict";
 import { MenuTypeEnum } from "@/enums";
 import { useSettingsStore } from "@stores";
-import { useTable } from "@/hooks/core/useTable";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaGenCodeDrawer from "./components/FaGenCodeDrawer.vue";
 import FaImportDbTableDialog from "./components/FaImportDbTableDialog.vue";
 import FaCreateTableDialog from "./components/FaCreateTableDialog.vue";
 import { GENCODE_BASIC_FORM_KEY, GENCODE_CM_KEY } from "./gencodeInjectionKeys";
-import type { ColumnOption } from "@/types/component";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@utils";
+import type { TableOperationAction } from "@utils";
 import type { TreeNode } from "./types";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 // 文件数据接口
 interface FileData {
@@ -469,8 +469,8 @@ async function handlePreview(row: GenTableSchema): Promise<void> {
 
     preview.open = true;
     preview.active_name = "model.py";
-  } catch (error) {
-    console.error("预览代码失败:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("预览代码失败:", error);
   } finally {
     previewLoading.value = false;
   }
@@ -523,8 +523,8 @@ async function handleGenTable(targetGenType: string, row?: GenTableSchema): Prom
       URL.revokeObjectURL(url);
       ElMessage.success("已开始下载 code.zip");
     }
-  } catch (error) {
-    console.error("生成代码失败:", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("生成代码失败:", error);
   } finally {
     loading.value = false;
   }
@@ -790,21 +790,7 @@ const gencodeSearchItems = computed<SearchFormItem[]>(() => [
   },
 ]);
 
-const {
-  columns,
-  columnChecks,
-  data: tableListData,
-  loading: tableLoading,
-  pagination,
-  getData,
-  replaceSearchParams,
-  resetSearchParams,
-  handleSizeChange,
-  handleCurrentChange,
-  refreshData,
-  refreshCreate,
-  refreshRemove,
-} = useTable({
+const useTableResult = useTable({
   core: {
     apiFn: GencodeAPI.listTable,
     apiParams: {
@@ -855,6 +841,23 @@ const {
     ],
   },
 });
+
+// 列配置类型收窄：运行时结构一致，显式断言兼容 FaTableHeader/FaTable 的 ColumnOption[] 期望
+const columns = useTableResult.columns as ComputedRef<ColumnOption[]>;
+const columnChecks = useTableResult.columnChecks as Ref<ColumnOption[]>;
+const {
+  data: tableListData,
+  loading: tableLoading,
+  pagination,
+  getData,
+  replaceSearchParams,
+  resetSearchParams,
+  handleSizeChange,
+  handleCurrentChange,
+  refreshData,
+  refreshCreate,
+  refreshRemove,
+} = useTableResult;
 
 listRefresh.refreshData = refreshData;
 listRefresh.refreshCreate = refreshCreate;

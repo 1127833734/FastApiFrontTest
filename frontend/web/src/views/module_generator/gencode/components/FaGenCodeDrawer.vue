@@ -94,6 +94,7 @@ import type { TreeNode } from "../types";
 import GenBasicStep from "./FaGenBasicStep.vue";
 import GenColumnsStep from "./FaGenColumnsStep.vue";
 import GenPreviewStep from "./FaGenPreviewStep.vue";
+import FaDrawer from "@/components/modal/fa-drawer/index.vue";
 
 defineOptions({ name: "GenCodeDrawer" });
 

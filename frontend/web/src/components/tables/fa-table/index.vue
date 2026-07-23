@@ -39,7 +39,18 @@
           :disabled="rowDragDisabled"
           @end="onRowDragEnd"
         >
-          <ElTable ref="elTableRef" :key="tableKey" v-loading="!!loading" v-bind="mergedTableProps">
+          <ElTable
+            ref="elTableRef"
+            :key="tableKey"
+            v-loading="!!loading"
+            :expand-row-keys="
+              props.rowKey && !hasExplicitTableProp('treeProps')
+                ? expandRowKeys.map(String)
+                : undefined
+            "
+            @expand-change="!hasExplicitTableProp('treeProps') ? onExpandChange : undefined"
+            v-bind="mergedTableProps"
+          >
             <template v-for="col in columns" :key="col.prop || col.type">
               <ElTableColumn v-if="col.type === 'globalIndex'" v-bind="{ ...col }">
                 <template #default="{ $index }">
@@ -110,7 +121,7 @@ import {
   ref,
   computed,
   nextTick,
-  watchEffect,
+  watch,
   getCurrentInstance,
   useAttrs,
   useSlots,
@@ -119,23 +130,30 @@ import {
   defineComponent,
   type PropType,
 } from "vue";
-import type { ElTable, TableProps } from "element-plus";
+import type { ElTable, TableInstance, TableProps } from "element-plus";
+import { useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
-import { ColumnOption } from "@/types";
+
 import { useTableStore } from "@stores";
 import { useCommon } from "@/hooks/core/useCommon";
 import { useTableHeight } from "@/hooks/core/useTableHeight";
 import { useWindowSize } from "@vueuse/core";
 import { VueDraggable } from "vue-draggable-plus";
 import { MOBILE_BREAKPOINT } from "@utils/constants/definitions";
+import type { ColumnOption } from "@/types/component";
 
 defineOptions({ name: "FaTable" });
+
+defineSlots<{
+  default(props: object): any;
+  [slotName: string]: (props: Record<string, any>) => any;
+}>();
 
 const { width } = useWindowSize();
 const isMobile = computed(() => width.value < MOBILE_BREAKPOINT);
 // H5 ↔ 桌面切换时强制重建 ElTable，使列宽 / formatter 重新计算
 const tableKey = computed(() => (isMobile.value ? "mobile" : "desktop"));
-const elTableRef = ref<InstanceType<typeof ElTable> | null>(null);
+const elTableRef = ref<TableInstance | null>(null);
 const paginationRef = ref<HTMLElement>();
 const tableHeaderRef = ref<HTMLElement>();
 const tableStore = useTableStore();
@@ -212,6 +230,51 @@ const props = withDefaults(defineProps<Props>(), {
 });
 const instance = getCurrentInstance();
 const attrs = useAttrs();
+const route = useRoute();
+
+// ── 树形表格展开状态记忆 ──
+/** localStorage 存储 key */
+const expandStorageKey = computed(() => `table-expand-${route.path}`);
+
+/** 当前展开的行 key 集合 */
+const expandRowKeys = ref<(string | number)[]>([]);
+
+/** 保存展开状态到 localStorage */
+function saveExpandState(keys: (string | number)[]) {
+  try {
+    localStorage.setItem(expandStorageKey.value, JSON.stringify(keys));
+  } catch {
+    // 静默忽略
+  }
+}
+
+/** 从 localStorage 恢复展开状态 */
+function restoreExpandState(): (string | number)[] {
+  try {
+    const raw = localStorage.getItem(expandStorageKey.value);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// 数据刷新后尝试恢复展开状态
+watch(
+  () => props.data,
+  (newData) => {
+    if (!newData?.length) {
+      expandRowKeys.value = [];
+      return;
+    }
+    const savedKeys = restoreExpandState();
+    if (savedKeys.length > 0) {
+      expandRowKeys.value = savedKeys;
+    }
+  },
+  { immediate: true }
+);
 
 /** 仅当调用方显式传入对应 prop 时视为「固定」，否则交由表格 store */
 const hasExplicitTableProp = (propName: string): boolean => {
@@ -329,20 +392,24 @@ const headerCellStyle = computed(() => ({
   ...(props.headerCellStyle || {}), // 合并用户传入的样式
 }));
 
-const mergedTableProps = computed(() => ({
-  ...attrs,
-  ...props,
-  height: height.value,
-  stripe: stripe.value,
-  border: border.value,
-  size: hasExplicitTableProp("size") ? size.value : undefined,
-  headerCellStyle: headerCellStyle.value,
-  highlightCurrentRow: highlightCurrentRow.value,
-  // Element Plus 默认值为 true，未显式传入时不应被 FaTable 覆盖成 false。
-  selectOnIndeterminate: hasExplicitTableProp("selectOnIndeterminate")
-    ? props.selectOnIndeterminate
-    : undefined,
-}));
+const mergedTableProps = computed(() => {
+  const { expandRowKeys: _ignored, ...restProps } = props;
+  void _ignored;
+  return {
+    ...attrs,
+    ...restProps,
+    height: height.value,
+    stripe: stripe.value,
+    border: border.value,
+    size: hasExplicitTableProp("size") ? size.value : undefined,
+    headerCellStyle: headerCellStyle.value,
+    highlightCurrentRow: highlightCurrentRow.value,
+    // Element Plus 默认值为 true，未显式传入时不应被 FaTable 覆盖成 false。
+    selectOnIndeterminate: hasExplicitTableProp("selectOnIndeterminate")
+      ? props.selectOnIndeterminate
+      : undefined,
+  };
+});
 
 interface Emits {
   (e: "pagination:size-change", val: number): void;
@@ -376,6 +443,31 @@ const onRowDragEnd = () => {
   if (Array.isArray(d)) {
     emit("row-order-change", d as Record<string, unknown>[]);
   }
+};
+
+/** 树形表格行展开/收起变化时记录状态 */
+const onExpandChange = (row: Record<string, unknown>, expandedRows: Record<string, unknown>[]) => {
+  const rowKey = (row as Record<string, unknown>)[props.rowKey as string];
+  if (rowKey === undefined || rowKey === null) return;
+
+  const currentKeys = [...expandRowKeys.value];
+  const isExpanded = expandedRows.some(
+    (r) => (r as Record<string, unknown>)[props.rowKey as string] === rowKey
+  );
+
+  if (isExpanded) {
+    if (!currentKeys.includes(rowKey as string | number)) {
+      currentKeys.push(rowKey as string | number);
+    }
+  } else {
+    const idx = currentKeys.indexOf(rowKey as string | number);
+    if (idx > -1) {
+      currentKeys.splice(idx, 1);
+    }
+  }
+
+  expandRowKeys.value = currentKeys;
+  saveExpandState(currentKeys);
 };
 
 // 是否显示分页器
@@ -505,23 +597,18 @@ const findTableHeader = () => {
   }
 };
 
-watchEffect(
-  () => {
-    // 访问响应式数据以建立依赖追踪
-    void props.data?.length; // 追踪数据变化
-    const shouldShow = props.showTableHeader;
-
-    // 只有在需要显示表格头部时才查找
+watch(
+  () => props.showTableHeader,
+  (shouldShow) => {
     if (shouldShow) {
       nextTick(() => {
         findTableHeader();
       });
     } else {
-      // 不显示时清空引用
       tableHeaderRef.value = undefined;
     }
   },
-  { flush: "post" }
+  { immediate: true }
 );
 
 defineExpose({
@@ -618,12 +705,55 @@ defineExpose({
     opacity: 0;
   }
 
-  /* 空状态垂直居中 */
+  /* 空状态垂直居中 + 优化间距 */
   &.is-empty {
     :deep(.el-table__body-wrapper) {
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    :deep(.el-table__empty-block) {
+      min-height: 180px;
+    }
+
+    :deep(.el-empty) {
+      .el-empty__image {
+        width: 72px;
+      }
+
+      .el-empty__description {
+        margin-top: 8px;
+
+        p {
+          font-size: 13px;
+          color: var(--fa-gray-500);
+        }
+      }
+    }
+  }
+
+  /* 表格行悬停行高亮（强化） */
+  :deep(.el-table__body tr.el-table__row) {
+    transition: background-color 0.2s ease;
+
+    &:hover > td.el-table__cell {
+      background-color: var(--fa-hover-color) !important;
+    }
+
+    &.current-row > td.el-table__cell {
+      background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
+    }
+  }
+
+  /* 斑马纹优化 */
+  :deep(.el-table--striped .el-table__body tr.el-table__row--striped) {
+    td.el-table__cell {
+      background-color: var(--fa-gray-100);
+    }
+
+    &:hover td.el-table__cell {
+      background-color: var(--fa-hover-color) !important;
     }
   }
 

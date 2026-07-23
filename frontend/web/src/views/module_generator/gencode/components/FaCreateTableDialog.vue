@@ -77,6 +77,7 @@ import {
   getExampleFromPresetMasterSub,
   getExampleFromPresetSingle,
 } from "../utils/createTableSqlExamples";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
 
 defineOptions({ name: "CreateTableDialog" });
 

@@ -46,7 +46,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import bannerCover from "@imgs/login/lf_icon2.webp";
-import FaBasicBanner from "@/components/banners/fa-basic-banner/index.vue";
 import { useUserStore } from "@stores";
 import { greetings } from "@utils";
 import { UserFilled } from "@element-plus/icons-vue";

@@ -10,7 +10,12 @@
     <ElScrollbar class="sidebar-content" view-class="p-4">
       <template v-if="!isCollapsed">
         <div class="new-session-section">
-          <ElButton type="primary" class="new-session-btn" @click="handleNewSession">
+          <ElButton
+            v-hasPerm="['module_ai:chat:create']"
+            type="primary"
+            class="new-session-btn"
+            @click="handleNewSession"
+          >
             <ElIcon class="btn-icon"><Plus /></ElIcon>
             <span>开启新对话</span>
           </ElButton>
@@ -56,8 +61,15 @@
                     <ElIcon class="more-icon" @click.stop><MoreFilled /></ElIcon>
                     <template #dropdown>
                       <ElDropdownMenu>
-                        <ElDropdownItem command="rename">重命名</ElDropdownItem>
-                        <ElDropdownItem command="delete" divided>删除</ElDropdownItem>
+                        <ElDropdownItem v-hasPerm="['module_ai:chat:update']" command="rename"
+                          >重命名</ElDropdownItem
+                        >
+                        <ElDropdownItem
+                          v-hasPerm="['module_ai:chat:delete']"
+                          command="delete"
+                          divided
+                          >删除</ElDropdownItem
+                        >
                       </ElDropdownMenu>
                     </template>
                   </ElDropdown>
@@ -113,8 +125,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox, ElScrollbar } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  ChatDotRound,
   ChatLineRound,
   User,
   Setting,
@@ -254,11 +267,7 @@ const handleSessionCommand = async (command: string, session: ChatSession) => {
     }
   } else if (command === "delete") {
     try {
-      await ElMessageBox.confirm("确定要删除此会话吗？", "确认删除", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      });
+      await confirmDelete(`确定删除「${session.title}」吗？`);
       await AiChatAPI.deleteSession([session.id]);
       const index = sessions.value.findIndex((s: ChatSession) => s.id === session.id);
       if (index > -1) {

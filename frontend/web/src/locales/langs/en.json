@@ -310,6 +310,7 @@
     "title": "Notice",
     "btnRead": "Mark as read",
     "bar": ["Notice", "Message", "Todo"],
+    "empty": "No notifications",
     "text": ["No"],
     "viewAll": "View all"
   },
@@ -610,19 +611,24 @@
     }
   },
   "table": {
-    "form": {
-      "reset": "Reset",
-      "submit": "Submit"
-    },
     "searchBar": {
       "reset": "Reset",
       "search": "Search",
       "expand": "Expand",
       "collapse": "Collapse",
       "searchInputPlaceholder": "Please enter",
-      "searchSelectPlaceholder": "Please select"
+      "searchSelectPlaceholder": "Please select",
+      "searchTooltip": "Ctrl+Enter to search",
+      "resetTooltip": "Clear all filters"
+    },
+    "form": {
+      "reset": "Reset",
+      "submit": "Submit",
+      "submitAndContinue": "Submit & Continue",
+      "submitAndClose": "Submit & Close"
     },
     "selection": "Select",
+    "batchDelete": "Batch Delete ({count})",
     "sizeOptions": {
       "small": "Compact",
       "default": "Default",

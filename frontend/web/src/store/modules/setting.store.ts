@@ -4,9 +4,8 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
-import { MenuThemeType } from "@/types/store";
+import { SystemThemeEnum, MenuTypeEnum, MenuThemeEnum, ContainerWidthEnum } from "@/enums/appEnum";
 import AppConfig from "@/config";
-import { SystemThemeEnum, MenuThemeEnum, MenuTypeEnum, ContainerWidthEnum } from "@/enums/appEnum";
 import { SETTING_DEFAULT_CONFIG } from "@/config/setting";
 import {
   setElementThemeColor,
@@ -23,6 +22,7 @@ import { defaultSettings } from "@/config/setting";
 import { SidebarColor, ThemeMode } from "@/enums/settings/theme.enum";
 import type { LayoutMode } from "@/enums/settings/layout.enum";
 import type { Ref } from "vue";
+import type { MenuThemeType } from "@/types/store";
 
 export const useSettingsStore = defineStore(
   "settingStore",

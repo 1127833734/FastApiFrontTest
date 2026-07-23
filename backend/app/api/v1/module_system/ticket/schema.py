@@ -1,11 +1,13 @@
-from dataclasses import dataclass
-
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum, TicketTypeEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, CommonSchema, TenantBySchema, UserBySchema
+from app.common.enums import TicketTypeEnum
+from app.core.base_schema import (
+    BaseQueryParam,
+    BaseSchema,
+    CommonSchema,
+    UserByQueryParam,
+    UserBySchema,
+)
 
 
 class TicketCreateSchema(BaseModel):
@@ -49,7 +51,7 @@ class TicketUpdateSchema(BaseModel):
         return v
 
 
-class TicketOutSchema(BaseSchema, UserBySchema, TenantBySchema):
+class TicketOutSchema(BaseSchema, UserBySchema):
     """工单响应"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -79,21 +81,23 @@ class TicketBatchSchema(BaseModel):
         return v
 
 
-@dataclass
-class TicketQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class TicketQueryParam(BaseQueryParam, UserByQueryParam):
     """工单查询参数"""
 
-    title: str | None = None
-    ticket_type: str | None = None
-    assigned_id: int | None = None
-    status: int | None = Query(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)")
+    title: str | None = Field(None, description="工单标题", json_schema_extra={"q": "like"})
+    ticket_type: str | None = Field(None, description="工单类型", json_schema_extra={"q": "eq"})
+    assigned_id: int | None = Field(None, description="处理人ID", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)", json_schema_extra={"q": "eq"})
 
-    def __post_init__(self) -> None:
-        if self.title:
-            self.title = (QueueEnum.like.value, self.title)
-        if self.ticket_type:
-            self.ticket_type = (QueueEnum.eq.value, self.ticket_type)
-        if self.assigned_id:
-            self.assigned_id = (QueueEnum.eq.value, self.assigned_id)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
+
+class TicketCommentCreateSchema(BaseModel):
+    """创建评论"""
+    content: str = Field(..., min_length=1, description="评论内容")
+
+
+class TicketCommentOutSchema(BaseSchema, UserBySchema):
+    """评论响应"""
+    model_config = ConfigDict(from_attributes=True)
+    ticket_id: int
+    content: str
+    created_by_name: str | None = None

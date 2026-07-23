@@ -1,7 +1,7 @@
 <!-- 操作手册：视频演示 + 全功能验收正文 -->
 <template>
   <div class="page-content manual-page">
-    <div class="manual-page__inner mx-auto max-w-[1200px] px-4 pb-8">
+    <div class="manual-page__inner mx-auto max-w-300 px-4 pb-8">
       <!-- 标题 -->
       <h1 class="mb-2 text-2xl font-medium text-g-900 dark:text-g-50">
         {{ t("manualPage.title") }}
@@ -137,10 +137,6 @@
                             ·
                             <ElLink href="#page-notice" type="primary" underline="never">
                               通知公告
-                            </ElLink>
-                            ·
-                            <ElLink href="#page-tenant" type="primary" underline="never">
-                              租户管理
                             </ElLink>
                             ·
                             <ElLink href="#page-log" type="primary" underline="never">
@@ -875,7 +871,10 @@
                   <h3>完整编辑器内容</h3>
                   <ElTabs v-model="fullActiveTab">
                     <ElTabPane label="渲染效果" name="preview">
-                      <div class="content-preview" v-html="fullEditorHtml"></div>
+                      <div
+                        class="content-preview"
+                        v-html="DOMPurify.sanitize(fullEditorHtml)"
+                      ></div>
                     </ElTabPane>
                     <ElTabPane label="HTML源码" name="html">
                       <ElInput
@@ -893,7 +892,10 @@
                   <h3>简化编辑器内容</h3>
                   <ElTabs v-model="simpleActiveTab">
                     <ElTabPane label="渲染效果" name="preview">
-                      <div class="content-preview" v-html="simpleEditorHtml"></div>
+                      <div
+                        class="content-preview"
+                        v-html="DOMPurify.sanitize(simpleEditorHtml)"
+                      ></div>
                     </ElTabPane>
                     <ElTabPane label="HTML源码" name="html">
                       <ElInput
@@ -1040,6 +1042,7 @@ import { computed, ref } from "vue";
 import lockImg from "@imgs/lock/bg_dark.webp";
 import { MANUAL_MODULES_AFTER_SYSTEM, MANUAL_SYSTEM_TAIL_PAGES } from "./manualSections";
 import { manualModuleMatchesQuery, manualPageMatchesQuery } from "./manualTocSearch";
+import DOMPurify from "dompurify";
 
 defineOptions({ name: "DashboardTutorial" });
 
@@ -1076,7 +1079,6 @@ const MANUAL_TOC: ManualModule[] = [
       { anchor: "page-dict", title: "字典管理" },
       { anchor: "page-param", title: "参数配置" },
       { anchor: "page-notice", title: "通知公告" },
-      { anchor: "page-tenant", title: "租户管理" },
       { anchor: "page-log", title: "操作日志" },
       { anchor: "page-login", title: "登录页" },
     ],

@@ -14,7 +14,11 @@
       >
         <div
           class="button"
+          role="button"
+          tabindex="0"
           @click="search"
+          @keydown.enter.prevent="search"
+          @keydown.space.prevent="search"
           :class="!showSearchBar ? 'active bg-theme! hover:bg-theme/80!' : ''"
         >
           <FaSvgIcon icon="ri:search-line" :class="!showSearchBar ? 'text-white' : 'text-g-700'" />
@@ -25,7 +29,11 @@
       <div
         v-if="shouldShow('refresh')"
         class="button"
+        role="button"
+        tabindex="0"
         @click="refresh"
+        @keydown.enter.prevent="refresh"
+        @keydown.space.prevent="refresh"
         :class="{ loading: loading && isManualRefresh }"
       >
         <FaSvgIcon
@@ -44,7 +52,7 @@
             <div
               v-for="item in tableSizeOptions"
               :key="item.value"
-              class="table-size-btn-item [&_.el-dropdown-menu__item]:mb-[3px]! last:[&_.el-dropdown-menu__item]:mb-0!"
+              class="table-size-btn-item [&_.el-dropdown-menu__item]:mb-0.75! last:[&_.el-dropdown-menu__item]:mb-0!"
             >
               <ElDropdownItem
                 :key="item.value"
@@ -59,7 +67,15 @@
       </ElDropdown>
 
       <!-- 全屏 -->
-      <div v-if="shouldShow('fullscreen')" class="button" @click="toggleFullScreen">
+      <div
+        v-if="shouldShow('fullscreen')"
+        class="button"
+        role="button"
+        tabindex="0"
+        @click="toggleFullScreen"
+        @keydown.enter.prevent="toggleFullScreen"
+        @keydown.space.prevent="toggleFullScreen"
+      >
         <FaSvgIcon :icon="isFullScreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
       </div>
 
@@ -71,7 +87,11 @@
       >
         <div
           class="button"
+          role="button"
+          tabindex="0"
           @click="toggleRowDrag"
+          @keydown.enter.prevent="toggleRowDrag"
+          @keydown.space.prevent="toggleRowDrag"
           :class="isRowDrag ? 'active bg-theme! hover:bg-theme/80!' : ''"
         >
           <FaSvgIcon icon="ri:drag-move-line" :class="isRowDrag ? 'text-white' : 'text-g-700'" />
@@ -129,7 +149,7 @@
             <FaSvgIcon icon="ri:settings-line" />
           </div>
         </template>
-        <div class="flex min-w-[200px] flex-col gap-2">
+        <div class="flex min-w-50 flex-col gap-2">
           <ElCheckbox v-model="isZebra" :value="true">
             {{ t("table.zebra") }}
           </ElCheckbox>
@@ -157,7 +177,6 @@ import { useTableStore } from "@stores";
 import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
 import type { ColumnOption } from "@/types/component";
-
 defineOptions({ name: "FaTableHeader" });
 
 // 显式声明插槽类型

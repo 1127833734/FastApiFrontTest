@@ -50,12 +50,19 @@ const PositionAPI = {
     });
   },
 
-  exportPosition(body: PositionPageQuery) {
+  exportPosition(query: PositionPageQuery) {
     return request<Blob>({
       url: `${API_PATH}/export`,
       method: "post",
-      data: body,
+      data: query,
       responseType: "blob",
+    });
+  },
+
+  getPositionOptions() {
+    return request<ApiResponse<OptionType[]>>({
+      url: `${API_PATH}/options`,
+      method: "get",
     });
   },
 };

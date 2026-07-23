@@ -302,10 +302,14 @@ function handleSelect(selection: any[]) {
     selectedItems.value = selection;
   } else {
     // 单选
-    selectedItems.value = [selection[selection.length - 1]];
+    const lastItem = selection[selection.length - 1];
+    selectedItems.value = [lastItem];
     tableRef.value?.clearSelection();
-    tableRef.value?.toggleRowSelection(selectedItems.value[0], true);
-    tableRef.value?.setCurrentRow(selectedItems.value[0]);
+    tableRef.value?.toggleRowSelection(
+      lastItem as Parameters<TableInstance["toggleRowSelection"]>[0],
+      true
+    );
+    tableRef.value?.setCurrentRow(lastItem as Parameters<TableInstance["setCurrentRow"]>[0]);
   }
 }
 function handleSelectAll(selection: any[]) {

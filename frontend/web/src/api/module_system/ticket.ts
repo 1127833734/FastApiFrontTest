@@ -25,8 +25,8 @@ const TicketAPI = {
   exportTicket(query?: TicketPageQuery) {
     return request<ApiResponse<Blob>>({
       url: `${API_PATH}/export`,
-      method: "get",
-      params: query,
+      method: "post",
+      data: query,
       responseType: "blob",
     });
   },
@@ -34,6 +34,22 @@ const TicketAPI = {
     return request<ApiResponse>({ url: `${API_PATH}/batch`, method: "put", data: body });
   },
 };
+
+export function getTicketComments(ticketId: number, params?: PageQuery) {
+  return request<ApiResponse<PageResult<TicketCommentTable>>>({
+    url: `${API_PATH}/${ticketId}/comments`,
+    method: "get",
+    params,
+  });
+}
+
+export function createTicketComment(ticketId: number, data: TicketCommentCreateForm) {
+  return request<ApiResponse<TicketCommentTable>>({
+    url: `${API_PATH}/${ticketId}/comments`,
+    method: "post",
+    data,
+  });
+}
 
 export default TicketAPI;
 
@@ -87,4 +103,19 @@ export interface TicketForm extends BaseFormType {
   assigned_id?: number;
   status?: number;
   description?: string;
+}
+
+// ─── 评论 ───
+export interface TicketCommentTable extends BaseType {
+  ticket_id: number;
+  content: string;
+  created_by_name?: string;
+}
+
+export interface TicketCommentPageQuery extends PageQuery {
+  ticket_id: number;
+}
+
+export interface TicketCommentCreateForm {
+  content: string;
 }

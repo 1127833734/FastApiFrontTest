@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import { useAuth } from "@/hooks/core/useAuth";
 import type { ButtonMoreItem } from "./types";
 
 defineOptions({ name: "FaButtonMore" });

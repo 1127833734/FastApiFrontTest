@@ -14,7 +14,6 @@
       :disabled-search="false"
       :default-expanded="false"
       include-audit
-      :audit-item-options="{ showTenantId: true }"
       @search="handleSearchBarSearch"
       @reset="onResetSearch"
     />
@@ -108,28 +107,21 @@
 
 <script setup lang="ts">
 import { useTableColumns } from "@/hooks/core/useTableColumns";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
-import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
+import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 import DeptAPI, {
   type DeptForm,
   type DeptPageQuery,
   type DeptTable,
 } from "@/api/module_system/dept";
-import { useAuth } from "@/hooks/core/useAuth";
 import { useUserStore } from "@stores";
-import {
-  formatTree,
-  renderTableOperationCell,
-  type TableOperationAction,
-  resolveStatusColumns,
-} from "@utils";
+import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import { ElMessage } from "element-plus";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 defineOptions({
   name: "Dept",
@@ -160,7 +152,7 @@ function buildDeptRowActions(
     onAddChild: (parentId: number) => void;
     onDetail: (id: number) => void;
     onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number, name: string) => void;
   }
 ): TableOperationAction[] {
   const all: TableOperationAction[] = [
@@ -190,7 +182,7 @@ function buildDeptRowActions(
       label: "删除",
       artType: "delete",
       perm: "module_system:dept:delete",
-      run: () => ctx.onDelete(row.id!),
+      run: () => ctx.onDelete(row.id!, row.name ?? ""),
     },
   ];
   return all.filter((a) => a.perm != null && hasAuth(a.perm));
@@ -263,15 +255,15 @@ async function loadDeptData() {
     tableData.value = tree;
     deptOptions.value = formatTree(tree);
   } catch (e: unknown) {
-    console.error(e);
+    if (import.meta.env.DEV) console.error(e);
   } finally {
     loading.value = false;
   }
 }
 
-async function deleteDeptRow(id: number) {
+async function deleteDeptRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await DeptAPI.deleteDept([id]);
     await userStore.getUserInfo();
     selectedRows.value = [];
@@ -301,6 +293,8 @@ const deptDetailItems: import("@/components/others/fa-descriptions/index.vue").D
     { label: "排序", prop: "order" },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
+    { label: "创建人", prop: "created_by.name" },
+    { label: "更新人", prop: "updated_by.name" },
     { label: "描述", prop: "description", span: 4 },
   ];
 
@@ -497,7 +491,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r.name ?? r.id))
+    );
     batchDeleting.value = true;
     await DeptAPI.deleteDept(ids);
     await userStore.getUserInfo();

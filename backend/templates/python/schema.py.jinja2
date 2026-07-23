@@ -3,16 +3,12 @@
 {% if table.sub %}
 from typing import List
 {% endif %}
-from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field
-from fastapi import Query
 {% for import_stmt in schema_import_list %}
 {{ import_stmt }}
 {% endfor %}
-from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, TenantBySchema, UserBySchema
+from app.core.base_schema import BaseSchema, UserBySchema, BaseQueryParam, UserByQueryParam
 
 class {{ class_name }}CreateSchema(BaseModel):
     """
@@ -42,30 +38,18 @@ class {{ class_name }}UpdateSchema({{ class_name }}CreateSchema):
     ...
 
 
-class {{ class_name }}OutSchema({{ class_name }}CreateSchema, BaseSchema, UserBySchema, TenantBySchema):
+class {{ class_name }}OutSchema({{ class_name }}CreateSchema, BaseSchema, UserBySchema):
     """
     {{ function_name }}响应模型
     """
     model_config = ConfigDict(from_attributes=True)
 
 
-@dataclass
-class {{ class_name }}QueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
+class {{ class_name }}QueryParam(BaseQueryParam, UserByQueryParam):
     """{{ function_name }}查询参数"""
 
     {% for column in columns %}
     {% if column.is_query and column.column_name not in ['created_time', 'updated_time', 'created_id', 'updated_id', 'tenant_id', 'is_deleted', 'deleted_time', 'deleted_id'] %}
-    {{ column.column_name }}: {{ column.python_type }} | None = Query(None, description="{{ column.column_comment }}")
+    {{ column.column_name }}: {{ column.python_type }} | None = Field(None, description="{{ column.column_comment }}")
     {% endif %}
     {% endfor %}
-
-    def __post_init__(self) -> None:
-        {% for column in columns %}
-        {% if column.is_query and column.query_type == 'LIKE' and column.column_name not in ['created_time', 'updated_time', 'created_id', 'updated_id', 'tenant_id', 'is_deleted', 'deleted_time', 'deleted_id'] %}
-        if self.{{ column.column_name }}:
-            self.{{ column.column_name }} = (QueueEnum.like.value, self.{{ column.column_name }})
-        {% elif column.is_query and column.query_type == 'EQ' and column.column_name not in ['created_time', 'updated_time', 'created_id', 'updated_id', 'tenant_id', 'is_deleted', 'deleted_time', 'deleted_id'] %}
-        if self.{{ column.column_name }} is not None:
-            self.{{ column.column_name }} = (QueueEnum.eq.value, self.{{ column.column_name }})
-        {% endif %}
-        {% endfor %}

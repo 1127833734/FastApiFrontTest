@@ -14,8 +14,11 @@ export async function confirmDelete(message = "确认删除该项数据?"): Prom
 }
 
 /** 批量删除确认 */
-export async function confirmBatchDelete(count: number): Promise<void> {
-  await ElMessageBox.confirm(`确定删除选中的 ${count} 条数据吗？`, "批量删除", {
+export async function confirmBatchDelete(count: number, names?: string[]): Promise<void> {
+  const detail = names?.length
+    ? `（${names.slice(0, 5).join("、")}${names.length > 5 ? `…等${count}条` : ""}）`
+    : "";
+  await ElMessageBox.confirm(`确定删除选中的 ${count} 条数据吗？${detail}`, "批量删除", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",

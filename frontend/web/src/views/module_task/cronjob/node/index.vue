@@ -113,7 +113,11 @@
               </template>
               <template #kwargs>
                 <div class="dynamic-params">
-                  <div v-for="(item, index) in kwargsList" :key="index" class="param-item">
+                  <div
+                    v-for="(item, index) in kwargsList"
+                    :key="item.key || index"
+                    class="param-item"
+                  >
                     <ElInput v-model="item.key" placeholder="键" />
                     <ElInput v-model="item.value" placeholder="值" />
                     <ElButton
@@ -239,7 +243,7 @@
                   @click="openInterval = true"
                 />
               </template>
-              <IntervalTab
+              <FaIntervalTab
                 :cron-value="executeFormData.trigger_args"
                 @confirm="handleIntervalConfirm"
                 @cancel="openInterval = false"
@@ -276,30 +280,25 @@ defineOptions({
 import NodeAPI, { NodeTable, NodeForm, TriggerType } from "@/api/module_task/cronjob/node";
 import { useDictStore } from "@stores";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
-import IntervalTab from "@/components/others/fa-interval-tab/index.vue";
-import type { ColumnOption } from "@/types/component";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@utils";
-import { useTable } from "@/hooks/core/useTable";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import type { TableOperationAction } from "@utils";
 import { computed, nextTick, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import { vue3CronPlus } from "vue3-cron-plus";
 import "vue3-cron-plus/dist/index.css";
 import Codemirror, { CmComponentRef } from "codemirror-editor-vue3";
 import type { EditorConfiguration } from "codemirror";
 import "codemirror/mode/python/python.js";
 import "codemirror/theme/dracula.css";
+import type { ColumnOption } from "@/types/component";
 
 const dictStore = useDictStore();
 const { hasAuth } = useAuth();
-
-const BATCH_DELETE_NODE_MSG =
-  "确认删除选中的节点吗？\n" +
-  "此操作将同时删除节点定义并移除调度器中的相关任务。\n" +
-  "正在运行的任务会被立即移除，待执行任务的日志将被标记为已取消。";
 
 type NodeSearchForm = {
   name?: string;
@@ -366,14 +365,10 @@ function onTableSelectionChange(rows: NodeTable[]) {
   selectedRows.value = rows;
 }
 
-async function deleteNodeRow(id: number | undefined) {
+async function deleteNodeRow(id: number | undefined, name: string | number) {
   if (id == null) return;
   try {
-    await ElMessageBox.confirm("确认删除该节点吗？将从调度器移除相关任务。", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmDelete(`确定删除节点「${name}」吗？`);
     await NodeAPI.deleteNode([id]);
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
@@ -410,7 +405,7 @@ function buildNodeRowActions(row: NodeTable): TableOperationAction[] {
       icon: "ri:delete-bin-4-line",
       perm: "module_task:cronjob:node:delete",
       run: () => {
-        void deleteNodeRow(row.id);
+        void deleteNodeRow(row.id, String(row?.name ?? row?.id ?? ""));
       },
     },
   ];
@@ -427,11 +422,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await ElMessageBox.confirm(BATCH_DELETE_NODE_MSG, "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r?.name ?? r?.id ?? ""))
+    );
     batchDeleting.value = true;
     await NodeAPI.deleteNode(ids);
     selectedRows.value = [];
@@ -868,8 +862,8 @@ async function handleSubmit() {
         } else {
           await refreshCreate();
         }
-      } catch (error: any) {
-        console.error(error);
+      } catch (error: unknown) {
+        if (import.meta.env.DEV) console.error(error);
       } finally {
         submitLoading.value = false;
       }
@@ -931,13 +925,14 @@ async function handleExecuteNode() {
     handleCloseExecuteDialog();
 
     await refreshUpdate();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errMsg = (error as { response?: { data?: { msg?: string } } })?.response?.data?.msg;
     ElMessage.error({
-      message: error.response?.data?.msg || "调试失败",
+      message: errMsg || "调试失败",
       type: "error",
       duration: 3000,
     });
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
   } finally {
     submitLoading.value = false;
   }

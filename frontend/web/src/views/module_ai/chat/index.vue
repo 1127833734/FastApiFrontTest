@@ -44,7 +44,7 @@
       </ElContainer>
     </ElContainer>
 
-    <FaConfigInfoDrawer v-model="configDrawerVisible" />
+    <FaAiModelConfigPanel v-model="configDrawerVisible" />
   </div>
 </template>
 
@@ -63,7 +63,7 @@ import FaSidebar from "./components/FaSidebar.vue";
 import FaChatNavbar from "./components/FaChatNavbar.vue";
 import FaChatMessages from "./components/FaChatMessages.vue";
 import FaChatInput from "./components/FaChatInput.vue";
-import FaConfigInfoDrawer from "@/components/layouts/fa-header-bar/widgets/FaConfigInfoDrawer.vue";
+import FaAiModelConfigPanel from "./components/FaAiModelConfigPanel.vue";
 
 // 状态
 const messages = ref<ChatMessage[]>([]);

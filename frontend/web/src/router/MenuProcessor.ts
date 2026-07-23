@@ -1,6 +1,6 @@
-import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import type { UserInfo } from "@/api/module_system/user";
-import type { MenuTable } from "@/api/module_platform/menu";
+import type { MenuTable } from "@/api/module_system/menu";
+import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { useUserStore } from "@stores";
 import { useAppMode } from "@/hooks/core/useAppMode";
 
@@ -19,25 +19,6 @@ import { MenuTypeEnum } from "@/enums/system/menu.enum";
 /** 前端模式并入菜单的内置路由（扩展点，默认空） */
 export const builtinFrontendRoutes: AppRouteRecord[] = [];
 
-function normalizeMenuNestedPaths(items: MenuTable[], parentAbsolutePath = ""): MenuTable[] {
-  return items.map((node) => {
-    const raw = (node.route_path ?? "").trim();
-    // 计算当前节点的绝对路径传给子节点递归使用
-    const canonical = raw
-      ? raw.startsWith("/")
-        ? raw
-        : parentAbsolutePath
-          ? joinAbsolutePath(parentAbsolutePath, raw)
-          : `/${raw}`
-      : parentAbsolutePath;
-
-    const children = node.children?.length
-      ? normalizeMenuNestedPaths(node.children, canonical)
-      : undefined;
-    return { ...node, children };
-  });
-}
-
 function joinAbsolutePath(parentAbs: string, segmentPath: string): string {
   const seg = segmentPath.replace(/^\/+/, "");
   const base = parentAbs.replace(/\/$/, "");
@@ -45,48 +26,25 @@ function joinAbsolutePath(parentAbs: string, segmentPath: string): string {
   return `${base}/${seg}`;
 }
 
-function normalizeAppRouteChildPaths(
-  routes: AppRouteRecord[],
-  parentAbsolutePath = ""
-): AppRouteRecord[] {
-  return routes.map((route) => {
-    const path = (route.path ?? "").trim();
-
-    if (/^https?:\/\//i.test(path)) {
-      return {
-        ...route,
-        children: route.children?.length
-          ? normalizeAppRouteChildPaths(route.children, parentAbsolutePath)
-          : route.children,
-      };
-    }
-
-    const currentAbs = parentAbsolutePath
-      ? joinAbsolutePath(parentAbsolutePath, path)
-      : path.startsWith("/")
-        ? path
-        : `/${path}`;
-
-    const children = route.children?.length
-      ? normalizeAppRouteChildPaths(route.children, currentAbs)
-      : route.children;
-
-    return { ...route, children };
-  });
-}
-
 function toComponentImportPath(componentPath: string): string {
   const t = componentPath.trim().replace(/^\/+/, "");
   return t ? `/${t}` : "";
 }
 
-function mapMenuNode(item: MenuTable, depth = 0): AppRouteRecord {
+function mapMenuNode(item: MenuTable, depth = 0, parentAbsolutePath = ""): AppRouteRecord {
+  const raw = (item.route_path ?? "").trim();
+  // 直接在此计算标准化路径，消除 normalizeMenuNestedPaths + normalizeAppRouteChildPaths 两次遍历
+  const path = raw.startsWith("/")
+    ? raw
+    : parentAbsolutePath
+      ? joinAbsolutePath(parentAbsolutePath, raw)
+      : `/${raw}`;
+
   const childrenRaw = item.children?.filter((c) => c.type !== MenuTypeEnum.BUTTON) ?? [];
   const children = childrenRaw.length
-    ? childrenRaw.map((c) => mapMenuNode(c, depth + 1))
+    ? childrenRaw.map((c) => mapMenuNode(c, depth + 1, path))
     : undefined;
 
-  const path = (item.route_path ?? "").trim();
   const name = item.route_name || undefined;
   const redirect = item.redirect?.trim() || undefined;
 
@@ -115,7 +73,7 @@ function mapMenuNode(item: MenuTable, depth = 0): AppRouteRecord {
     activePath: item.active_path || undefined,
     showBadge: !!item.show_badge,
     showTextBadge: item.show_text_badge || undefined,
-    client: item.client,
+    scope: item.scope,
   };
 
   return {
@@ -130,9 +88,7 @@ function mapMenuNode(item: MenuTable, depth = 0): AppRouteRecord {
 
 function backendMenusToAppRoutes(menus: MenuTable[]): AppRouteRecord[] {
   const roots = menus.filter((m) => m.type !== MenuTypeEnum.BUTTON);
-  const normalized = normalizeMenuNestedPaths(roots);
-  const mapped = normalized.map((m) => mapMenuNode(m, 0));
-  return normalizeAppRouteChildPaths(mapped);
+  return roots.map((m) => mapMenuNode(m, 0, ""));
 }
 
 export class MenuProcessor {
@@ -148,6 +104,9 @@ export class MenuProcessor {
       menuList = await this.processBackendMenu();
     }
 
+    // 统一过滤空菜单，避免各分支重复调用
+    menuList = this.filterEmptyMenus(menuList);
+
     return this.normalizeMenuPaths(menuList);
   }
 
@@ -155,20 +114,18 @@ export class MenuProcessor {
     const userStore = useUserStore();
     let menuList = [...builtinFrontendRoutes];
 
-    if (userStore.info?.is_superuser) {
-      return this.filterEmptyMenus(menuList);
-    }
+    if (!userStore.info?.is_superuser) {
+      const roles = userStore.info?.roles;
 
-    const roles = userStore.info?.roles;
-
-    if (roles && roles.length > 0) {
-      const roleCodes = this.extractRoleCodesFromUserRoles(roles);
-      if (roleCodes.length > 0) {
-        menuList = this.filterMenuByRoles(menuList, roleCodes);
+      if (roles && roles.length > 0) {
+        const roleCodes = this.extractRoleCodesFromUserRoles(roles);
+        if (roleCodes.length > 0) {
+          menuList = this.filterMenuByRoles(menuList, roleCodes);
+        }
       }
     }
 
-    return this.filterEmptyMenus(menuList);
+    return menuList;
   }
 
   private extractRoleCodesFromUserRoles(roles: NonNullable<UserInfo["roles"]>): string[] {
@@ -192,7 +149,7 @@ export class MenuProcessor {
     }
     const frontend = await this.processFrontendMenu();
     const merged = mergeAppRouteRecords(backend, frontend);
-    return this.filterEmptyMenus(merged);
+    return merged;
   }
 
   /** 优先用用户信息里附带的 `menus`，与守卫拉用户信息顺序一致，避免重复打菜单树接口 */
@@ -200,8 +157,7 @@ export class MenuProcessor {
     const userStore = useUserStore();
     const fromUser = userStore.routeList;
     if (Array.isArray(fromUser) && fromUser.length > 0) {
-      const routes = backendMenusToAppRoutes(fromUser);
-      return this.filterEmptyMenus(routes);
+      return backendMenusToAppRoutes(fromUser);
     }
     return [];
   }

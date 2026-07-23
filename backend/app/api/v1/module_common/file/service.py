@@ -10,8 +10,7 @@ from app.utils.upload_util import UploadUtil
 
 
 class FileService:
-    """
-    文件管理服务层
+    """文件管理服务层
     """
 
     @classmethod
@@ -23,7 +22,7 @@ class FileService:
         target_path: str | None = None,
     ) -> UploadResponseSchema:
         """上传文件"""
-        
+
         filename, filepath, file_url = await UploadUtil.upload_file(
             file=file,
             base_url=base_url,
@@ -41,7 +40,6 @@ class FileService:
     @classmethod
     async def download_service(cls, file_path: str) -> DownloadFileSchema:
         """下载文件"""
-
         if not file_path:
             raise CustomException(msg="请选择要下载的文件")
 

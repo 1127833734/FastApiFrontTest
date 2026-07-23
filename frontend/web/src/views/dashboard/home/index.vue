@@ -131,9 +131,9 @@
           <FaDataListCard
             class="mb-5"
             :maxCount="4"
-            :list="dataList"
-            title="最近活动"
-            subtitle="近期活动列表"
+            :list="healthList"
+            title="系统健康"
+            subtitle="实时 · 30s"
             :showMoreButton="true"
             @more="handleMore"
           />
@@ -181,31 +181,51 @@
 <script setup lang="ts">
 defineOptions({ name: "Home", inheritAttrs: false });
 
-import { ref, onMounted } from "vue";
+import { ref, onMounted, defineAsyncComponent } from "vue";
 import { ElMessage } from "element-plus";
-import FaDashboardSkeleton from "@/components/skeleton/fa-dashboard-skeleton.vue";
+import { getDashboardMock } from "@/mock/dashboard";
+
 import bannerIcon4 from "@imgs/3d/icon4.webp";
 import cover2 from "@imgs/cover/img2.webp";
 
-const loading = ref(true);
+const mock = getDashboardMock();
+const loading = ref(false);
+const healthList = ref(mock.health);
+const timelineData = ref(mock.timeline);
+
 onMounted(() => {
-  loading.value = false;
+  // 后续替换为真实接口:
+  // const { data } = await DashboardAPI.getStats();
+  // 并删除 getDashboardMock() 调用
 });
-import FaCardBanner from "@/components/banners/fa-card-banner/index.vue";
-import FaImageCard from "@/components/cards/fa-image-card/index.vue";
-import FaDataListCard from "@/components/cards/fa-data-list-card/index.vue";
-import FaTimelineListCard from "@/components/cards/fa-timeline-list-card/index.vue";
-import FaStatsCard from "@/components/cards/fa-stats-card/index.vue";
-import FaLineChartCard from "@/components/cards/fa-line-chart-card/index.vue";
-import FaBarChartCard from "@/components/cards/fa-bar-chart-card/index.vue";
-import FaDonutChartCard from "@/components/cards/fa-donut-chart-card/index.vue";
-import FaProgressCard from "@/components/cards/fa-progress-card/index.vue";
-import Banner from "./modules/banner.vue";
-import NewUser from "./modules/new-user.vue";
-import TodoList from "./modules/todo-list.vue";
-import CardList from "./modules/card-list.vue";
-import AboutProject from "./modules/about-project.vue";
-import QuickLinks from "./modules/quick-links.vue";
+
+// 图表组件异步导入，减少首屏 echarts 加载
+const FaLineChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-line-chart-card/index.vue")
+);
+const FaBarChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-bar-chart-card/index.vue")
+);
+const FaDonutChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-donut-chart-card/index.vue")
+);
+
+// 非关键组件异步导入（延迟加载，提升首屏速度）
+const FaCardBanner = defineAsyncComponent(
+  () => import("@/components/banners/fa-card-banner/index.vue")
+);
+const FaImageCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-image-card/index.vue")
+);
+const FaTimelineListCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-timeline-list-card/index.vue")
+);
+const Banner = defineAsyncComponent(() => import("./modules/banner.vue"));
+const NewUser = defineAsyncComponent(() => import("./modules/new-user.vue"));
+const TodoList = defineAsyncComponent(() => import("./modules/todo-list.vue"));
+const CardList = defineAsyncComponent(() => import("./modules/card-list.vue"));
+const AboutProject = defineAsyncComponent(() => import("./modules/about-project.vue"));
+const QuickLinks = defineAsyncComponent(() => import("./modules/quick-links.vue"));
 
 function handleBannerDemoConfirm() {
   // TODO: 接入真实操作
@@ -224,101 +244,6 @@ const imageCards = {
   comments: 5,
   date: "12月20日 周二",
 };
-
-const dataList = [
-  {
-    title: "新加坡之行",
-    status: "进行中",
-    time: "5分钟",
-    class: "bg-theme/12 text-theme",
-    icon: "ri:camera-4-line",
-  },
-  {
-    title: "归档数据",
-    status: "进行中",
-    time: "10分钟",
-    class: "bg-secondary/12 text-secondary",
-    icon: "ri:bar-chart-box-line",
-  },
-  {
-    title: "客户会议",
-    status: "待处理",
-    time: "15分钟",
-    class: "bg-warning/12 text-warning",
-    icon: "ri:user-3-line",
-  },
-  {
-    title: "筛选任务团队",
-    status: "进行中",
-    time: "20分钟",
-    class: "bg-error/12 text-error",
-    icon: "ri:account-circle-line",
-  },
-  {
-    title: "发送信封给小王",
-    status: "已完成",
-    time: "20分钟",
-    class: "bg-success/12 text-success",
-    icon: "ri:message-3-line",
-  },
-  {
-    title: "筛选任务团队",
-    status: "进行中",
-    time: "20分钟",
-    class: "bg-error/12 text-error",
-    icon: "ri:account-circle-line",
-  },
-];
-const timelineData = [
-  {
-    time: "上午 09:30",
-    status: "rgb(73, 190, 255)",
-    content: "收到 John Doe 支付的 385.90 美元",
-  },
-  { time: "上午 10:00", status: "rgb(54, 158, 255)", content: "新销售记录", code: "ML-3467" },
-  { time: "上午 12:00", status: "rgb(103, 232, 207)", content: "向 Michael 支付了 64.95 美元" },
-  { time: "下午 14:30", status: "rgb(255, 193, 7)", content: "系统维护通知", code: "MT-2023" },
-  {
-    time: "下午 15:45",
-    status: "rgb(255, 105, 105)",
-    content: "紧急订单取消提醒",
-    code: "OR-9876",
-  },
-  { time: "下午 17:00", status: "rgb(103, 232, 207)", content: "完成每日销售报表" },
-  {
-    time: "上午 09:30",
-    status: "rgb(73, 190, 255)",
-    content: "收到订单 #38291 支付 ¥385.90",
-  },
-  {
-    time: "上午 10:00",
-    status: "rgb(54, 158, 255)",
-    content: "新商品上架",
-    code: "SKU-3467",
-  },
-  {
-    time: "上午 12:00",
-    status: "rgb(103, 232, 207)",
-    content: "向供应商支付了 ¥6495.00",
-  },
-  {
-    time: "下午 14:30",
-    status: "rgb(255, 193, 7)",
-    content: "促销活动开始",
-    code: "PROMO-2023",
-  },
-  {
-    time: "下午 15:45",
-    status: "rgb(255, 105, 105)",
-    content: "订单取消提醒",
-    code: "ORD-9876",
-  },
-  {
-    time: "下午 17:00",
-    status: "rgb(103, 232, 207)",
-    content: "完成日销售报表",
-  },
-];
 
 function handleMore() {
   ElMessage.info("查看更多");

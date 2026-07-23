@@ -32,7 +32,7 @@
           <ElBreadcrumb separator="/">
             <ElBreadcrumbItem
               v-for="(item, index) in breadcrumbList"
-              :key="index"
+              :key="item.name"
               :class="{ 'is-link': index < breadcrumbList.length - 1 }"
               @click="handleBreadcrumbClick(item)"
             >
@@ -61,7 +61,7 @@
               上传文件
             </ElButton>
             <ElButton
-              v-hasPerm="['module_monitor:resource:create_dir']"
+              v-hasPerm="['module_monitor:resource:mkdir']"
               type="primary"
               plain
               :icon="FolderAdd"
@@ -158,7 +158,7 @@
       <template #footer>
         <ElButton @click="createDirDialogVisible = false">取消</ElButton>
         <ElButton
-          v-hasPerm="['module_monitor:resource:create_dir']"
+          v-hasPerm="['module_monitor:resource:mkdir']"
           type="primary"
           @click="handleCreateDirConfirm"
         >
@@ -217,13 +217,13 @@ import {
   QuestionFilled,
   UploadFilled,
 } from "@element-plus/icons-vue";
-import { useTable } from "@/hooks/core/useTable";
 import { ResourceAPI, type ResourceItem } from "@/api/module_monitor/resource";
-import type { ColumnOption } from "@/types/component";
-import { useAuth } from "@/hooks/core/useAuth";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
+import type { TableOperationAction } from "@/utils/table";
+import type { ColumnOption } from "@/types/component";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 const { hasAuth } = useAuth();
 
@@ -241,6 +241,7 @@ function fetchResourceTableList(params: Record<string, unknown>) {
   return ResourceAPI.listResource({
     page_no: 1,
     page_size: 10,
+    include_hidden: showHiddenFiles.value,
     ...params,
   });
 }
@@ -281,7 +282,6 @@ const renameDialogVisible = ref(false);
 const uploading = ref(false);
 const batchDeleting = ref(false);
 
-const uploadRef = ref();
 const uploadFileList = ref<UploadUserFile[]>([]);
 
 const createDirForm = reactive({
@@ -391,7 +391,7 @@ const {
       {
         prop: "operation",
         label: "操作",
-        width: 136,
+        width: 180,
         fixed: "right",
         align: "center",
         formatter: (row: ResourceItem) => formatResourceOperationCell(row),
@@ -501,7 +501,8 @@ async function handleUploadConfirm() {
     uploadDialogVisible.value = false;
     await refreshData();
   } catch (error) {
-    console.error("Upload error:", error);
+    if (import.meta.env.DEV) console.error("Upload error:", error);
+    ElMessage.error("上传文件失败，请稍后重试");
   } finally {
     uploading.value = false;
   }
@@ -532,7 +533,8 @@ async function handleCreateDirConfirm() {
     createDirDialogVisible.value = false;
     await refreshData();
   } catch (error) {
-    console.error("Create directory error:", error);
+    if (import.meta.env.DEV) console.error("Create directory error:", error);
+    ElMessage.error("创建文件夹失败，请稍后重试");
   }
 }
 
@@ -556,7 +558,8 @@ async function handleRenameConfirm() {
     renameDialogVisible.value = false;
     await refreshData();
   } catch (error) {
-    console.error("Rename error:", error);
+    if (import.meta.env.DEV) console.error("Rename error:", error);
+    ElMessage.error("重命名失败，请稍后重试");
   }
 }
 
@@ -573,7 +576,8 @@ async function handleDownload(item: ResourceItem) {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Download error:", error);
+    if (import.meta.env.DEV) console.error("Download error:", error);
+    ElMessage.error("下载文件失败，请稍后重试");
   }
 }
 
@@ -590,7 +594,8 @@ async function handleDelete(item: ResourceItem) {
     await refreshData();
   } catch (error) {
     if (error !== "cancel") {
-      console.error("Delete error:", error);
+      if (import.meta.env.DEV) console.error("Delete error:", error);
+      ElMessage.error("删除文件失败，请稍后重试");
     }
   }
 }
@@ -619,7 +624,8 @@ async function handleBatchDelete() {
     await refreshData();
   } catch (error) {
     if (error !== "cancel") {
-      console.error("Batch delete error:", error);
+      if (import.meta.env.DEV) console.error("Batch delete error:", error);
+      ElMessage.error("批量删除失败，请稍后重试");
     }
   } finally {
     batchDeleting.value = false;

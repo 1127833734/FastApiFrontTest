@@ -67,7 +67,7 @@
                   @click="selectIcon(icon)"
                 >
                   <ElIcon>
-                    <component :is="icon" />
+                    <component :is="elementPlusIconsVue[icon]" />
                   </ElIcon>
                 </li>
               </ul>
@@ -81,7 +81,6 @@
 
 <script setup lang="ts">
 defineOptions({ name: "FaIconSelect" });
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import {
   listLocalIconBasenames,
   isIconifyStoredIcon,
@@ -111,7 +110,16 @@ const popoverVisible = ref(false);
 const activeTab = ref("svg");
 
 const svgIcons = ref<string[]>([]);
-const elementIcons = ref<string[]>(Object.keys(ElementPlusIconsVue));
+const elementIcons = ref<string[]>([]);
+const elementPlusIconsVue = ref<Record<string, any>>({});
+
+// 异步加载 Element Plus 图标，避免影响首屏
+async function loadElementIcons() {
+  if (elementIcons.value.length > 0) return;
+  const icons = await import("@element-plus/icons-vue");
+  elementPlusIconsVue.value = icons;
+  elementIcons.value = Object.keys(icons);
+}
 const selectedIcon = defineModel<string | undefined>("modelValue", {
   default: "",
 });
@@ -127,8 +135,11 @@ function loadIcons() {
   filteredSvgIcons.value = svgIcons.value;
 }
 
-function handleTabClick(tabPane: any) {
+async function handleTabClick(tabPane: any) {
   activeTab.value = tabPane.props.name;
+  if (tabPane.props.name === "element") {
+    await loadElementIcons();
+  }
   filterIcons();
 }
 
@@ -167,13 +178,18 @@ function clearSelectedIcon() {
   selectedIcon.value = "";
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadIcons();
   if (selectedIcon.value) {
     const raw = selectedIcon.value.trim();
     const epKey = raw.replace(/^el-icon-/i, "");
-    if (elementIcons.value.includes(epKey)) {
-      activeTab.value = "element";
+    if (raw.startsWith("el-icon-")) {
+      await loadElementIcons();
+      if (elementIcons.value.includes(epKey)) {
+        activeTab.value = "element";
+      } else {
+        activeTab.value = "svg";
+      }
     } else if (isIconifyStoredIcon(raw)) {
       activeTab.value = "svg";
     } else {

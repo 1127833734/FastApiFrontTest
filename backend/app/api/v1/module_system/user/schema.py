@@ -1,7 +1,6 @@
-from dataclasses import dataclass
+import re
 from urllib.parse import urlparse
 
-from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -11,12 +10,10 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.v1.module_platform.menu.schema import MenuOutSchema
+from app.api.v1.module_system.menu.schema import MenuTreeOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
-from app.common.enums import QueueEnum
-from app.core.base_params import BaseQueryParam, TenantByQueryParam, UserByQueryParam
-from app.core.base_schema import BaseSchema, CommonSchema, TenantBySchema, UserBySchema
-from app.core.validator import email_validator, mobile_validator
+from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, UserByQueryParam, UserBySchema
+from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
 
 class CurrentUserUpdateSchema(BaseModel):
@@ -69,64 +66,14 @@ class CurrentUserUpdateSchema(BaseModel):
         return self
 
 
-class UserRegisterSchema(BaseModel):
-    """注册"""
-
-    name: str | None = Field(default=None, max_length=32, description="姓名")
-    mobile: str | None = Field(default=None, max_length=11, description="手机号")
-    username: str = Field(..., min_length=3, max_length=32, description="账号")
-    password: str = Field(..., min_length=6, max_length=128, description="密码")
-    role_ids: list[int] | None = Field(default=[1], description="角色ID列表")
-    created_id: int | None = Field(default=1, description="创建人ID")
-    description: str | None = Field(default=None, max_length=255, description="备注")
-
-    @field_validator("mobile")
-    @classmethod
-    def validate_mobile(cls, value: str | None):
-        """校验手机号格式"""
-        return mobile_validator(value)
-
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, value: str):
-        """校验账号：字母开头，3-32 位，仅含字母/数字/_ . -"""
-        v = value.strip()
-        if not v:
-            raise ValueError("账号不能为空")
-        import re
-
-        if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
-            raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
-        return v
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, value: str):
-        """校验密码：6-128 位"""
-        if len(value) < 6:
-            raise ValueError("密码长度不能少于 6 位")
-        if len(value) > 128:
-            raise ValueError("密码长度不能超过 128 位")
-        return value
-
-    @model_validator(mode="after")
-    def check_model(self):
-        """校验注册信息长度约束"""
-        if self.name and len(self.name) > 32:
-            raise ValueError("姓名长度不能超过 32 个字符")
-        if self.username and len(self.username) > 32:
-            raise ValueError("账号长度不能超过 32 个字符")
-        if self.description and len(self.description) > 255:
-            raise ValueError("备注长度不能超过 255 个字符")
-        return self
-
-
 class UserForgetPasswordSchema(BaseModel):
     """忘记密码"""
 
     username: str = Field(..., min_length=3, max_length=32, description="用户名")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
     mobile: str | None = Field(default=None, max_length=11, description="手机号")
+    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
+    captcha: str | None = Field(default=None, description="图形验证码")
 
     @field_validator("username")
     @classmethod
@@ -135,7 +82,6 @@ class UserForgetPasswordSchema(BaseModel):
         v = value.strip()
         if not v:
             raise ValueError("账号不能为空")
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
             raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
@@ -193,8 +139,7 @@ class ResetPasswordSchema(BaseModel):
 
 
 class UserCreateSchema(CurrentUserUpdateSchema):
-    """
-    新增用户
+    """新增用户
     """
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
@@ -203,7 +148,6 @@ class UserCreateSchema(CurrentUserUpdateSchema):
     description: str | None = Field(default=None, max_length=255, description="备注")
     is_superuser: bool | None = Field(default=False, description="是否超管")
     dept_id: int | None = Field(default=None, description="部门ID")
-    tenant_id: int | None = Field(default=None, description="租户ID，仅平台管理员创建时可指定")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")
     position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
 
@@ -222,7 +166,6 @@ class UserCreateSchema(CurrentUserUpdateSchema):
         if not value:
             return value
         v = value.strip()
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{1,31}$", v):
             raise ValueError("账号需以字母开头，2-32 位，仅允许字母、数字、_ . -")
@@ -239,12 +182,46 @@ class UserCreateSchema(CurrentUserUpdateSchema):
         return value
 
 
+class UserRegisterSchema(BaseModel):
+    """用户注册"""
+
+    username: str = Field(..., min_length=3, max_length=32, description="用户名")
+    password: str = Field(..., min_length=6, max_length=128, description="密码")
+    email: EmailStr | None = Field(default=None, description="邮箱")
+    name: str | None = Field(default=None, max_length=32, description="名称")
+    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
+    captcha: str | None = Field(default=None, description="图形验证码")
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str):
+        """校验账号：字母开头，3-32 位"""
+        v = value.strip()
+        if not v:
+            raise ValueError("账号不能为空")
+
+        if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
+            raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str):
+        """校验密码：6-128 位"""
+        if len(value) < 6:
+            raise ValueError("密码长度不能少于 6 位")
+        if len(value) > 128:
+            raise ValueError("密码长度不能超过 128 位")
+        return value
+
+
 class UserUpdateSchema(CurrentUserUpdateSchema):
     """更新"""
 
     model_config = ConfigDict(from_attributes=True)
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
+    password: str | None = Field(default=None, min_length=6, max_length=128, description="密码")
     status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
     dept_id: int | None = Field(default=None, description="部门ID")
@@ -266,67 +243,64 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
         if not value:
             return value
         v = value.strip()
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{1,31}$", v):
             raise ValueError("账号需以字母开头，2-32 位，仅允许字母、数字、_ . -")
         return v
 
 
-class UserOutSchema(UserUpdateSchema, BaseSchema, UserBySchema, TenantBySchema):
-    """响应"""
+class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
+    """用户管理列表/详情响应（精简版，不含大字段嵌套）"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
+    id: int = Field(default=0, description="主键ID")
     username: str | None = Field(default=None, max_length=32, description="用户名")
+    name: str | None = Field(default=None, max_length=32, description="名称")
+    mobile: str | None = Field(default=None, max_length=11, description="手机号")
+    email: EmailStr | None = Field(default=None, description="邮箱")
+    gender: str | None = Field(default=None, max_length=1, description="性别(0:男 1:女 2:未知)")
+    avatar: str | None = Field(default=None, max_length=255, description="头像")
+    status: int | None = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    description: str | None = Field(default=None, max_length=255, description="备注")
+    dept_id: int | None = Field(default=None, description="部门ID")
+    role_ids: list[int] | None = Field(default=[], description="角色ID列表")
+    position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
+    dept_name: str | None = Field(default=None, description="部门名称")
+    is_superuser: bool = Field(default=False, description="是否超管")
+    last_login: DateTimeStr | None = Field(default=None, description="最后登录时间")
 
-    tenant_id: int | None = Field(
-        default=None,
-        exclude=True,
-        description="创建入参使用；列表/详情出参见 tenant",
-    )
+
+class CurrentUserOutSchema(UserOutSchema):
+    """当前用户信息响应（含完整菜单/角色/岗位等嵌套数据）"""
+
+    dept: CommonSchema | None = Field(default=None, description="部门")
+    positions: list[CommonSchema] | None = Field(default=[], description="岗位")
+    roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
+    menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
     gitee_login: str | None = Field(default=None, max_length=32, description="Gitee登录")
     github_login: str | None = Field(default=None, max_length=32, description="Github登录")
     wx_login: str | None = Field(default=None, max_length=32, description="微信登录")
     qq_login: str | None = Field(default=None, max_length=32, description="QQ登录")
-    dept_name: str | None = Field(default=None, description="部门名称")
-    dept: CommonSchema | None = Field(default=None, description="部门")
-    positions: list[CommonSchema] | None = Field(default=[], description="岗位")
-    roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
-    menus: list[MenuOutSchema] | None = Field(default=[], description="菜单")
 
 
-@dataclass
-class UserQueryParam(BaseQueryParam, UserByQueryParam, TenantByQueryParam):
-    """
-    用户管理查询参数（继承标准 Mixin）
+class UserQueryParam(BaseQueryParam, UserByQueryParam):
+    """用户管理查询参数（继承标准 Mixin）
 
     支持：
     - 时间范围（BaseQueryParam）
     - 创建人/更新人筛选（UserByQueryParam）
-    - 租户筛选（TenantByQueryParam）
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 
-    username: str | None = Query(None, description="用户名")
-    name: str | None = Query(None, description="名称")
-    mobile: str | None = Query(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
-    email: str | None = Query(
+    username: str | None = Field(None, description="用户名", json_schema_extra={"q": "like"})
+    name: str | None = Field(None, description="名称", json_schema_extra={"q": "like"})
+    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$", json_schema_extra={"q": "eq"})
+    email: str | None = Field(
         None,
         description="邮箱",
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
+        json_schema_extra={"q": "eq"},
     )
-    dept_id: int | None = Query(None, description="部门ID")
-    status: int | None = Query(None, description="是否可用")
-
-    def __post_init__(self) -> None:
-        self.username = (QueueEnum.like.value, self.username)
-        self.name = (QueueEnum.like.value, self.name)
-        if self.mobile:
-            self.mobile = (QueueEnum.like.value, self.mobile)
-        if self.email:
-            self.email = (QueueEnum.like.value, self.email)
-        if self.dept_id:
-            self.dept_id = (QueueEnum.eq.value, self.dept_id)
-        if self.status:
-            self.status = (QueueEnum.eq.value, self.status)
+    dept_id: int | None = Field(None, description="部门ID", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, description="是否可用", json_schema_extra={"q": "eq"})

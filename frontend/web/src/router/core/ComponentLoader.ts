@@ -1,6 +1,6 @@
 /**
  * 组件加载器 —— 菜单字符串路径 → views 懒加载。
- * 支持 module_system→module_platform 回退、param→params 重命名回退。
+ * 支持 param→params 重命名回退。
  */
 import { defineComponent, h, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -9,7 +9,8 @@ import {
   NestedRouterParent,
   ROUTE_COMPONENT_LAYOUT,
   ROUTE_COMPONENT_NESTED_PARENT,
-} from "../staticRoutes";
+  Layout,
+} from "@/router/staticRoutes";
 
 export class ComponentLoader {
   private modules: Record<string, () => Promise<any>>;
@@ -36,13 +37,6 @@ export class ComponentLoader {
     const fullPathWithIndex = `../../views${normalized}/index.vue`;
     let module = this.modules[fullPath] || this.modules[fullPathWithIndex];
 
-    // Fallback: component moved from module_system to module_platform
-    if (!module && normalized.includes("/module_system/")) {
-      const altPath = normalized.replace("/module_system/", "/module_platform/");
-      module =
-        this.modules[`../../views${altPath}.vue`] ||
-        this.modules[`../../views${altPath}/index.vue`];
-    }
     // Fallback: renamed view directories (param→params)
     if (!module) {
       const renames: Record<string, string> = { "/param/": "/params/" };
@@ -69,7 +63,7 @@ export class ComponentLoader {
   }
 
   loadLayout(): () => Promise<any> {
-    return () => import("@/components/layouts/index.vue");
+    return Layout;
   }
 
   loadIframe(): () => Promise<any> {

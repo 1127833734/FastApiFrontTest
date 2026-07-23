@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+from app.config.path_conf import STATIC_DIR
 from app.config.setting import settings
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -15,7 +16,6 @@ from app.utils.excel_util import ExcelUtil
 from .schema import (
     ResourceCopySchema,
     ResourceCreateDirSchema,
-    ResourceDirectorySchema,
     ResourceItemSchema,
     ResourceMoveSchema,
     ResourceRenameSchema,
@@ -32,9 +32,7 @@ class ResourceService:
 
     @staticmethod
     def _get_resource_root() -> str:
-        if not settings.STATIC_ENABLE:
-            raise CustomException(msg="静态文件服务未启用")
-        resource_root = os.path.join(str(settings.STATIC_ROOT), "upload", "resource")
+        resource_root = os.path.join(str(STATIC_DIR), "upload")
         os.makedirs(resource_root, exist_ok=True)
         return resource_root
 
@@ -51,9 +49,9 @@ class ResourceService:
 
         def strip_prefix(p: str) -> str:
             if p.startswith(root_static_prefix):
-                return p[len(root_static_prefix):].lstrip("/")
+                return p[len(root_static_prefix) :].lstrip("/")
             if p.startswith(static_prefix):
-                return p[len(static_prefix):].lstrip("/")
+                return p[len(static_prefix) :].lstrip("/")
             return p
 
         if path.startswith(("http://", "https://")):
@@ -65,11 +63,9 @@ class ResourceService:
 
         path = path.strip().replace("//", "/").replace("\\\\\\\\", "/").replace("\\\\", "/")
 
-        if path.startswith("/"):
-            path = path[1:]
+        path = path.removeprefix("/")
 
-        if path.startswith("upload/"):
-            path = path[7:]
+        path = path.removeprefix("upload/")
 
         if ".." in path or "\x00" in path:
             logger.error(f"检测到路径遍历攻击尝试: {path}")
@@ -160,7 +156,7 @@ class ResourceService:
 
     @staticmethod
     def _generate_http_url(file_path: str, base_url: str | None = None) -> str:
-        static_root = str(settings.STATIC_ROOT)
+        static_root = str(STATIC_DIR)
         try:
             relative_path = os.path.relpath(file_path, static_root)
             url_path = relative_path.replace(os.sep, "/")
@@ -212,65 +208,6 @@ class ResourceService:
             return None
 
     @staticmethod
-    async def get_directory_list(
-        path: str | None = None,
-        include_hidden: bool = False,
-        base_url: str | None = None,
-    ) -> ResourceDirectorySchema:
-        try:
-            if path is None:
-                safe_path = ResourceService._get_resource_root()
-                display_path = ResourceService._generate_http_url(safe_path, base_url)
-            else:
-                safe_path = ResourceService._get_safe_path(path)
-                display_path = ResourceService._generate_http_url(safe_path, base_url)
-
-            if not os.path.exists(safe_path):
-                raise CustomException(msg="目录不存在")
-
-            if not os.path.isdir(safe_path):
-                raise CustomException(msg="路径不是目录")
-
-            items = []
-            total_files = 0
-            total_dirs = 0
-            total_size = 0
-
-            try:
-                for item_name in os.listdir(safe_path):
-                    if not include_hidden and item_name.startswith("."):
-                        continue
-
-                    item_path = os.path.join(safe_path, item_name)
-                    file_info = ResourceService._get_file_info(item_path, base_url)
-
-                    if file_info:
-                        items.append(file_info)
-                        if file_info.is_file:
-                            total_files += 1
-                            total_size += file_info.size or 0
-                        elif file_info.is_dir:
-                            total_dirs += 1
-
-            except PermissionError:
-                raise CustomException(msg="没有权限访问此目录")
-
-            return ResourceDirectorySchema(
-                path=display_path,
-                name=os.path.basename(safe_path),
-                items=items,
-                total_files=total_files,
-                total_dirs=total_dirs,
-                total_size=total_size,
-            )
-
-        except CustomException:
-            raise
-        except Exception as e:
-            logger.error(f"获取目录列表失败: {e!s}")
-            raise CustomException(msg=f"获取目录列表失败: {e!s}")
-
-    @staticmethod
     async def get_resources_list(
         search: ResourceSearchQueryParam | None = None,
         order_by: str | None = None,
@@ -291,8 +228,10 @@ class ResourceService:
             all_resources = []
 
             try:
+                include_hidden = search.include_hidden if search and hasattr(search, "include_hidden") else False
+
                 for item_name in os.listdir(resource_root):
-                    if item_name.startswith("."):
+                    if item_name.startswith(".") and not include_hidden:
                         continue
 
                     item_path = os.path.join(resource_root, item_name)
@@ -372,13 +311,13 @@ class ResourceService:
     @staticmethod
     async def move_file(data: ResourceMoveSchema) -> None:
         source_safe = ResourceService._get_safe_path(data.source_path)
-        target_dir_safe = ResourceService._get_safe_path(data.target_dir)
+        target_dir_safe = ResourceService._get_safe_path(data.target_path)
 
         if not os.path.exists(source_safe):
             raise CustomException(msg=f"源文件不存在: {data.source_path}")
 
         if not os.path.isdir(target_dir_safe):
-            raise CustomException(msg=f"目标目录不存在: {data.target_dir}")
+            raise CustomException(msg=f"目标目录不存在: {data.target_path}")
 
         filename = os.path.basename(source_safe)
         target_path = os.path.join(target_dir_safe, filename)
@@ -393,18 +332,18 @@ class ResourceService:
         except OSError as e:
             raise CustomException(msg=f"移动文件失败: {e!s}")
 
-        logger.info(f"成功移动文件: {data.source_path} -> {data.target_dir}")
+        logger.info(f"成功移动文件: {data.source_path} -> {data.target_path}")
 
     @staticmethod
     async def copy_file(data: ResourceCopySchema) -> None:
         source_safe = ResourceService._get_safe_path(data.source_path)
-        target_dir_safe = ResourceService._get_safe_path(data.target_dir)
+        target_dir_safe = ResourceService._get_safe_path(data.target_path)
 
         if not os.path.exists(source_safe):
             raise CustomException(msg=f"源文件不存在: {data.source_path}")
 
         if not os.path.isdir(target_dir_safe):
-            raise CustomException(msg=f"目标目录不存在: {data.target_dir}")
+            raise CustomException(msg=f"目标目录不存在: {data.target_path}")
 
         filename = os.path.basename(source_safe)
         target_path = os.path.join(target_dir_safe, filename)
@@ -422,11 +361,11 @@ class ResourceService:
         except OSError as e:
             raise CustomException(msg=f"复制文件失败: {e!s}")
 
-        logger.info(f"成功复制文件: {data.source_path} -> {data.target_dir}")
+        logger.info(f"成功复制文件: {data.source_path} -> {data.target_path}")
 
     @staticmethod
     async def rename_file(data: ResourceRenameSchema) -> None:
-        safe_path = ResourceService._get_safe_path(data.file_path)
+        safe_path = ResourceService._get_safe_path(data.old_path)
         parent_dir = os.path.dirname(safe_path)
         safe_name = ResourceService._sanitize_filename(data.new_name)
 
@@ -438,11 +377,11 @@ class ResourceService:
         try:
             os.rename(safe_path, new_path)
         except PermissionError:
-            raise CustomException(msg=f"没有权限重命名: {data.file_path}")
+            raise CustomException(msg=f"没有权限重命名: {data.old_path}")
         except OSError as e:
             raise CustomException(msg=f"重命名失败: {e!s}")
 
-        logger.info(f"成功重命名: {data.file_path} -> {safe_name}")
+        logger.info(f"成功重命名: {data.old_path} -> {safe_name}")
 
     @staticmethod
     async def create_directory(data: ResourceCreateDirSchema) -> None:
@@ -524,8 +463,9 @@ class ResourceService:
 
     @staticmethod
     def _format_file_size(size_bytes: int) -> str:
+        size = float(size_bytes)
         for unit in ["B", "KB", "MB", "GB"]:
-            if size_bytes < 1024:
-                return f"{size_bytes:.2f} {unit}"
-            size_bytes /= 1024
-        return f"{size_bytes:.2f} TB"
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"

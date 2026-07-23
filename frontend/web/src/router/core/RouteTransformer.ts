@@ -39,8 +39,6 @@ export class RouteTransformer {
       this.handleNormalRoute(converted, component as string, depth);
     }
 
-    converted.path = pathOut;
-
     if (children?.length) {
       converted.children = children.map((c) => this.transform(c, depth + 1, absPath));
     }
