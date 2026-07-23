@@ -182,7 +182,7 @@
 defineOptions({ name: "Home", inheritAttrs: false });
 
 import { ref, onMounted, defineAsyncComponent } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { getDashboardMock } from "@/mock/dashboard";
 
 import bannerIcon4 from "@imgs/3d/icon4.webp";

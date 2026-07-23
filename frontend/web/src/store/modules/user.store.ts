@@ -10,7 +10,8 @@ import { Auth, setPageTitle, StorageConfig } from "@utils";
 import AuthAPI, { type LoginFormData } from "@/api/module_system/auth";
 import UserAPI from "@/api/module_system/user";
 import type { MenuTable } from "@/api/module_system/menu";
-import { ElNotification } from "@/utils/message";
+import type { AppRouteRecord } from "@/types/router";
+import { ElNotification } from "element-plus";
 import { store, useDictStore } from "@stores";
 import type { UserInfo } from "@/api/module_system/user";
 
@@ -170,6 +171,21 @@ export const useUserStore = defineStore(
       } catch (error) {
         console.error("获取用户信息失败:", error);
         throw error;
+      }
+    }
+
+    /**
+     * 仅刷新权限/菜单（轻量模式，不加载用户嵌套数据）
+     * 在菜单/角色 CRUD 操作后调用，替代 getUserInfo
+     */
+    async function refreshPermissions() {
+      try {
+        const response = await UserAPI.getCurrentUserInfo(false);
+        const data = response.data.data;
+        const menus: MenuTable[] = data?.menus || [];
+        setRoute(menus);
+      } catch (error) {
+        console.error("刷新权限失败:", error);
       }
     }
 
@@ -370,6 +386,7 @@ export const useUserStore = defineStore(
       hasGetRoute,
       rememberMe,
       getUserInfo,
+      refreshPermissions,
       basicInfo,
       setUserInfo,
       setLoginStatus,

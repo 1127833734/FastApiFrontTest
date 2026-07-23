@@ -154,7 +154,7 @@ defineSlots<{
 import { ref, reactive, computed } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import type { FormInstance, PopoverProps, TableInstance } from "element-plus";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 
 // 对象类型
 export type IObject = Record<string, any>;

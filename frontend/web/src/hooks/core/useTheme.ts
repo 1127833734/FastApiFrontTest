@@ -32,6 +32,7 @@
  */
 
 import { SystemThemeEnum } from "@/enums/appEnum";
+import type { SystemThemeTypes } from "@/types/store";
 import { useSettingsStore } from "@stores";
 import AppConfig from "@/config";
 import { getDarkColor, getLightColor, setElementThemeColor } from "@utils";

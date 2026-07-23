@@ -2,7 +2,7 @@
  * 确认弹窗 —— 封装 ElMessageBox.confirm 常用配置
  */
 
-import { ElMessageBox } from "@/utils/message";
+import { ElMessageBox } from "element-plus";
 
 /** 删除确认 */
 export async function confirmDelete(message = "确认删除该项数据?"): Promise<void> {

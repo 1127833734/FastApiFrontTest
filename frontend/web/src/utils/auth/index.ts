@@ -65,7 +65,7 @@ export { AUTH_KEYS };
 
 import { router } from "@/router";
 import { useUserStore } from "@stores";
-import { ElMessage, ElNotification } from "@/utils/message";
+import { ElMessage, ElNotification } from "element-plus";
 
 /** 登录页跳转进行中，合并并发调用，避免重复通知与重复路由 */
 let redirectToLoginInFlight: Promise<void> | null = null;

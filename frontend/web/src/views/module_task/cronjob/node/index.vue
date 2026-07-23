@@ -243,7 +243,7 @@
                   @click="openInterval = true"
                 />
               </template>
-              <IntervalTab
+              <FaIntervalTab
                 :cron-value="executeFormData.trigger_args"
                 @confirm="handleIntervalConfirm"
                 @cancel="openInterval = false"
@@ -280,18 +280,22 @@ defineOptions({
 import NodeAPI, { NodeTable, NodeForm, TriggerType } from "@/api/module_task/cronjob/node";
 import { useDictStore } from "@stores";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import type { TableOperationAction } from "@utils";
 import { computed, nextTick, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { vue3CronPlus } from "vue3-cron-plus";
 import "vue3-cron-plus/dist/index.css";
 import Codemirror, { CmComponentRef } from "codemirror-editor-vue3";
 import type { EditorConfiguration } from "codemirror";
 import "codemirror/mode/python/python.js";
 import "codemirror/theme/dracula.css";
+import type { ColumnOption } from "@/types/component";
 
 const dictStore = useDictStore();
 const { hasAuth } = useAuth();

@@ -339,10 +339,15 @@ defineOptions({
 import JobAPI, { SchedulerStatus, SchedulerJob, JobLogTable } from "@/api/module_task/cronjob/job";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
-import { ElMessageBox } from "@/utils/message";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import FaDrawer from "@/components/modal/fa-drawer/index.vue";
+import { ElMessageBox } from "element-plus";
 import type { TableOperationAction } from "@/utils/table";
 import { computed, h, nextTick, onMounted, ref } from "vue";
 import { Terminal, TerminalApi } from "vue-web-terminal";
+import type { ColumnOption } from "@/types/component";
 
 const { hasAuth } = useAuth();
 

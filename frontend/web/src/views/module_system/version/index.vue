@@ -142,6 +142,12 @@ import { Plus } from "@element-plus/icons-vue";
 import { reactive } from "vue";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 
 defineOptions({
   name: "Version",

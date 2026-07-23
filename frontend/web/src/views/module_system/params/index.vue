@@ -232,7 +232,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import ParamsAPI from "@/api/module_system/params";
 import { useConfigStore } from "@stores";
 import ParamTabPane from "./components/ParamTabPane.vue";

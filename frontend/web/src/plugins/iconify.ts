@@ -25,15 +25,6 @@ async function loadCollection(
 }
 
 /**
- * 同步初始化（仅注册必要的基础图标）
- * 完整图标集通过 initIconifyAsync 异步加载
- */
-export function initIconify(): void {
-  // 同步注册常用图标，保证首屏图标正常显示
-  // 完整图标集在 App.vue onMounted 中异步加载
-}
-
-/**
  * 异步加载完整图标集
  * 在 App.vue onMounted 中调用，利用空闲时间预加载
  */

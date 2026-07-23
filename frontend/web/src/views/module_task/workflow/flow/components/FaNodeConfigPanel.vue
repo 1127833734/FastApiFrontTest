@@ -68,6 +68,7 @@ import {
 } from "element-plus";
 import { Close } from "@element-plus/icons-vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import WorkflowNodeTypeAPI, { type WorkflowNodeTypeOption } from "@/api/module_task/workflow/nodes";
 
 interface Props {

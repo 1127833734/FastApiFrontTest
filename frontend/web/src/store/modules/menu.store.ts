@@ -30,6 +30,7 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import type { AppRouteRecord } from "@/types/router";
 import { getFirstMenuPath } from "@utils";
 import { HOME_PAGE_PATH } from "@/router";
 import { mergeShellRoutesIntoMenu } from "@/router/staticRoutes";

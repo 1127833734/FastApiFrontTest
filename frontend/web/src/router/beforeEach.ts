@@ -20,6 +20,7 @@
  *        └─ setWorktab / setPageTitle / 404
  */
 import type { Router, RouteLocationNormalized } from "vue-router";
+import type { AppRouteRecord } from "@/types/router";
 import { nextTick } from "vue";
 import { useSettingsStore, useUserStore, useMenuStore, useWorktabStore } from "@stores";
 import { IframeRouteManager, ROUTE_PATH_LOGIN_ALT, staticRoutes } from "./staticRoutes";

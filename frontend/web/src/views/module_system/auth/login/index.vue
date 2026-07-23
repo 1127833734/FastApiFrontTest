@@ -186,13 +186,13 @@ import AuthAPI, {
 import UserAPI, { type ForgetPasswordForm, type RegisterForm } from "@/api/module_system/user";
 import { useConfigStore, useAppStore, useSettingsStore, useUserStore } from "@stores";
 import { Auth, HttpError, startOAuthLogin } from "@utils";
-import { ElMessage, ElNotification } from "@/utils/message";
+import { ElMessage, ElNotification } from "element-plus";
 import type { FormRules } from "element-plus";
 import type { Account, AccountKey } from "./types";
-import { useLoginPanelAlign } from "@/components/views/fa-login/composables/useLoginPanelAlign";
-import type FaLoginAccountForm from "@/components/views/fa-login/forms/FaLoginAccountForm.vue";
-import type FaLoginRegisterPanel from "@/components/views/fa-login/panels/FaLoginRegisterPanel.vue";
-import type FaLoginForgetPanel from "@/components/views/fa-login/panels/FaLoginForgetPanel.vue";
+import { useLoginPanelAlign } from "./components/composables/useLoginPanelAlign";
+import type FaLoginAccountForm from "./components/forms/FaLoginAccountForm.vue";
+import type FaLoginRegisterPanel from "./components/panels/FaLoginRegisterPanel.vue";
+import type FaLoginForgetPanel from "./components/panels/FaLoginForgetPanel.vue";
 
 defineOptions({ name: "Login" });
 
@@ -694,5 +694,5 @@ async function submitForget() {
 </script>
 
 <style scoped lang="scss">
-@use "../../../../components/views/fa-login/fa-login";
+@use "./components/composables/fa-login";
 </style>

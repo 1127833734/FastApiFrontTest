@@ -68,7 +68,7 @@ import { ref, watch } from "vue";
 import Codemirror from "codemirror-editor-vue3";
 import type { EditorConfiguration } from "codemirror";
 import type { CmComponentRef } from "codemirror-editor-vue3";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { ArrowDown, CopyDocument } from "@element-plus/icons-vue";
 import { useClipboard } from "@vueuse/core";
 import { useSettingsStore } from "@stores";
@@ -77,6 +77,7 @@ import {
   getExampleFromPresetMasterSub,
   getExampleFromPresetSingle,
 } from "../utils/createTableSqlExamples";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
 
 defineOptions({ name: "CreateTableDialog" });
 

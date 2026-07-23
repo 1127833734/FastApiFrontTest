@@ -15,7 +15,7 @@
 import { reactive, toRefs } from "vue";
 import { tryOnMounted, tryOnUnmounted } from "@vueuse/core";
 import dayjs from "dayjs";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 
 /**
  * 根据当前时间生成问候语

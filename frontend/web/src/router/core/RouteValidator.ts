@@ -2,6 +2,7 @@
  * 路由验证器 —— 菜单注册前校验：重名、缺少 component、深层误用 layout 占位等。
  * 校验结果分 errors（阻止注册）和 warnings（仅控制台提醒）两级。
  */
+import type { AppRouteRecord } from "@/types/router";
 import { ROUTE_COMPONENT_LAYOUT } from "../staticRoutes";
 
 export interface ValidationResult {

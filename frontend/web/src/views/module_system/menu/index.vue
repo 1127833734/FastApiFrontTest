@@ -361,9 +361,11 @@ import { type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import FaMenuRouteIcon from "@/components/others/fa-menu-route-icon/index.vue";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 const { hasAuth } = useAuth();
 const userStore = useUserStore();
@@ -830,7 +832,7 @@ async function deleteMenuRow(id: number, name: string) {
   try {
     await confirmDelete(`确定删除「${name}」吗？`);
     await MenuAPI.deleteMenu([id]);
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
     selectedRows.value = [];
     await loadMenuData();
   } catch {
@@ -1229,7 +1231,7 @@ async function handleSubmit() {
       dialogVisible.visible = false;
       await resetForm();
       await loadMenuData();
-      await userStore.getUserInfo();
+      await userStore.refreshPermissions();
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error(error);
     } finally {
@@ -1248,7 +1250,7 @@ async function handleBatchDelete() {
     );
     batchDeleting.value = true;
     await MenuAPI.deleteMenu(ids);
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
     selectedRows.value = [];
     await loadMenuData();
   } catch {

@@ -35,6 +35,7 @@ import { storeToRefs } from "pinia";
 import { useUserStore } from "@stores";
 import { useAppMode } from "@/hooks/core/useAppMode";
 import { ROLE_ROOT } from "@/constants";
+import type { AppRouteRecord } from "@/types/router";
 
 type AuthItem = NonNullable<AppRouteRecord["meta"]["authList"]>[number];
 

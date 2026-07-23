@@ -262,7 +262,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ElMessageBox } from "@/utils/message";
+import { ElMessageBox } from "element-plus";
 import CacheAPI, {
   type CacheInfo,
   type CacheForm,

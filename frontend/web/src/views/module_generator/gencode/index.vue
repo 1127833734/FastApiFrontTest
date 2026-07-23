@@ -143,7 +143,7 @@ import { useClipboard } from "@vueuse/core";
 import { useRoute } from "vue-router";
 import type { EditorConfiguration } from "codemirror";
 import type { CmComponentRef } from "codemirror-editor-vue3";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance } from "element-plus";
 import { Plus, Upload, Delete, Download } from "@element-plus/icons-vue";
 import GencodeAPI, {
@@ -163,6 +163,8 @@ import FaCreateTableDialog from "./components/FaCreateTableDialog.vue";
 import { GENCODE_BASIC_FORM_KEY, GENCODE_CM_KEY } from "./gencodeInjectionKeys";
 import type { TableOperationAction } from "@utils";
 import type { TreeNode } from "./types";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 // 文件数据接口
 interface FileData {

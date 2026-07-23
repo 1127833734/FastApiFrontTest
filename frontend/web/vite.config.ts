@@ -22,6 +22,32 @@ const __APP_INFO__ = {
   buildTimestamp: Date.now(),
 };
 
+function elementPlusStyleIncludes(): string[] {
+  // 预构建所有 Element Plus 组件的样式，避免开发时访问新页面触发依赖优化刷新
+  const componentsDir = path.join(
+    process.cwd(),
+    "node_modules",
+    "element-plus",
+    "es",
+    "components"
+  );
+  try {
+    const result: string[] = [];
+    for (const entry of fs.readdirSync(componentsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const styleDir = path.join(componentsDir, entry.name, "style");
+      // 只包含实际存在 style 目录的组件
+      if (fs.existsSync(styleDir) && fs.statSync(styleDir).isDirectory()) {
+        result.push(`element-plus/es/components/${entry.name}/style/index`);
+        result.push(`element-plus/es/components/${entry.name}/style/css`);
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 export default ({ mode }: { mode: string }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root);
@@ -29,8 +55,6 @@ export default ({ mode }: { mode: string }) => {
 
   return defineConfig({
     define: {
-      __APP_VERSION__: JSON.stringify(env.VITE_VERSION),
-      __APP_NAME__: JSON.stringify(env.VITE_APP_TITLE),
       __APP_INFO__: JSON.stringify(__APP_INFO__),
     },
     base: env.VITE_BASE_URL,
@@ -68,7 +92,7 @@ export default ({ mode }: { mode: string }) => {
     build: {
       target: "es2024",
       outDir: "dist",
-      chunkSizeWarningLimit: 4000,
+      chunkSizeWarningLimit: 1500,
       minify: isProduction ? "terser" : false,
       terserOptions: isProduction
         ? {
@@ -99,7 +123,6 @@ export default ({ mode }: { mode: string }) => {
             if (id.includes("@iconify-json")) return "iconify-icons";
             if (id.includes("xlsx")) return "xlsx";
             if (id.includes("crypto-js")) return "crypto";
-            if (id.includes("js-beautify")) return "beautify";
             if (id.includes("dayjs")) return "dayjs";
             if (
               id.includes("vue/") ||
@@ -204,7 +227,7 @@ export default ({ mode }: { mode: string }) => {
         vueTemplate: true,
       }),
       Components({
-        dirs: ["src/components", "src/**/components"],
+        dirs: ["src/components", "src/layouts", "src/**/components"],
         dts: "src/types/components.d.ts",
         resolvers: [
           ElementPlusResolver(),
@@ -253,7 +276,6 @@ export default ({ mode }: { mode: string }) => {
         "vue-json-pretty",
         "vue-web-terminal",
         "vue3-cron-plus",
-        "vuedraggable",
         "vue-draggable-plus",
         "element-plus",
         "@element-plus/icons-vue",
@@ -267,8 +289,6 @@ export default ({ mode }: { mode: string }) => {
         "exceljs",
         "nprogress",
         "qs",
-        "path-to-regexp",
-        "path-browserify",
         "xgplayer",
         "@iconify/vue",
         "qrcode.vue",
@@ -276,10 +296,7 @@ export default ({ mode }: { mode: string }) => {
         "highlight.js",
         "dagre",
         "dompurify",
-        "js-beautify",
         "markdown-it",
-        "markdown-it-highlightjs",
-        "clipboard",
         "crypto-js",
         "file-saver",
         "mitt",
@@ -289,6 +306,8 @@ export default ({ mode }: { mode: string }) => {
         "echarts/renderers",
         "echarts/charts",
         "echarts/components",
+        // Element Plus 组件 CSS 预编译，避免开发时访问新页面触发依赖优化刷新
+        ...elementPlusStyleIncludes(),
       ],
     },
     css: {

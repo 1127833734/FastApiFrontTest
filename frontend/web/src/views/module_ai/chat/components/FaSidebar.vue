@@ -125,8 +125,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  ChatDotRound,
   ChatLineRound,
   User,
   Setting,

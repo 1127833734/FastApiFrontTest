@@ -12,6 +12,7 @@
 import { graphic, type EChartsOption } from "@/plugins/echarts";
 import { getCssVar, hexToRgba } from "@utils";
 import { useChartOps, useChartComponent } from "@/hooks/core/useChart";
+import type { LineChartProps, LineDataItem } from "@/types/component/chart";
 defineOptions({ name: "FaLineChart" });
 
 const props = withDefaults(defineProps<LineChartProps>(), {

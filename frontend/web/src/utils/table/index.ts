@@ -34,7 +34,7 @@ export const tableConfig = {
   },
 } as const;
 
-/** 与 `global.d.ts` 中 `PageResult` 字段一致；分页列表接口必须返回该结构（或包在 ApiResponse.data 内） */
+/** 与 `global.d.ts` 中 `PageResult` 字段一致；分页列表接口必须返回该结构（或包在 TableResponse.data 内） */
 function isPageResultPayload(o: unknown): o is PageResult<unknown> {
   if (!o || typeof o !== "object" || Array.isArray(o)) return false;
   const r = o as Record<string, unknown>;
@@ -105,7 +105,7 @@ export enum CacheInvalidationStrategy {
 }
 
 /** useTable 内部使用的规范化分页响应（由 PageResult 映射而来） */
-export interface ApiResponse<T = unknown> {
+export interface TableResponse<T = unknown> {
   records: T[];
   total: number;
   current?: number;
@@ -116,7 +116,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface CacheItem<T> {
   data: T[];
-  response: ApiResponse<T>;
+  response: TableResponse<T>;
   timestamp: number;
   params: string;
   tags: Set<string>;
@@ -193,7 +193,7 @@ export class TableCache<T> {
     }
   }
 
-  set(params: unknown, data: T[], response: ApiResponse<T>): void {
+  set(params: unknown, data: T[], response: TableResponse<T>): void {
     const key = this.generateKey(params);
     const tags = this.generateTags(params as Record<string, unknown>);
     const now = Date.now();
@@ -309,7 +309,7 @@ function unwrapAxiosResponseBody(response: unknown): unknown {
 
 /**
  * 从 axios 原始响应或已解包 body 中取出唯一合法的 `PageResult`。
- * 支持：① 严格 `PageResult`；② `ApiResponse.data` 嵌套；③ `records/current/size` 等常见变体。
+ * 支持：① 严格 `PageResult`；② `TableResponse.data` 嵌套；③ `records/current/size` 等常见变体。
  */
 function extractPageResultPayload(response: unknown): PageResult<unknown> | null {
   const candidates: unknown[] = [];
@@ -352,11 +352,11 @@ export interface TableError {
   details?: unknown;
 }
 
-export const defaultResponseAdapter = <T>(response: unknown): ApiResponse<T> => {
+export const defaultResponseAdapter = <T>(response: unknown): TableResponse<T> => {
   const pr = extractPageResultPayload(response);
   if (!pr) {
     console.error(
-      "[tableUtils] 分页列表响应必须符合全局 PageResult<T>（items、total、page_no、page_size、has_next）；或为 ApiResponse 且 data 为该结构。收到:",
+      "[tableUtils] 分页列表响应必须符合全局 PageResult<T>（items、total、page_no、page_size、has_next）；或为 TableResponse 且 data 为该结构。收到:",
       response
     );
     return { records: [], total: 0, current: 1, size: 10 };
@@ -371,14 +371,14 @@ export const defaultResponseAdapter = <T>(response: unknown): ApiResponse<T> => 
   };
 };
 
-export const extractTableData = <T>(response: ApiResponse<T>): T[] => {
+export const extractTableData = <T>(response: TableResponse<T>): T[] => {
   const rows = response.records;
   return Array.isArray(rows) ? rows : [];
 };
 
 export const updatePaginationFromResponse = <T>(
   pagination: { total: number },
-  response: ApiResponse<T>
+  response: TableResponse<T>
 ): void => {
   const total = response.total;
   if (typeof total === "number") (pagination as Record<string, unknown>).total = total;

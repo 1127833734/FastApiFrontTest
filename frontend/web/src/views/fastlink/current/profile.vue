@@ -6,7 +6,7 @@
       <div class="w-md mr-5 max-md:w-full max-md:mr-0">
         <div class="fa-card-sm relative p-9 pb-6 overflow-hidden text-center">
           <img
-            class="absolute top-0 left-0 w-full h-60 object-cover"
+            class="absolute top-0 left-0 w-full h-50 object-cover"
             src="@imgs/user/bg.webp"
             alt=""
           />
@@ -341,7 +341,7 @@ import OnlineAPI from "@/api/module_monitor/online";
 import type { OnlineUserTable } from "@/api/module_monitor/online";
 import { useUserStore, useDictStore } from "@stores";
 import { Camera, Loading } from "@element-plus/icons-vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { redirectToLogin, dataURLToFile } from "@utils";
 

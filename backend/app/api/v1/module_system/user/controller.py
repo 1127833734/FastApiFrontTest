@@ -1,7 +1,7 @@
 import urllib.parse
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Path, Security, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Path, Query, Security, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,7 @@ from app.core.router_class import OperationLogRoute
 from app.utils.common_util import bytes2file_response
 
 from .schema import (
+    CurrentUserOutSchema,
     CurrentUserUpdateSchema,
     ResetPasswordSchema,
     UserChangePasswordSchema,
@@ -32,12 +33,13 @@ from .service import UserService
 UserRouter = APIRouter(route_class=OperationLogRoute, prefix="/user", tags=["用户管理"])
 
 
-@UserRouter.get("/current/info", summary="查询当前用户信息", response_model=ResponseSchema[UserOutSchema])
+@UserRouter.get("/current/info", summary="查询当前用户信息", response_model=ResponseSchema[CurrentUserOutSchema])
 async def get_current_user_info_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(db_getter)],
+    check_data_scope: Annotated[bool, Query(description="是否加载完整数据（含部门/岗位/角色/OAuth），True-加载全部(默认)，False-仅菜单/权限")] = True,
 ) -> JSONResponse:
-    user_dict = await UserService(auth, db).current_info()
+    user_dict = await UserService(auth, db).current_info(check_data_scope=check_data_scope)
     return SuccessResponse(data=user_dict, msg="获取当前用户信息成功")
 
 

@@ -18,6 +18,8 @@
 </template>
 
 <script setup lang="ts">
+import type { LineDataItem } from "@/types/component/chart";
+
 const AREA_STYLE_CONFIG = {
   startOpacity: 0.08,
   endOpacity: 0,

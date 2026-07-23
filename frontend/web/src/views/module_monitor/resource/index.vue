@@ -221,6 +221,9 @@ import { ResourceAPI, type ResourceItem } from "@/api/module_monitor/resource";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { TableOperationAction } from "@/utils/table";
+import type { ColumnOption } from "@/types/component";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 const { hasAuth } = useAuth();
 

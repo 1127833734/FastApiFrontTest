@@ -22,6 +22,7 @@ import { defaultSettings } from "@/config/setting";
 import { SidebarColor, ThemeMode } from "@/enums/settings/theme.enum";
 import type { LayoutMode } from "@/enums/settings/layout.enum";
 import type { Ref } from "vue";
+import type { MenuThemeType } from "@/types/store";
 
 export const useSettingsStore = defineStore(
   "settingStore",

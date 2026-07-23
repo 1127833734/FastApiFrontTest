@@ -13,6 +13,7 @@
 import hb from "@imgs/ceremony/hb.png";
 import sd from "@imgs/ceremony/sd.png";
 import yd from "@imgs/ceremony/yd.png";
+import type { FestivalConfig } from "@/types/config";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");

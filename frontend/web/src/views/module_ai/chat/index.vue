@@ -55,7 +55,7 @@ defineOptions({
 });
 
 import { ref, onMounted, onUnmounted } from "vue";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import AiChatAPI, { ChatSession } from "@/api/module_ai/chat";
 import { Auth } from "@utils/auth";
 import type { ChatMessage, UploadedFile } from "./types";

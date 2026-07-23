@@ -1,7 +1,7 @@
 <!-- 操作手册：视频演示 + 全功能验收正文 -->
 <template>
   <div class="page-content manual-page">
-    <div class="manual-page__inner mx-auto max-w-[1200px] px-4 pb-8">
+    <div class="manual-page__inner mx-auto max-w-300 px-4 pb-8">
       <!-- 标题 -->
       <h1 class="mb-2 text-2xl font-medium text-g-900 dark:text-g-50">
         {{ t("manualPage.title") }}

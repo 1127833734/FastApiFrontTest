@@ -20,6 +20,7 @@ import {
   RadarChart,
   MapChart,
   CandlestickChart,
+  GaugeChart,
 } from "echarts/charts";
 
 // 导入组件（按需引入，仅导入项目中实际使用的）
@@ -29,6 +30,7 @@ import {
   LegendComponent,
   DataZoomComponent,
   GeoComponent,
+  TitleComponent,
 } from "echarts/components";
 
 // 导入渲染器
@@ -44,6 +46,7 @@ echarts.use([
   RadarChart,
   MapChart,
   CandlestickChart,
+  GaugeChart,
 
   // 组件（仅保留实际使用的）
   TooltipComponent,
@@ -51,6 +54,7 @@ echarts.use([
   LegendComponent,
   DataZoomComponent,
   GeoComponent,
+  TitleComponent,
 
   // 渲染器
   CanvasRenderer,

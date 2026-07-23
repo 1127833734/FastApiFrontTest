@@ -39,12 +39,13 @@ import {
   createSmartDebounce,
   createErrorHandler,
   tableConfig,
-  type ApiResponse,
+  type TableResponse,
   type TableError,
 } from "@utils";
+import type { ColumnOption } from "@/types/component";
 
 /** 跨组件实例：同一 dedupeKey 仅一条进行中的网络请求 */
-const globalListNetworkInflight = new Map<string, Promise<ApiResponse<unknown>>>();
+const globalListNetworkInflight = new Map<string, Promise<TableResponse<unknown>>>();
 
 // --- 类型推导（由 apiFn / 响应类型反推记录类型） ---
 type InferApiParams<T> = T extends (params: infer P) => any ? P : never;
@@ -102,7 +103,7 @@ export interface UseTableConfig<
     /** 数据转换函数 */
     dataTransformer?: (data: TRecord[]) => TRecord[];
     /** 响应数据适配器 */
-    responseAdapter?: (response: TResponse) => ApiResponse<TRecord>;
+    responseAdapter?: (response: TResponse) => TableResponse<TRecord>;
   };
 
   // 性能优化
@@ -120,11 +121,11 @@ export interface UseTableConfig<
   // 生命周期钩子
   hooks?: {
     /** 数据加载成功回调（仅网络请求成功时触发） */
-    onSuccess?: (data: TRecord[], response: ApiResponse<TRecord>) => void;
+    onSuccess?: (data: TRecord[], response: TableResponse<TRecord>) => void;
     /** 错误处理回调 */
     onError?: (error: TableError) => void;
     /** 缓存命中回调（从缓存获取数据时触发） */
-    onCacheHit?: (data: TRecord[], response: ApiResponse<TRecord>) => void;
+    onCacheHit?: (data: TRecord[], response: TableResponse<TRecord>) => void;
     /** 加载状态变化回调 */
     onLoading?: (loading: boolean) => void;
     /** 重置表单回调函数 */
@@ -217,7 +218,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
   /** 同参且尚未结束的请求共用一个 Promise，避免并发重复打接口 */
   let inFlightDedupeKey: string | null = null;
-  let inFlightDedupePromise: Promise<ApiResponse<TRecord>> | null = null;
+  let inFlightDedupePromise: Promise<TableResponse<TRecord>> | null = null;
 
   /** KeepAlive 失活时不再发请求（组件侧 cancelRequest 会 abort） */
   let tableViewActive = true;
@@ -323,7 +324,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
    * 全局去重时每个参与合并的实例都会各自调用一次。
    */
   function commitNetworkSuccess(
-    standardResponse: ApiResponse<TRecord>,
+    standardResponse: TableResponse<TRecord>,
     paramsForCache: TParams,
     useCacheFlag: boolean
   ): void {
@@ -362,7 +363,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   const fetchData = async (
     params?: Partial<TParams>,
     useCache = enableCache
-  ): Promise<ApiResponse<TRecord>> => {
+  ): Promise<TableResponse<TRecord>> => {
     let requestParams = Object.assign(
       {},
       searchParams,
@@ -393,7 +394,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
       loadingState.value = "loading";
       error.value = null;
       try {
-        const standardResponse = (await sharedGlobal) as ApiResponse<TRecord>;
+        const standardResponse = (await sharedGlobal) as TableResponse<TRecord>;
         commitNetworkSuccess(standardResponse, requestParams, useCache);
         return standardResponse;
       } catch (err) {
@@ -414,7 +415,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
         total: pagination.total,
         current: pagination.current,
         size: pagination.size,
-      } as ApiResponse<TRecord>;
+      } as TableResponse<TRecord>;
     }
 
     if (abortController) {
@@ -455,7 +456,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
       inFlightDedupeKey = dedupeKey;
 
-      const networkPromise = (async (): Promise<ApiResponse<TRecord>> => {
+      const networkPromise = (async (): Promise<TableResponse<TRecord>> => {
         try {
           logger.log("HTTP 请求", dedupeKey);
           const response = await apiFn(requestParams);
@@ -476,7 +477,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
         }
       })();
 
-      globalListNetworkInflight.set(dedupeKey, networkPromise as Promise<ApiResponse<unknown>>);
+      globalListNetworkInflight.set(dedupeKey, networkPromise as Promise<TableResponse<unknown>>);
       networkPromise
         .finally(() => {
           globalListNetworkInflight.delete(dedupeKey);
@@ -512,7 +513,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   async function fetchDataQuiet(
     params?: Partial<TParams>,
     useCache = enableCache
-  ): Promise<ApiResponse<TRecord> | void> {
+  ): Promise<TableResponse<TRecord> | void> {
     try {
       return await fetchData(params, useCache);
     } catch {
@@ -524,7 +525,9 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   const getData = (params?: Partial<TParams>) => fetchDataQuiet(params);
 
   /** 搜索场景：回到第一页、清当前条件缓存，再拉取（禁用缓存） */
-  const getDataByPage = async (params?: Partial<TParams>): Promise<ApiResponse<TRecord> | void> => {
+  const getDataByPage = async (
+    params?: Partial<TParams>
+  ): Promise<TableResponse<TRecord> | void> => {
     pagination.current = 1;
     (searchParams as Record<string, unknown>)[pageKey] = 1;
 
@@ -841,7 +844,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
 export type {
   CacheInvalidationStrategy,
-  ApiResponse,
+  TableResponse,
   CacheItem,
   BaseRequestParams,
   TableError,

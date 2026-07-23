@@ -230,6 +230,10 @@ import {
 
 defineOptions({ name: "FaForm" });
 
+defineSlots<{
+  [slotName: string]: (props: { item: FormItem; modelValue: Record<string, any> }) => any;
+}>();
+
 const componentMap = {
   input: ElInput, // 输入框
   inputtag: ElInputTag, // 标签输入框

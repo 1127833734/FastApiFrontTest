@@ -193,6 +193,9 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaStatusTag from "@/components/others/fa-status-tag/index.vue";
 import FaCopyButton from "@/components/others/fa-copy-button/index.vue";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
 defineOptions({
   name: "Log",

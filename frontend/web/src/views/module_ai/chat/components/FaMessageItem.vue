@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import {
   User,
   ChatDotRound,

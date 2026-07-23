@@ -65,7 +65,6 @@ export default [
       "no-var": "error",
       "no-multiple-empty-lines": ["warn", { max: 1 }],
       "no-unexpected-multiline": "error",
-      "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "vue/multi-word-component-names": "off",
       // Prettier 负责格式化，ESLint 只关注代码质量

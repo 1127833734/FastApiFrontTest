@@ -8,6 +8,8 @@
  * @author FastapiAdmin Team
  */
 
+import type { HeaderBarFeatureConfig } from "@/types/config";
+
 /**
  * 顶部栏功能配置对象
  */

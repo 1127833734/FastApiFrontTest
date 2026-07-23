@@ -3,7 +3,7 @@
 import type { App } from "vue";
 import mitt, { type Emitter } from "mitt";
 import VersionAPI from "@/api/module_system/version";
-import { ElNotification } from "@/utils/message";
+import { ElNotification } from "element-plus";
 import { useUserStore } from "@stores";
 import { StorageConfig } from "@utils";
 import { BANNER } from "../../../build/banner";

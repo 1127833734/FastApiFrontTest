@@ -8,6 +8,7 @@
 import { ref, computed, watch, type ComputedRef, type Ref } from "vue";
 import { useRoute } from "vue-router";
 import { $t } from "@/locales";
+import type { ColumnOption } from "@/types/component";
 /** selection / expand / index 等占位 prop，避免与业务列冲突 */
 const SPECIAL_COLUMNS: Record<string, { prop: string; label: string }> = {
   selection: { prop: "__selection__", label: $t("table.column.selection") },

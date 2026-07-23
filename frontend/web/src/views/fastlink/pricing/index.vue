@@ -4,13 +4,13 @@
   >
     <!-- Decorative background -->
     <div
-      class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none overflow-hidden w-[800px] h-[500px] -z-1"
+      class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none overflow-hidden w-200 h-125 -z-1"
     >
       <div
-        class="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-linear-to-b from-primary/8 to-transparent opacity-60"
+        class="absolute -top-30 left-1/2 -translate-x-1/2 w-150 h-150 rounded-full bg-linear-to-b from-primary/8 to-transparent opacity-60"
       />
       <div
-        class="absolute top-[-60px] left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-linear-to-b from-primary/5 to-transparent opacity-40"
+        class="absolute -top-15 left-1/2 -translate-x-1/2 w-100 h-100 rounded-full bg-linear-to-b from-primary/5 to-transparent opacity-40"
       />
     </div>
 
@@ -122,7 +122,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { Check } from "@element-plus/icons-vue";
 
 defineOptions({ name: "DashboardPricing" });

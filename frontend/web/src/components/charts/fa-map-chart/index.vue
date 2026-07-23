@@ -16,6 +16,7 @@
 import { echarts } from "@/plugins/echarts";
 import { useSettingsStore } from "@stores";
 import chinaMapJson from "@/mock/json/chinaMap.json";
+import type { MapChartProps } from "@/types/component/chart";
 defineOptions({ name: "FaMapChart" });
 
 const chinaMapRef = ref<HTMLElement | null>(null);

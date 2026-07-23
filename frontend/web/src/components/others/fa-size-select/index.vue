@@ -28,7 +28,7 @@ import { ComponentSize } from "@/enums/settings/layout.enum";
 import { useAppStore } from "@stores";
 import { resolveIconForFaSvgIcon } from "@utils";
 import { computed } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 
 const { t } = useI18n();
 const sizeOptions = computed(() => {

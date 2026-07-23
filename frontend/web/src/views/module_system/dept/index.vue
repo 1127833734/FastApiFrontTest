@@ -119,8 +119,9 @@ import { formatTree, renderTableOperationCell, type TableOperationAction } from 
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
-import { ElMessage } from "@/utils/message";
+import FaForm from "@/components/forms/fa-form/index.vue";
+import { ElMessage } from "element-plus";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 defineOptions({
   name: "Dept",

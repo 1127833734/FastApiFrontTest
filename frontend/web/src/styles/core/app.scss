@@ -181,7 +181,7 @@
   }
 
   .fa-card-sm {
-    @include fa-card-base(var(--fa-card-border), none, 0);
+    @include fa-card-base(var(--fa-card-border), none, 2px);
   }
 
   .fa-card-xs {

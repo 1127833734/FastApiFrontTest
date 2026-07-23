@@ -1,5 +1,6 @@
 import type { UserInfo } from "@/api/module_system/user";
 import type { MenuTable } from "@/api/module_system/menu";
+import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { useUserStore } from "@stores";
 import { useAppMode } from "@/hooks/core/useAppMode";
 

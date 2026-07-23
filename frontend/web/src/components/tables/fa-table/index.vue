@@ -140,8 +140,14 @@ import { useTableHeight } from "@/hooks/core/useTableHeight";
 import { useWindowSize } from "@vueuse/core";
 import { VueDraggable } from "vue-draggable-plus";
 import { MOBILE_BREAKPOINT } from "@utils/constants/definitions";
+import type { ColumnOption } from "@/types/component";
 
 defineOptions({ name: "FaTable" });
+
+defineSlots<{
+  default(props: object): any;
+  [slotName: string]: (props: Record<string, any>) => any;
+}>();
 
 const { width } = useWindowSize();
 const isMobile = computed(() => width.value < MOBILE_BREAKPOINT);

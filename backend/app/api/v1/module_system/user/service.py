@@ -17,6 +17,7 @@ from app.utils.password_util import PwdUtil
 
 from .crud import UserCRUD
 from .schema import (
+    CurrentUserOutSchema,
     CurrentUserUpdateSchema,
     ResetPasswordSchema,
     UserChangePasswordSchema,
@@ -28,7 +29,11 @@ from .schema import (
     UserUpdateSchema,
 )
 
-_USER_PRELOAD = ["dept", "positions", "roles.menus", "roles.depts"]
+# 用户管理列表/详情预加载：只需 dept（用于填充 dept_name）
+_USER_PRELOAD = ["dept"]
+
+# 当前用户信息预加载：需完整嵌套关联
+_USER_CURRENT_PRELOAD = ["dept", "positions", "roles.menus", "roles.depts"]
 
 
 class UserService:
@@ -161,42 +166,49 @@ class UserService:
         await UserCRUD(self.auth, self.db).set_user_positions(user_ids=ids, position_ids=[])
         await UserCRUD(self.auth, self.db).delete(ids=ids)
 
-    async def current_info(self) -> UserOutSchema:
+    async def current_info(self, check_data_scope: bool = True) -> CurrentUserOutSchema:
         user_id = self.auth.user.id
         if not user_id:
             raise CustomException(msg="该数据不存在")
-        user = await UserCRUD(self.auth, self.db).get(id=user_id, preload=_USER_PRELOAD)
+
+        if not check_data_scope:
+            # 轻量模式：只刷新菜单/权限，不加载用户嵌套数据
+            menus_raw = await self._load_menus()
+            menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])]
+            return CurrentUserOutSchema(menus=menu_tree)
+
+        user = await UserCRUD(self.auth, self.db).get(id=user_id, preload=_USER_CURRENT_PRELOAD)
         if user is None:
             raise CustomException(msg="该数据不存在")
-        user_dict = UserOutSchema.model_validate(user)
+        user_dict = CurrentUserOutSchema.model_validate(user)
         if user.dept:
             user_dict.dept_name = user.dept.name
         user_dict.is_superuser = user.is_superuser
 
+        menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in await self._load_menus()])]
+        user_dict.menus = menu_tree
+        return user_dict
+
+    async def _load_menus(self) -> list[MenuOutSchema]:
+        """加载当前用户的菜单列表（不含树形转换）"""
         _pc_only = {"scope": "web"}
         if self.auth.user.is_superuser:
             menu_all = await MenuCRUD(self.auth, self.db).get_list(
                 search={"type": ("in", [1, 2, 3, 4]), "status": 0, **_pc_only},
                 order_by=[{"order": "asc"}],
             )
-            menus_raw = [MenuOutSchema.model_validate(menu) for menu in menu_all]
+            return [MenuOutSchema.model_validate(menu) for menu in menu_all]
         else:
             menu_ids = set(self.auth.menu_ids)
-            menus_raw = (
-                [
-                    MenuOutSchema.model_validate(menu)
-                    for menu in await MenuCRUD(self.auth, self.db).get_list(
-                        search={"id": ("in", list(menu_ids)), **_pc_only},
-                        order_by=[{"order": "asc"}],
-                    )
-                ]
-                if menu_ids
-                else []
-            )
-
-        menu_tree = [MenuTreeOutSchema(**item) for item in traversal_to_tree([menu.model_dump(mode="json") for menu in menus_raw])]
-        user_dict.menus = menu_tree
-        return user_dict
+            if not menu_ids:
+                return []
+            return [
+                MenuOutSchema.model_validate(menu)
+                for menu in await MenuCRUD(self.auth, self.db).get_list(
+                    search={"id": ("in", list(menu_ids)), **_pc_only},
+                    order_by=[{"order": "asc"}],
+                )
+            ]
 
     async def update_current_info(self, data: CurrentUserUpdateSchema) -> UserOutSchema:
         user_id = self.auth.user.id

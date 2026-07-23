@@ -55,7 +55,7 @@
 import { onScopeDispose, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Close, QuestionFilled } from "@element-plus/icons-vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { quickStartManager, type QuickLink } from "@utils";
 
 const router = useRouter();

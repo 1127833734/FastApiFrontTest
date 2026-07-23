@@ -144,13 +144,17 @@ defineOptions({
 
 import { ref, reactive, computed, nextTick } from "vue";
 import { Edit } from "@element-plus/icons-vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import AiChatAPI, { type ChatSession, type ChatSessionDetail } from "@/api/module_ai/chat";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
 import { formatToDateTime, type TableOperationAction } from "@utils";
+import type { ColumnOption } from "@/types/component";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 type MemorySearchForm = {
   title?: string;

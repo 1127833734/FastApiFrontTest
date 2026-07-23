@@ -138,10 +138,12 @@ import NoticeAPI, { type NoticeForm, type NoticeTable } from "@/api/module_syste
 import { type TableOperationAction } from "@utils";
 import { useDictStore, useNoticeStore } from "@stores";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
-import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
+import FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
-import { ElMessage } from "@/utils/message";
+import FaForm from "@/components/forms/fa-form/index.vue";
+import { ElMessage } from "element-plus";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
 defineOptions({
   name: "Notice",

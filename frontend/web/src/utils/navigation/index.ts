@@ -1,4 +1,5 @@
 import type { RouteLocationNormalized, RouteRecordRaw } from "vue-router";
+import type { AppRouteRecord } from "@/types/router";
 import { router } from "@/router";
 
 import i18n, { $t } from "@/locales";

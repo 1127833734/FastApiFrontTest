@@ -378,7 +378,6 @@ import TicketAPI, {
 } from "@/api/module_system/ticket";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
 import {
   ElTag,
   ElButton,
@@ -397,6 +396,9 @@ import {
 } from "element-plus";
 import { Plus, Delete, MoreFilled, CircleClose } from "@element-plus/icons-vue";
 import DOMPurify from "dompurify";
+import FaForm from "@/components/forms/fa-form/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
 defineOptions({
   name: "TicketCard",

@@ -25,7 +25,7 @@ import { useUserStore } from "@stores";
 import { request, EmojiText } from "@utils";
 import { IDomEditor, IToolbarConfig, IEditorConfig } from "@wangeditor-next/editor";
 import type { AxiosResponse } from "axios";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 
 defineOptions({ name: "FaWangEditor" });
 

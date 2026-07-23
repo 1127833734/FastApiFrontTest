@@ -4,10 +4,11 @@ import { MenuTable, MenuForm } from "@/api/module_system/menu";
 const API_PATH = "/system/user";
 
 export const UserAPI = {
-  getCurrentUserInfo() {
+  getCurrentUserInfo(checkDataScope?: boolean) {
     return request<ApiResponse<UserInfo>>({
       url: `${API_PATH}/current/info`,
       method: "get",
+      params: checkDataScope === false ? { check_data_scope: false } : undefined,
     });
   },
 

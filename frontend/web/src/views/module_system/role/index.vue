@@ -166,10 +166,13 @@ import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import StatusTag from "@/components/others/fa-status-tag/index.vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import FaPermissonDrawer from "./components/FaPermissonDrawer.vue";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
 defineOptions({
   name: "Role",
@@ -354,7 +357,7 @@ async function deleteRoleRow(id: number, name: string) {
     await confirmDelete(`确定删除「${name}」吗？`);
     await RoleAPI.deleteRole([id]);
     const userStore = useUserStore();
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
@@ -445,7 +448,7 @@ const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } = use
   },
   onSubmitSuccess: async () => {
     const userStore = useUserStore();
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
   },
 });
 
@@ -644,7 +647,7 @@ async function handleBatchDelete() {
     batchDeleting.value = true;
     await RoleAPI.deleteRole(ids);
     const userStore = useUserStore();
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
@@ -666,7 +669,7 @@ async function handleMoreClick(status: number) {
     await RoleAPI.batchRole({ ids, status });
     await refreshData();
     const userStore = useUserStore();
-    await userStore.getUserInfo();
+    await userStore.refreshPermissions();
   } catch {
     // 用户取消
   } finally {

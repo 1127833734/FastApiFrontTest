@@ -40,7 +40,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { router } from "@/router";
-import { LocationQueryRaw, Router } from "vue-router";
+import type { LocationQueryRaw, Router } from "vue-router";
+import type { WorkTab } from "@/types/store";
 
 import { useCommon } from "@/hooks/core/useCommon";
 import { ROUTE_PATH_LOGIN_ALT } from "@/router/staticRoutes";

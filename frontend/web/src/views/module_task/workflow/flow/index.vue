@@ -71,8 +71,10 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaWorkflowDesignDrawer from "./components/FaWorkflowDesignDrawer.vue";
 import type { TableOperationAction } from "@/utils/table";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, ref } from "vue";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 const { hasAuth } = useAuth();
 

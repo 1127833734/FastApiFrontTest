@@ -16,14 +16,14 @@
       <RouterView></RouterView>
 
       <!-- AI 助手 -->
-      <AiAssistant v-if="enableAiAssistant" />
+      <FaAiAssistant v-if="enableAiAssistant" />
     </ElWatermark>
   </ElConfigProvider>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeMount, onErrorCaptured, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { useWindowSize } from "@vueuse/core";
 import { useAppStore, useUserStore } from "./store";
 import { useSettingsStore } from "./store/modules/setting.store";
@@ -37,7 +37,7 @@ import { ThemeMode } from "./enums";
 import en from "element-plus/es/locale/lang/en";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import { router } from "@/router";
-import { ElNotification } from "@/utils/message";
+import { ElNotification } from "element-plus";
 import { initIconifyAsync } from "./plugins/iconify";
 
 const appStore = useAppStore();

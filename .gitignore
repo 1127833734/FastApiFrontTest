@@ -54,16 +54,24 @@ docker/nginx/docs/dist
 docker/nginx/web/dist
 docker/nginx/ssl/*
 !docker/nginx/ssl/.gitkeep
+# 环境变量文件（真实配置，不提交）
 docker/.env
+backend/env/.env.dev
+backend/env/.env.prod
+backend/env/.env.test
+frontend/.env.dev
+frontend/.env.prod
+frontend/web/.env
+frontend/web/.env.dev
+frontend/web/.env.prod
+frontend/web/.env.test
+
 docker/docker-compose.yaml
 
 frontend/node_modules
 frontend/dist
 frontend/src/types/auto-imports.d.ts
 frontend/src/types/components.d.ts
-frontend/.env.dev
-frontend/.env.prod
-frontend/web/.env
 
 frontend/docs/*
 !frontend/docs/.gitkeep

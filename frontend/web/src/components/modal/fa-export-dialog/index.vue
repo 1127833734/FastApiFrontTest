@@ -75,8 +75,9 @@
 import ExcelJS from "exceljs";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import { useThrottleFn } from "@vueuse/core";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import { nextTick, reactive, computed } from "vue";
 
 defineOptions({ name: "FaExportDialog", inheritAttrs: false });

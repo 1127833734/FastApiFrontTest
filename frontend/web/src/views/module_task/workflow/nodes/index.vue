@@ -162,15 +162,19 @@ import WorkflowNodeTypeAPI, {
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaTable from "@/components/tables/fa-table/index.vue";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import type { TableOperationAction } from "@utils";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import type { FormRules } from "element-plus";
 import { computed, nextTick, ref } from "vue";
 import Codemirror, { CmComponentRef } from "codemirror-editor-vue3";
 import type { EditorConfiguration } from "codemirror";
 import "codemirror/mode/python/python.js";
 import "codemirror/theme/dracula.css";
+import type { ColumnOption } from "@/types/component";
 
 const { hasAuth } = useAuth();
 

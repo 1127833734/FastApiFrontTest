@@ -52,7 +52,7 @@
             <div
               v-for="item in tableSizeOptions"
               :key="item.value"
-              class="table-size-btn-item [&_.el-dropdown-menu__item]:mb-[3px]! last:[&_.el-dropdown-menu__item]:mb-0!"
+              class="table-size-btn-item [&_.el-dropdown-menu__item]:mb-0.75! last:[&_.el-dropdown-menu__item]:mb-0!"
             >
               <ElDropdownItem
                 :key="item.value"
@@ -149,7 +149,7 @@
             <FaSvgIcon icon="ri:settings-line" />
           </div>
         </template>
-        <div class="flex min-w-[200px] flex-col gap-2">
+        <div class="flex min-w-50 flex-col gap-2">
           <ElCheckbox v-model="isZebra" :value="true">
             {{ t("table.zebra") }}
           </ElCheckbox>
@@ -176,6 +176,7 @@ import { TableSizeEnum } from "@/enums/formEnum";
 import { useTableStore } from "@stores";
 import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
+import type { ColumnOption } from "@/types/component";
 defineOptions({ name: "FaTableHeader" });
 
 // 显式声明插槽类型

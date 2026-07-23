@@ -6,6 +6,7 @@
     size="80%"
     class="workflow-drawer"
     @close="handleClose"
+    @opened="handleDrawerOpened"
   >
     <ElContainer class="workflow-create-content">
       <ElSplitter direction="horizontal" :style="'height: 100%'">
@@ -67,7 +68,7 @@
 
         <ElSplitterPanel>
           <div class="canvas-main">
-            <div class="canvas-container" @click="handleCanvasClick">
+            <div v-if="canvasReady" class="canvas-container" @click="handleCanvasClick">
               <VueFlow
                 v-model:nodes="nodes"
                 v-model:edges="edges"
@@ -184,7 +185,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, markRaw, type Component } from "vue";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { Panel, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { MiniMap } from "@vue-flow/minimap";
@@ -434,6 +435,7 @@ const handleFormatCanvas = () => {
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
 
+const canvasReady = ref(false);
 const searchKeyword = ref("");
 
 type LoadedNodeType = {
@@ -772,7 +774,12 @@ const handleFinish = async () => {
   }
 };
 
+const handleDrawerOpened = () => {
+  canvasReady.value = true;
+};
+
 const handleClose = () => {
+  canvasReady.value = false;
   emit("update:visible", false);
 };
 

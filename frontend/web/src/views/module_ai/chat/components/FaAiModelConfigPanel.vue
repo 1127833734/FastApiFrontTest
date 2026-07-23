@@ -250,7 +250,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import {
   Plus,
@@ -272,6 +272,7 @@ import AiChatAPI, {
   type AiModelConfigItem,
   type AiModelConfigList,
 } from "@/api/module_ai/chat";
+import FaDialog from "@/components/modal/fa-dialog/index.vue";
 
 const emit = defineEmits<{
   (e: "changed"): void;

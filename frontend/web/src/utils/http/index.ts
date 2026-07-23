@@ -10,7 +10,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import qs from "qs";
-import { ElMessage } from "@/utils/message";
+import { ElMessage } from "element-plus";
 import { Auth } from "@/utils/auth";
 import { redirectToLogin } from "@/utils/auth";
 import { $t } from "@/locales";

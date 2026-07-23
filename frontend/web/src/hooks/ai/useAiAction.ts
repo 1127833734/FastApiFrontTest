@@ -1,7 +1,8 @@
 import { useRoute } from "vue-router";
-import { ElMessage, ElMessageBox } from "@/utils/message";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onBeforeUnmount, nextTick } from "vue";
 import AiChatAPI from "@/api/module_ai/chat";
+import type { UseAiActionOptions } from "@/types/ai";
 
 /**
  * AI 操作 Composable

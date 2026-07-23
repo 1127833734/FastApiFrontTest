@@ -53,6 +53,8 @@ import { echarts, type EChartsOption } from "@/plugins/echarts";
 import { storeToRefs } from "pinia";
 import { useSettingsStore } from "@stores";
 import { getCssVar } from "@utils";
+import type { ChartThemeConfig } from "@/types/component/chart";
+import type { UseChartOptions, BaseChartProps } from "@/types/component/chart";
 // 图表主题配置
 export const useChartOps = (): ChartThemeConfig => ({
   /** */
@@ -451,6 +453,13 @@ export function useChart(options: UseChartOptions = {}) {
   // 图表初始化核心逻辑
   const performChartInit = (options: EChartsOption) => {
     if (!chart && chartRef.value && !isDestroyed) {
+      // 二次检查容器尺寸：若 echarts.init 时容器为 0×0（Transition 中或 tab 未激活），
+      // 转由 IntersectionObserver 在可见时再初始化
+      if (!isContainerVisible(chartRef.value)) {
+        pendingOptions = options;
+        createIntersectionObserver();
+        return;
+      }
       chart = echarts.init(chartRef.value);
       // 图表创建后立即设置监听器
       setupMenuWatchers();

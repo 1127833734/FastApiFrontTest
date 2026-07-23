@@ -260,6 +260,7 @@ import TargetVsReality from "./modules/target-vs-reality.vue";
 import TopProducts from "./modules/top-products.vue";
 import SalesMappingByCountry from "./modules/sales-mapping-by-country.vue";
 import VolumeServiceLevel from "./modules/volume-service-level.vue";
+import type { LineDataItem } from "@/types/component/chart";
 
 defineOptions({ name: "DashboardAnalysis" });
 

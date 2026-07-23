@@ -250,7 +250,7 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
 
 
 class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
-    """响应"""
+    """用户管理列表/详情响应（精简版，不含大字段嵌套）"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
@@ -266,17 +266,22 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
     dept_id: int | None = Field(default=None, description="部门ID")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")
     position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
-    gitee_login: str | None = Field(default=None, max_length=32, description="Gitee登录")
-    github_login: str | None = Field(default=None, max_length=32, description="Github登录")
-    wx_login: str | None = Field(default=None, max_length=32, description="微信登录")
-    qq_login: str | None = Field(default=None, max_length=32, description="QQ登录")
     dept_name: str | None = Field(default=None, description="部门名称")
+    is_superuser: bool = Field(default=False, description="是否超管")
+    last_login: DateTimeStr | None = Field(default=None, description="最后登录时间")
+
+
+class CurrentUserOutSchema(UserOutSchema):
+    """当前用户信息响应（含完整菜单/角色/岗位等嵌套数据）"""
+
     dept: CommonSchema | None = Field(default=None, description="部门")
     positions: list[CommonSchema] | None = Field(default=[], description="岗位")
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
-    is_superuser: bool = Field(default=False, description="是否超管")
-    last_login: DateTimeStr | None = Field(default=None, description="最后登录时间")
+    gitee_login: str | None = Field(default=None, max_length=32, description="Gitee登录")
+    github_login: str | None = Field(default=None, max_length=32, description="Github登录")
+    wx_login: str | None = Field(default=None, max_length=32, description="微信登录")
+    qq_login: str | None = Field(default=None, max_length=32, description="QQ登录")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam):

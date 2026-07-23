@@ -33,10 +33,10 @@ export function resetStorageInvalidated(): void {
 /** Storage config + versioned key helpers. */
 export class StorageConfig {
   /** 当前应用版本 */
-  static readonly CURRENT_VERSION = __APP_VERSION__;
+  static readonly CURRENT_VERSION = __APP_INFO__.pkg.version;
 
   /** 应用名称 */
-  static readonly appName = __APP_NAME__;
+  static readonly appName = __APP_INFO__.pkg.name;
 
   /** 存储键前缀 */
   static readonly STORAGE_PREFIX = "sys-v";

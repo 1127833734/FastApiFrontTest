@@ -3,7 +3,7 @@
   <div class="fa-full-height">
     <div class="flex-1 flex min-h-0 gap-4">
       <!-- Left: Dict Type -->
-      <div class="w-[660px] flex flex-col min-h-0 overflow-hidden">
+      <div class="w-165 flex flex-col min-h-0 overflow-hidden">
         <FaSearchBar
           v-show="showSearchBar"
           ref="searchBarRef"
@@ -123,9 +123,11 @@ import { type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import type FaForm from "@/components/forms/fa-form/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 import DictDataPanel from "./components/DictDataPanel.vue";
 import FaStatusTag from "@/components/others/fa-status-tag/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
 defineOptions({
   name: "Dict",

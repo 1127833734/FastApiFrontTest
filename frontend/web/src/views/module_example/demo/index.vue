@@ -160,6 +160,10 @@ import DemoAPI, {
   type DemoPageQuery,
   type DemoTable,
 } from "@/api/module_example/demo";
+import type { ColumnOption } from "@/types/component";
+import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 defineOptions({
   name: "Demo",

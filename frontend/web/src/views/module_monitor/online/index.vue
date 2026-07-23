@@ -58,11 +58,13 @@ defineOptions({
 
 import { h, ref, computed } from "vue";
 import OnlineAPI, { type OnlineUserTable } from "@/api/module_monitor/online";
-import { ElMessageBox } from "@/utils/message";
+import { ElMessageBox } from "element-plus";
 import type { TableOperationAction } from "@/utils/table";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaCopyButton from "@/components/others/fa-copy-button/index.vue";
+import type { ColumnOption } from "@/types/component";
+import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 const { hasAuth } = useAuth();
 

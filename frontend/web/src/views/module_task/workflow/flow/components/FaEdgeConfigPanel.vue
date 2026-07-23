@@ -37,6 +37,7 @@
 import { ref, watch, computed } from "vue";
 
 import { Close } from "@element-plus/icons-vue";
+import FaForm from "@/components/forms/fa-form/index.vue";
 
 interface Props {
   edge?: Record<string, any>;
