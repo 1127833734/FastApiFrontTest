@@ -163,25 +163,20 @@ class PaginationQueryParam(BaseModel):
 
 
 class BaseQueryParam(BaseModel):
-    """created_time + updated_time —— 子类自动继承"""
+    """created_time + updated_time —— 子类自动继承
 
-    created_time: list[DateTimeStr] | None = Field(
-        None,
-        description="创建时间范围",
-        examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
-    )
-    updated_time: list[DateTimeStr] | None = Field(
-        None,
-        description="更新时间范围",
-        examples=["2025-01-01 00:00:00", "2025-12-31 23:59:59"],
-    )
+    前端传数组格式 ``["start", "end"]``，``search_to_dict`` 自动转为 ``("between", [start, end])``。
+    """
+
+    created_time: list[DateTimeStr] | None = Field(None, description="创建时间范围")
+    updated_time: list[DateTimeStr] | None = Field(None, description="更新时间范围")
 
 
 class UserByQueryParam(BaseModel):
     """created_id + updated_id —— 子类自动继承"""
 
-    created_id: int | None = Field(None, description="创建人")
-    updated_id: int | None = Field(None, description="更新人")
+    created_id: int | None = Field(None, description="创建人", json_schema_extra={"q": "eq"})
+    updated_id: int | None = Field(None, description="更新人", json_schema_extra={"q": "eq"})
 
 
 class OptionSchema(BaseModel):

@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 from pydantic import (
@@ -12,7 +13,7 @@ from pydantic import (
 from app.api.v1.module_system.menu.schema import MenuTreeOutSchema
 from app.api.v1.module_system.role.schema import RoleOutSchema
 from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, UserByQueryParam, UserBySchema
-from app.core.validator import email_validator, mobile_validator
+from app.core.validator import DateTimeStr, email_validator, mobile_validator
 
 
 class CurrentUserUpdateSchema(BaseModel):
@@ -81,7 +82,6 @@ class UserForgetPasswordSchema(BaseModel):
         v = value.strip()
         if not v:
             raise ValueError("账号不能为空")
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
             raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
@@ -166,7 +166,6 @@ class UserCreateSchema(CurrentUserUpdateSchema):
         if not value:
             return value
         v = value.strip()
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{1,31}$", v):
             raise ValueError("账号需以字母开头，2-32 位，仅允许字母、数字、_ . -")
@@ -200,7 +199,6 @@ class UserRegisterSchema(BaseModel):
         v = value.strip()
         if not v:
             raise ValueError("账号不能为空")
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$", v):
             raise ValueError("账号需以字母开头，3-32 位，仅允许字母、数字、_ . -")
@@ -245,7 +243,6 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
         if not value:
             return value
         v = value.strip()
-        import re
 
         if not re.match(r"^[A-Za-z][A-Za-z0-9_.-]{1,31}$", v):
             raise ValueError("账号需以字母开头，2-32 位，仅允许字母、数字、_ . -")
@@ -279,6 +276,7 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
     is_superuser: bool = Field(default=False, description="是否超管")
+    last_login: DateTimeStr | None = Field(default=None, description="最后登录时间")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam):
@@ -290,13 +288,14 @@ class UserQueryParam(BaseQueryParam, UserByQueryParam):
     - 业务字段：用户名、名称、手机号、邮箱、部门、状态
     """
 
-    username: str | None = Field(None, description="用户名")
-    name: str | None = Field(None, description="名称")
-    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$")
+    username: str | None = Field(None, description="用户名", json_schema_extra={"q": "like"})
+    name: str | None = Field(None, description="名称", json_schema_extra={"q": "like"})
+    mobile: str | None = Field(None, description="手机号", pattern=r"^1[3-9]\d{9}$", json_schema_extra={"q": "eq"})
     email: str | None = Field(
         None,
         description="邮箱",
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
+        json_schema_extra={"q": "eq"},
     )
-    dept_id: int | None = Field(None, description="部门ID")
-    status: int | None = Field(None, description="是否可用")
+    dept_id: int | None = Field(None, description="部门ID", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, description="是否可用", json_schema_extra={"q": "eq"})

@@ -12,11 +12,11 @@
         <!-- 数据权限 -->
         <ElAside>
           <div
-            class="border-r border-r-(--el-border-color-lighter) b-r-solid h-full p-[20px] box-border"
+            class="border-r border-r-(--el-border-color-lighter) b-r-solid h-full p-5 box-border"
           >
             <div class="flex items-center">
-              <div class="flex gap-[10px]">
-                <div class="w-[10px] bg-(--el-color-primary)"></div>
+              <div class="flex gap-2.5">
+                <div class="w-2.5 bg-(--el-color-primary)"></div>
                 <div>
                   <span class="text-[16px]">数据授权</span>
                   <ElTooltip placement="right">
@@ -70,8 +70,8 @@
 
         <!-- 菜单权限 -->
         <ElMain>
-          <div class="flex gap-[10px]">
-            <div class="w-[10px] bg-(--el-color-primary)"></div>
+          <div class="flex gap-2.5">
+            <div class="w-2.5 bg-(--el-color-primary)"></div>
             <div>
               <span class="text-[16px]">菜单授权</span>
               <ElTooltip placement="right">
@@ -110,13 +110,13 @@ import { computed, ref, watch, onMounted, nextTick } from "vue";
 import { QuestionFilled } from "@element-plus/icons-vue";
 import type { TreeInstance } from "element-plus";
 import { listToTree, formatTree, type CascaderNode } from "@utils";
-import FaMenuTreeTable from "@/components/others/fa-menu-tree-table/index.vue";
 import RoleAPI, { permissionDataType } from "@/api/module_system/role";
 import DeptAPI from "@/api/module_system/dept";
 import MenuAPI, { MenuTable } from "@/api/module_system/menu";
 import { DeviceEnum } from "@/enums/settings/device.enum";
 import { useUserStore, useAppStore } from "@stores";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
+import type FaMenuTreeTable from "@/components/others/fa-menu-tree-table/index.vue";
 
 const props = defineProps<{
   roleName: string;

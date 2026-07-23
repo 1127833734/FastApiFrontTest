@@ -10,10 +10,6 @@ __pycache__
 *.log
 *.local
 
-.env
-.env.test
-!.env.example
-
 *.egg
 *.egg-info
 dist
@@ -41,9 +37,7 @@ cython_debug
 
 venv
 .venv
-ENV
-env.bak
-venv.bak
+# ENV
 
 node_modules
 .npm
@@ -67,8 +61,8 @@ frontend/node_modules
 frontend/dist
 frontend/src/types/auto-imports.d.ts
 frontend/src/types/components.d.ts
-frontend/.env.development
-frontend/.env.production
+frontend/.env.dev
+frontend/.env.prod
 frontend/web/.env
 
 frontend/docs/*

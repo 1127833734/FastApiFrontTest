@@ -9,9 +9,8 @@ class WorkflowNodeTypeModel(ModelMixin, UserMixin):
 
     __tablename__: str = "task_workflow_node_type"
     __table_args__: dict[str, str] = {"comment": "工作流节点类型（非定时任务节点）"}
-    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
-    name: Mapped[str] = mapped_column(String(128), nullable=False, comment="显示名称")
+    name: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="节点类型名称")
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="节点编码，对应画布 node.type")
     category: Mapped[str] = mapped_column(String(32), nullable=False, default="action", comment="分类: trigger/action/condition/control")
     func: Mapped[str] = mapped_column(Text, nullable=False, comment="Python 代码块，须定义 handler(*args,**kwargs)")
@@ -19,5 +18,5 @@ class WorkflowNodeTypeModel(ModelMixin, UserMixin):
     kwargs: Mapped[str | None] = mapped_column(Text, nullable=True, comment="默认关键字参数 JSON")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="排序")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="是否启用")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
+    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")

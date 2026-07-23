@@ -14,6 +14,7 @@
       :disabled-search="false"
       :default-expanded="false"
       include-audit
+      :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
       @search="handleSearchBarSearch"
       @reset="onResetSearch"
     />
@@ -248,7 +249,7 @@
                       class="w-full"
                       icon="Close"
                       :disabled="job.status === 3"
-                      @click="handleRemoveJob(job.id)"
+                      @click="handleRemoveJob(job.id, job.name)"
                     >
                       移除
                     </ElButton>
@@ -338,11 +339,8 @@ defineOptions({
 import JobAPI, { SchedulerStatus, SchedulerJob, JobLogTable } from "@/api/module_task/cronjob/job";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
-import { useTable } from "@/hooks/core/useTable";
-import type { ColumnOption } from "@/types/component";
-import { ElButton, ElDivider, ElMessageBox } from "element-plus";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
+import { ElMessageBox } from "@/utils/message";
+import type { TableOperationAction } from "@/utils/table";
 import { computed, h, nextTick, onMounted, ref } from "vue";
 import { Terminal, TerminalApi } from "vue-web-terminal";
 
@@ -399,7 +397,7 @@ async function loadSchedulerStatus() {
     const statusRes = await JobAPI.getSchedulerStatus();
     schedulerStatus.value = statusRes.data.data;
   } catch (error: unknown) {
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -436,7 +434,7 @@ async function fetchSchedulerJobs() {
     });
     await loadSchedulerStatus();
   } catch (error: unknown) {
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
     jobList.value = [];
   } finally {
     jobLoading.value = false;
@@ -527,7 +525,7 @@ function buildLogRowActions(row: JobLogTable): TableOperationAction[] {
       label: "删除",
       artType: "delete",
       perm: "module_task:cronjob:job:delete",
-      run: () => deleteLogRow(row.id),
+      run: () => deleteLogRow(row.id, String(row?.job_name ?? row?.id ?? "")),
     },
   ];
   return all.filter((a) => a.perm != null && hasAuth(a.perm));
@@ -666,14 +664,10 @@ const {
   },
 });
 
-async function deleteLogRow(id: number | undefined) {
+async function deleteLogRow(id: number | undefined, name: string | number) {
   if (id == null) return;
   try {
-    await ElMessageBox.confirm("确认删除该执行记录？", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmDelete(`确定删除执行记录「${name}」吗？`);
     await JobAPI.deleteJobLog([id]);
     logfaTableRef.value?.elTableRef?.clearSelection();
     await refreshLogRemove();
@@ -686,11 +680,10 @@ async function handleLogBatchDelete() {
   const ids = logSelectedIds.value;
   if (ids.length === 0) return;
   try {
-    await ElMessageBox.confirm("确认删除选中的执行记录？", "批量删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmBatchDelete(
+      ids.length,
+      logSelectedRows.value.map((r) => String(r?.job_name ?? r?.id ?? ""))
+    );
     logBatchDeleting.value = true;
     await JobAPI.deleteJobLog(ids);
     logSelectedRows.value = [];
@@ -843,8 +836,8 @@ async function handleSyncJobs() {
   try {
     await JobAPI.syncJobsToDb();
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -852,8 +845,8 @@ async function handleStartScheduler() {
   try {
     await JobAPI.startScheduler();
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -861,8 +854,8 @@ async function handlePauseScheduler() {
   try {
     await JobAPI.pauseScheduler();
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -870,8 +863,8 @@ async function handleResumeScheduler() {
   try {
     await JobAPI.resumeScheduler();
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -884,9 +877,9 @@ async function handleShutdownScheduler() {
     });
     await JobAPI.shutdownScheduler();
     await refreshJobList();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== "cancel") {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   }
 }
@@ -907,9 +900,9 @@ async function handleClearAllJobs() {
     );
     await JobAPI.clearAllJobs();
     await refreshJobList();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== "cancel") {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   }
 }
@@ -927,8 +920,8 @@ async function handleRefreshConsole() {
       type: "normal",
       content: data,
     });
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
     TerminalApi.pushMessage("scheduler-console", {
       type: "normal",
       class: "error",
@@ -945,8 +938,8 @@ async function handlePauseJob(jobId: string) {
   try {
     await JobAPI.pauseJob(jobId);
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -954,8 +947,8 @@ async function handleResumeJob(jobId: string) {
   try {
     await JobAPI.resumeJob(jobId);
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
@@ -963,18 +956,14 @@ async function handleRunJobNow(jobId: string) {
   try {
     await JobAPI.runJobNow(jobId);
     await refreshJobList();
-  } catch (error: any) {
-    console.error(error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
-async function handleRemoveJob(jobId: string) {
+async function handleRemoveJob(jobId: string, name: string) {
   try {
-    await ElMessageBox.confirm("确认移除该任务?", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmDelete(`确定移除任务「${name}」吗？`);
     await JobAPI.removeJob(jobId);
     await refreshJobList();
   } catch {

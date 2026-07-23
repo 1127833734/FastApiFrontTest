@@ -57,14 +57,11 @@ defineOptions({
 });
 
 import { h, ref, computed } from "vue";
-import { useTable } from "@/hooks/core/useTable";
 import OnlineAPI, { type OnlineUserTable } from "@/api/module_monitor/online";
-import type { ColumnOption } from "@/types/component";
-import { ElMessageBox } from "element-plus";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
-import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
+import { ElMessageBox } from "@/utils/message";
+import type { TableOperationAction } from "@/utils/table";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
+import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaCopyButton from "@/components/others/fa-copy-button/index.vue";
 
 const { hasAuth } = useAuth();
@@ -281,13 +278,9 @@ function handleClearAll() {
   })();
 }
 
-// 在线用户列表自动刷新（30 秒轮询）
-let refreshTimer: ReturnType<typeof setInterval> | undefined;
+// 列表数据在页面挂载时加载一次，不自动轮询
 onMounted(() => {
-  refreshTimer = setInterval(() => refreshData(), 30000);
-});
-onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer);
+  refreshData();
 });
 </script>
 

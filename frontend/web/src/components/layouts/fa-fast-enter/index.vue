@@ -122,7 +122,6 @@
 
 <script setup lang="ts">
 import { useFastEnter } from "@/hooks/core/useFastEnter";
-import type { FastEnterApplication, FastEnterQuickLink } from "@/types/config";
 
 defineOptions({ name: "FaFastEnter" });
 

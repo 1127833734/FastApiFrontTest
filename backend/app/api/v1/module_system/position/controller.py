@@ -1,9 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Security, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi_cache import FastAPICache
-from fastapi_cache.decorator import cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
@@ -17,16 +15,13 @@ from .service import PositionService
 
 PositionRouter = APIRouter(route_class=OperationLogRoute, prefix="/position", tags=["岗位管理"])
 
-_POS_NS = "position"
-
 
 @PositionRouter.get("/list", summary="查询岗位", response_model=ResponseSchema[PageResultSchema[PositionOutSchema]])
-@cache(expire=300, namespace=_POS_NS)
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:position:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[PositionQueryParam, Query()],
+    search: Annotated[PositionQueryParam, Depends()],
 ) -> JSONResponse:
     result_dict = await PositionService(auth, db).page(
         page_no=page.page_no,
@@ -54,7 +49,6 @@ async def create_obj_controller(
     data: Annotated[PositionCreateSchema, Body(description="岗位创建参数")],
 ) -> JSONResponse:
     result_dict = await PositionService(auth, db).create(data=data)
-    await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(data=result_dict, msg="创建岗位成功")
 
 
@@ -66,7 +60,6 @@ async def update_obj_controller(
     data: Annotated[PositionUpdateSchema, Body(description="岗位修改参数")],
 ) -> JSONResponse:
     result_dict = await PositionService(auth, db).update(id=id, data=data)
-    await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(data=result_dict, msg="修改岗位成功")
 
 
@@ -77,7 +70,6 @@ async def delete_obj_controller(
     ids: Annotated[list[int], Body(description="ID列表")],
 ) -> JSONResponse:
     await PositionService(auth, db).delete(ids=ids)
-    await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(msg="删除岗位成功")
 
 
@@ -88,7 +80,6 @@ async def batch_set_available_obj_controller(
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await PositionService(auth, db).set_available(data=data)
-    await FastAPICache.clear(namespace=_POS_NS)
     return SuccessResponse(msg="批量修改岗位状态成功")
 
 

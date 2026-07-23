@@ -1,9 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Security, status
 from fastapi.responses import JSONResponse
-from fastapi_cache import FastAPICache
-from fastapi_cache.decorator import cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ResponseSchema, SuccessResponse
@@ -16,15 +14,12 @@ from .service import MenuService
 
 MenuRouter = APIRouter(route_class=OperationLogRoute, prefix="/menu", tags=["菜单管理"])
 
-_MENU_NS = "menu"
-
 
 @MenuRouter.get("/tree", summary="查询菜单树", response_model=ResponseSchema[list[MenuOutSchema]])
-@cache(expire=300, namespace=_MENU_NS)
 async def get_menu_tree_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:menu:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[MenuQueryParam, Query()],
+    search: Annotated[MenuQueryParam, Depends()],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
     result_dict_tree = await MenuService(auth, db).tree(search=search, order_by=order_by)
@@ -48,7 +43,6 @@ async def create_obj_controller(
     data: Annotated[MenuCreateSchema, Body(description="菜单创建参数")],
 ) -> JSONResponse:
     result_dict = await MenuService(auth, db).create(data=data)
-    await FastAPICache.clear(namespace=_MENU_NS)
     return SuccessResponse(data=result_dict, msg="创建菜单成功")
 
 
@@ -60,7 +54,6 @@ async def update_obj_controller(
     data: Annotated[MenuUpdateSchema, Body(description="菜单修改参数")],
 ) -> JSONResponse:
     result_dict = await MenuService(auth, db).update(id=id, data=data)
-    await FastAPICache.clear(namespace=_MENU_NS)
     return SuccessResponse(data=result_dict, msg="修改菜单成功")
 
 
@@ -71,7 +64,6 @@ async def delete_obj_controller(
     ids: Annotated[list[int], Body(description="菜单ID列表")],
 ) -> JSONResponse:
     await MenuService(auth, db).delete(ids=ids)
-    await FastAPICache.clear(namespace=_MENU_NS)
     return SuccessResponse(msg="删除菜单成功")
 
 
@@ -82,5 +74,4 @@ async def batch_set_available_obj_controller(
     data: Annotated[BatchSetAvailable, Body(description="状态设置")],
 ) -> JSONResponse:
     await MenuService(auth, db).set_available(data=data)
-    await FastAPICache.clear(namespace=_MENU_NS)
     return SuccessResponse(msg="批量修改菜单状态成功")

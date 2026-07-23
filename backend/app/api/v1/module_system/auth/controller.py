@@ -1,3 +1,22 @@
+"""
+认证控制器 — TODO: 限流粒度细化
+---------------------------------
+当前登录（/login）和 OAuth 端点（/oauth/*）共享应用的通用限流配置，
+缺少独立的、更严格的限流策略。建议为以下端点配置独立的 RateLimiter：
+
+1. /auth/login — 密码登录
+   - 建议: 按 IP + 用户名组合限流，如 5次/分钟/IP + 10次/15分钟/用户
+   - 原因: 暴力破解防护
+
+2. /auth/oauth/* — 第三方 OAuth 登录/回调
+   - 建议: 按 IP 限流，如 10次/分钟/IP
+   - 原因: OAuth 流程可能触发多次重定向，频率稍高于登录
+
+3. /auth/captcha/* — 验证码获取/校验
+   - 建议: 按 IP 限流，如 3次/分钟/IP
+   - 原因: 防止验证码遍历
+"""
+
 import json
 import secrets
 from typing import Annotated

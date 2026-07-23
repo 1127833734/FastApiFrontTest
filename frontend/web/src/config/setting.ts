@@ -21,8 +21,7 @@
  */
 
 import AppConfig from "@/config";
-import { SystemThemeEnum, MenuThemeEnum, MenuTypeEnum, ContainerWidthEnum } from "@/enums/appEnum";
-import { LayoutMode, ComponentSize, SidebarColor, ThemeMode, LanguageEnum } from "@/enums";
+import { LayoutMode, ComponentSize, SidebarColor, ThemeMode } from "@/enums";
 
 const env = import.meta.env;
 const { pkg } = __APP_INFO__;
@@ -63,7 +62,7 @@ export const SETTING_DEFAULT_CONFIG = {
   /** 组件大小 */
   size: ComponentSize.DEFAULT,
   /** 语言 */
-  language: LanguageEnum.ZH_CN,
+  language: LanguageEnum.ZH,
   /** 主题颜色 */
   themeColor: "#4080FF",
   /** 是否显示水印 */

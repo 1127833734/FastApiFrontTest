@@ -17,7 +17,7 @@
 
 import { h } from "vue";
 import type { VNode } from "vue";
-import { ElTooltip } from "element-plus";
+
 import { hash } from "ohash";
 import { MOBILE_BREAKPOINT } from "@/utils/constants/definitions";
 import FaButtonMore from "@/components/forms/fa-button-more/index.vue";
@@ -540,7 +540,10 @@ export function renderTableOperationCell(
     h(ElTooltip, { content: a.label, placement: "top" }, () =>
       h(
         "span",
-        { class: a.disabled ? "inline-flex opacity-40 pointer-events-none" : "inline-flex" },
+        {
+          class: a.disabled ? "inline-flex opacity-40 pointer-events-none" : "inline-flex",
+          onClick: (e: MouseEvent) => e.stopPropagation(),
+        },
         [
           h(FaButtonTable, {
             type: a.artType,

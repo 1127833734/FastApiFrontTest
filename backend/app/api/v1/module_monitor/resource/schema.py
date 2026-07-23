@@ -186,5 +186,6 @@ class ResourceSearchQueryParam(BaseModel):
 
     name: str | None = Field(None, description="搜索关键词")
     path: str | None = Field(None, description="目录路径")
+    include_hidden: bool = Field(False, description="是否包含隐藏文件")
 
 

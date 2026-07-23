@@ -146,7 +146,7 @@ class LoginService:
             )
 
         auth = AuthSchema()
-        user = await UserCRUD(auth, db).get(username=login_form.username)
+        user = await UserCRUD(auth, db).get(username=login_form.username, preload=["roles", "roles.menus"])
 
         if not user:
             await _write_login_log(

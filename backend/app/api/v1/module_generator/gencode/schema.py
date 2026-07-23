@@ -285,8 +285,8 @@ class GenTableQueryParam(BaseQueryParam, UserByQueryParam):
     - 空值将被忽略，不参与过滤。
     """
 
-    table_name: str | None = Field(None, description="表名称")
-    table_comment: str | None = Field(None, description="表注释")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    table_name: str | None = Field(None, description="表名称", json_schema_extra={"q": "like"})
+    table_comment: str | None = Field(None, description="表注释", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
 
 

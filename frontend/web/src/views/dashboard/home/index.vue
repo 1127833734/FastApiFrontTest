@@ -181,10 +181,9 @@
 <script setup lang="ts">
 defineOptions({ name: "Home", inheritAttrs: false });
 
-import { ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ref, onMounted, defineAsyncComponent } from "vue";
+import { ElMessage } from "@/utils/message";
 import { getDashboardMock } from "@/mock/dashboard";
-import FaDashboardSkeleton from "@/components/skeleton/fa-dashboard-skeleton.vue";
 
 import bannerIcon4 from "@imgs/3d/icon4.webp";
 import cover2 from "@imgs/cover/img2.webp";
@@ -199,21 +198,34 @@ onMounted(() => {
   // const { data } = await DashboardAPI.getStats();
   // 并删除 getDashboardMock() 调用
 });
-import FaCardBanner from "@/components/banners/fa-card-banner/index.vue";
-import FaImageCard from "@/components/cards/fa-image-card/index.vue";
-import FaDataListCard from "@/components/cards/fa-data-list-card/index.vue";
-import FaTimelineListCard from "@/components/cards/fa-timeline-list-card/index.vue";
-import FaStatsCard from "@/components/cards/fa-stats-card/index.vue";
-import FaLineChartCard from "@/components/cards/fa-line-chart-card/index.vue";
-import FaBarChartCard from "@/components/cards/fa-bar-chart-card/index.vue";
-import FaDonutChartCard from "@/components/cards/fa-donut-chart-card/index.vue";
-import FaProgressCard from "@/components/cards/fa-progress-card/index.vue";
-import Banner from "./modules/banner.vue";
-import NewUser from "./modules/new-user.vue";
-import TodoList from "./modules/todo-list.vue";
-import CardList from "./modules/card-list.vue";
-import AboutProject from "./modules/about-project.vue";
-import QuickLinks from "./modules/quick-links.vue";
+
+// 图表组件异步导入，减少首屏 echarts 加载
+const FaLineChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-line-chart-card/index.vue")
+);
+const FaBarChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-bar-chart-card/index.vue")
+);
+const FaDonutChartCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-donut-chart-card/index.vue")
+);
+
+// 非关键组件异步导入（延迟加载，提升首屏速度）
+const FaCardBanner = defineAsyncComponent(
+  () => import("@/components/banners/fa-card-banner/index.vue")
+);
+const FaImageCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-image-card/index.vue")
+);
+const FaTimelineListCard = defineAsyncComponent(
+  () => import("@/components/cards/fa-timeline-list-card/index.vue")
+);
+const Banner = defineAsyncComponent(() => import("./modules/banner.vue"));
+const NewUser = defineAsyncComponent(() => import("./modules/new-user.vue"));
+const TodoList = defineAsyncComponent(() => import("./modules/todo-list.vue"));
+const CardList = defineAsyncComponent(() => import("./modules/card-list.vue"));
+const AboutProject = defineAsyncComponent(() => import("./modules/about-project.vue"));
+const QuickLinks = defineAsyncComponent(() => import("./modules/quick-links.vue"));
 
 function handleBannerDemoConfirm() {
   // TODO: 接入真实操作

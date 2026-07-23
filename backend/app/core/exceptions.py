@@ -1,10 +1,8 @@
 from functools import wraps
-from math import ceil
 from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
-from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
@@ -61,15 +59,6 @@ class CustomException(Exception):
 
 
 def handle_exception(app: FastAPI) -> None:
-    @app.exception_handler(RateLimitExceeded)
-    async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-        return ErrorResponse(
-            msg="请求过于频繁，请稍后重试！",
-            code=429,
-            status_code=429,
-            data={"Retry-After": str(ceil(getattr(exc, "retry_after", 60)))},
-        )
-
     @app.exception_handler(CustomException)
     async def custom_exception_handler(request: Request, exc: CustomException) -> JSONResponse:
         logger.error(
@@ -137,7 +126,8 @@ def handle_exception(app: FastAPI) -> None:
             return ErrorResponse(msg="数据已存在或违反完整性约束", status_code=status.HTTP_409_CONFLICT, data=expose_detail)
 
         logger.error("[数据库异常] {} {} | type={} | detail={}", request.method, request.url.path, exc_type, exc)
-        return ErrorResponse(msg=f"数据库操作失败: {exc_type}", status_code=status.HTTP_400_BAD_REQUEST, data=str(exc))
+        data = str(exc) if settings.ENVIRONMENT != EnvironmentEnum.PROD else None
+        return ErrorResponse(msg=f"数据库操作失败: {exc_type}", status_code=status.HTTP_400_BAD_REQUEST, data=data)
 
     @app.exception_handler(ValueError)
     async def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse:

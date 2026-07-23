@@ -94,8 +94,8 @@
           <ElDivider content-position="left">消息记录</ElDivider>
           <ElTimeline v-if="detailFormData.messages && detailFormData.messages.length > 0">
             <ElTimelineItem
-              v-for="(msg, index) in detailFormData.messages"
-              :key="index"
+              v-for="msg in detailFormData.messages"
+              :key="msg.id"
               :type="msg.role === 'user' ? 'primary' : 'success'"
               :icon="msg.role === 'user' ? 'User' : 'ChatDotRound'"
             >
@@ -144,19 +144,13 @@ defineOptions({
 
 import { ref, reactive, computed, nextTick } from "vue";
 import { Edit } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 import AiChatAPI, { type ChatSession, type ChatSessionDetail } from "@/api/module_ai/chat";
-import { useTable } from "@/hooks/core/useTable";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
-import type { ColumnOption } from "@/types/component";
-import { useAuth } from "@/hooks/core/useAuth";
-import { formatToDateTime, renderTableOperationCell, type TableOperationAction } from "@utils";
+import { formatToDateTime, type TableOperationAction } from "@utils";
 
 type MemorySearchForm = {
   title?: string;
@@ -186,7 +180,7 @@ const { hasAuth } = useAuth();
 
 const memorySearchItems = computed<SearchFormItem[]>(() => [
   {
-    label: "标题",
+    label: "会话标题",
     key: "title",
     type: "input",
     placeholder: "请输入标题",
@@ -213,13 +207,14 @@ const editingRowId = ref<string | null>(null);
 const editingTitle = ref("");
 
 const faTableRef = ref<{ elTableRef?: { clearSelection: () => void } } | null>(null);
-const { selectedIds, batchDeleting, onTableSelectionChange } = useTableSelection<ChatSession>();
+const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
+  useTableSelection<ChatSession>();
 
 const createLoading = ref(false);
 
-async function deleteSessionRow(id: string) {
+async function deleteSessionRow(id: string, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await AiChatAPI.deleteSession([id]);
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
@@ -232,7 +227,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => (r as any)?.name ?? r?.title ?? r?.id)
+    );
     batchDeleting.value = true;
     await AiChatAPI.deleteSession(ids as unknown as string[]);
     faTableRef.value?.elTableRef?.clearSelection();
@@ -451,7 +449,7 @@ function buildMemoryRowActions(row: ChatSession): TableOperationAction[] {
       icon: "ri:delete-bin-4-line",
       perm: "module_ai:chat:delete",
       run: () => {
-        deleteSessionRow(row.id);
+        deleteSessionRow(row.id, (row as any)?.name ?? row?.title ?? row?.id);
       },
     },
   ];

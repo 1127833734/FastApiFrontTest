@@ -91,7 +91,7 @@
 defineOptions({ name: "FaDescriptions" });
 
 import { computed, useAttrs } from "vue";
-import { useNamespace } from "element-plus";
+import { useNamespace } from "element-plus/es/hooks/use-namespace/index";
 
 export type TagType = "primary" | "success" | "warning" | "danger" | "info";
 

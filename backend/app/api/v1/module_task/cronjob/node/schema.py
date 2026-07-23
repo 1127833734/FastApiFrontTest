@@ -65,8 +65,8 @@ class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema):
 class NodeQueryParam(BaseQueryParam, UserByQueryParam):
     """节点查询参数"""
 
-    name: str | None = Field(None, description="节点名称")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="节点名称", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
 
 
 class NodeExecuteSchema(BaseModel):

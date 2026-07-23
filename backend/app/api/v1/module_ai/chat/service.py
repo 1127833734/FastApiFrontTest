@@ -16,6 +16,7 @@ from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
+from app.utils.ai_factory import AgnoFactory
 
 from .crud import ChatSessionCRUD
 from .schema import (
@@ -25,7 +26,6 @@ from .schema import (
     ChatSessionQueryParam,
     ChatSessionUpdateSchema,
 )
-from .utils import AgnoFactory
 
 
 async def _format_session_data(session: TeamSession, auth: AuthSchema | None = None, db: AsyncSession | None = None) -> dict[str, Any]:

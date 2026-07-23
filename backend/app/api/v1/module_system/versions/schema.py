@@ -47,4 +47,4 @@ class VersionStatusSchema(BaseModel):
 class VersionQueryParam(BaseQueryParam):
     """版本查询参数"""
 
-    status: int | None = Field(default=None, description="状态: 0=草稿,1=已发布,2=已回滚")
+    status: int | None = Field(default=None, description="状态: 0=草稿,1=已发布,2=已回滚", json_schema_extra={"q": "eq"})

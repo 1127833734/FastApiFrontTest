@@ -25,7 +25,7 @@ import { useUserStore } from "@stores";
 import { request, EmojiText } from "@utils";
 import { IDomEditor, IToolbarConfig, IEditorConfig } from "@wangeditor-next/editor";
 import type { AxiosResponse } from "axios";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 
 defineOptions({ name: "FaWangEditor" });
 
@@ -363,7 +363,7 @@ $box-radius: calc(var(--custom-radius) / 3 + 2px);
   .w-e-bar-divider {
     height: 20px;
     margin-top: 10px;
-    background-color: #ccc;
+    background-color: var(--fa-gray-400);
   }
 
   /* 工具栏菜单 */
@@ -512,14 +512,14 @@ $box-radius: calc(var(--custom-radius) / 3 + 2px);
       transition: border 0.3s;
 
       &:hover {
-        border: 1px solid #318ef4 !important;
+        border: 1px solid var(--el-color-primary) !important;
       }
     }
 
     .w-e-image-dragger {
       width: 12px;
       height: 12px;
-      background-color: #318ef4;
+      background-color: var(--el-color-primary);
       border: 2px solid #fff;
       border-radius: $box-radius;
     }

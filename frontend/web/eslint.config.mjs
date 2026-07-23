@@ -13,9 +13,9 @@ import tseslint from "typescript-eslint";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// 读取 .auto-import.json 文件的内容，并将其解析为 JSON 对象
+// 读取 src/types/eslint-globals.json 文件的内容，并将其解析为 JSON 对象
 const autoImportConfig = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, ".auto-import.json"), "utf-8")
+  fs.readFileSync(path.resolve(__dirname, "eslint-globals.json"), "utf-8")
 );
 
 export default [
@@ -28,7 +28,7 @@ export default [
       ".vscode/**",
       "src/assets/**",
       "src/utils/console.ts",
-      ".auto-import.json",
+      "eslint-globals.json",
     ],
   },
   // 全局语言环境
@@ -65,6 +65,7 @@ export default [
       "no-var": "error",
       "no-multiple-empty-lines": ["warn", { max: 1 }],
       "no-unexpected-multiline": "error",
+      "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "vue/multi-word-component-names": "off",
       // Prettier 负责格式化，ESLint 只关注代码质量

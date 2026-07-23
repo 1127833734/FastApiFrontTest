@@ -2,11 +2,11 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseSchema
 
 
-class ParamsCreateSchema(BaseModel):
-    """参数创建模型
+class ParamsBaseSchema(BaseModel):
+    """参数基础字段
     """
 
     config_name: str = Field(..., min_length=1, max_length=64, description="参数名称")
@@ -34,23 +34,13 @@ class ParamsCreateSchema(BaseModel):
         return v
 
 
-class ParamsUpdateSchema(ParamsCreateSchema):
+class ParamsUpdateSchema(ParamsBaseSchema):
     """参数更新模型
     """
 
 
-class ParamsOutSchema(ParamsCreateSchema, BaseSchema, UserBySchema):
+class ParamsOutSchema(ParamsBaseSchema, BaseSchema):
     """参数响应模型
     """
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class ParamsQueryParam(BaseQueryParam, UserByQueryParam):
-    """参数管理查询参数
-    """
-
-    config_name: str | None = Field(None, description="参数名称")
-    config_key: str | None = Field(None, description="参数键名", json_schema_extra={"q": "eq"})
-    config_type: bool | None = Field(None, description="是否系统内置(True:是 False:否)")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")

@@ -124,7 +124,7 @@ defineOptions({ name: "FaAiAssistant" });
 import { resolveIconForFaSvgIcon } from "@utils";
 import { nextTick, onBeforeUnmount, onMounted, watch, ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 import { useSettingsStore } from "@stores";
 import { AiChatAPI, ChatSession, ChatSessionDetail } from "@/api/module_ai/chat";
 

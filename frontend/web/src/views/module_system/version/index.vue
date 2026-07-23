@@ -44,7 +44,7 @@
     <FaDialog
       v-model="dialogVisible.visible"
       :title="dialogVisible.title"
-      width="720px"
+      width="1100px"
       dialog-class="crud-embed-dialog"
       modal-class="crud-embed-dialog"
       :form-mode="dialogVisible.type"
@@ -54,23 +54,24 @@
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
-          :column="2"
+          :column="4"
           :data="detailFormData"
           :items="versionDetailItems"
           label-width="120px"
           max-height="75vh"
         >
           <template #status="{ row }">
-            <ElTag :type="statusTagType(String((row as any)?.status ?? 0))" effect="plain">
-              {{ statusLabel(String((row as any)?.status ?? 0)) }}
+            <ElTag :type="statusTagType(String(row?.status ?? 0))" effect="plain">
+              {{ statusLabel(String(row?.status ?? 0)) }}
             </ElTag>
           </template>
           <template #content="{ row }">
-            <div
-              v-if="(row as any)?.content"
-              class="content-preview"
-              v-html="(row as any)!.content"
-            ></div>
+            <FaMarkdownRenderer
+              v-if="row?.content"
+              :content="String(row.content)"
+              height="auto"
+              max-height="260px"
+            />
             <span v-else class="text-g-400">—</span>
           </template>
         </FaDescriptions>
@@ -104,24 +105,41 @@
             <FaWangEditor
               ref="versionEditorRef"
               v-model="versionEditorHtml"
-              height="400px"
+              height="300px"
               placeholder="请输入更新内容..."
             />
           </template>
         </FaForm>
       </template>
     </FaDialog>
+
+    <!-- 状态变更弹窗 -->
+    <ElDialog
+      v-model="statusDialog.visible"
+      :title="`变更状态 - ${statusDialog.version}`"
+      width="380px"
+      @close="statusDialog.visible = false"
+    >
+      <ElRadioGroup v-model="statusDialog.value">
+        <ElRadio v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </ElRadio>
+      </ElRadioGroup>
+      <template #footer>
+        <ElButton @click="statusDialog.visible = false">取消</ElButton>
+        <ElButton type="primary" :loading="statusDialog.loading" @click="confirmChangeStatus">
+          确定
+        </ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTable } from "@/hooks/core/useTable";
-import { confirmDelete } from "@/hooks/core/useConfirm";
 import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
 import VersionAPI, { type VersionForm, type VersionTable } from "@/api/module_system/version";
 import { Plus } from "@element-plus/icons-vue";
-import type { ColumnOption } from "@/types/component";
+import { reactive } from "vue";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 
@@ -174,7 +192,7 @@ const showSearchBar = ref(true);
 
 const versionBusinessSearchItems = computed(() => [
   {
-    label: "状态",
+    label: "发布状态",
     key: "status",
     type: "select",
     props: {
@@ -206,9 +224,9 @@ const {
   core: {
     apiFn: VersionAPI.getVersionList,
     apiParams: { page_no: 1, page_size: 10, status: undefined },
-    columnsFactory: (): ColumnOption<VersionTable>[] => [
+    columnsFactory: resolveStatusColumns((): ColumnOption<VersionTable>[] => [
       { type: "globalIndex", width: 56, label: "序号" },
-      { prop: "version", label: "版本号", minWidth: 120, showOverflowTooltip: true },
+      { prop: "version", label: "版本号", minWidth: 80, showOverflowTooltip: true },
       { prop: "title", label: "标题", minWidth: 160, showOverflowTooltip: true },
       {
         prop: "status",
@@ -232,7 +250,7 @@ const {
         align: "center",
         formatter: (row: VersionTable) => renderVersionOperationCell(row),
       },
-    ],
+    ]),
   },
 });
 
@@ -256,7 +274,8 @@ function buildVersionRowActions(row: VersionTable): TableOperationAction[] {
       key: "status",
       label: "变更状态",
       artType: "more",
-      run: () => {}, // dropdown 中不触发
+      icon: "ri:swap-line",
+      run: () => void handleChangeStatus(row),
     },
     {
       key: "delete",
@@ -280,13 +299,13 @@ const detailFormData = ref<VersionTable>({});
 
 const versionDetailItems: import("@/components/others/fa-descriptions/index.vue").DescriptionsItem[] =
   [
-    { label: "版本号", prop: "version" },
     { label: "标题", prop: "title" },
+    { label: "版本号", prop: "version" },
     { label: "状态", prop: "status", slot: "status" },
     { label: "发布日期", prop: "date" },
     { label: "排序", prop: "sort" },
-    { label: "备注", prop: "description", span: 2 },
-    { label: "更新内容", prop: "content", slot: "content", span: 2 },
+    { label: "备注", prop: "description" },
+    { label: "更新内容", prop: "content", slot: "content", span: 4 },
     { label: "创建时间", prop: "created_time" },
     { label: "更新时间", prop: "updated_time" },
   ];
@@ -296,42 +315,42 @@ const versionDialogFormItems: FormItem[] = [
     key: "version",
     label: "版本号",
     type: "input",
-    span: 12,
+    span: 8,
     props: { placeholder: "请输入版本号", maxlength: 50 },
   },
   {
     key: "title",
     label: "标题",
     type: "input",
-    span: 12,
+    span: 8,
     props: { placeholder: "请输入标题", maxlength: 200 },
   },
   {
     key: "date",
     label: "发布日期",
     type: "date",
-    span: 12,
+    span: 8,
     props: { placeholder: "请选择日期", valueFormat: "YYYY-MM-DD" },
   },
   {
     key: "status",
     label: "状态",
     type: "select",
-    span: 12,
+    span: 8,
     props: { placeholder: "请选择状态" },
   },
   {
     key: "sort",
     label: "排序",
     type: "number",
-    span: 12,
+    span: 8,
     props: { controlsPosition: "right", min: 0, max: 9999 },
   },
   {
     key: "description",
     label: "备注",
     type: "input",
-    span: 24,
+    span: 8,
     props: { type: "textarea", rows: 3, placeholder: "请输入备注" },
   },
   { key: "content", label: "更新内容", type: "input", span: 24 },
@@ -438,7 +457,7 @@ async function handleSubmit() {
       dialogVisible.visible = false;
       await resetForm();
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   });
 }
@@ -457,6 +476,33 @@ const deleteVersionRow = async (row: VersionTable) => {
 };
 
 // ─── 状态变更 ───
+const statusDialog = reactive({
+  visible: false,
+  loading: false,
+  version: "",
+  id: 0,
+  value: 0,
+});
+
+const handleChangeStatus = (row: VersionTable) => {
+  statusDialog.version = row.version ?? "";
+  statusDialog.id = row.id ?? 0;
+  statusDialog.value = row.status ?? 0;
+  statusDialog.visible = true;
+};
+
+const confirmChangeStatus = async () => {
+  statusDialog.loading = true;
+  try {
+    await VersionAPI.setVersionStatus(statusDialog.id, { status: statusDialog.value });
+    statusDialog.visible = false;
+    await refreshUpdate();
+  } catch {
+    // 错误已由全局拦截器处理
+  } finally {
+    statusDialog.loading = false;
+  }
+};
 </script>
 
 <style scoped lang="scss">

@@ -186,15 +186,13 @@ import AuthAPI, {
 import UserAPI, { type ForgetPasswordForm, type RegisterForm } from "@/api/module_system/user";
 import { useConfigStore, useAppStore, useSettingsStore, useUserStore } from "@stores";
 import { Auth, HttpError, startOAuthLogin } from "@utils";
-import { ElMessage, ElNotification, type FormRules } from "element-plus";
+import { ElMessage, ElNotification } from "@/utils/message";
+import type { FormRules } from "element-plus";
 import type { Account, AccountKey } from "./types";
-import FaLoginAccountForm from "@/components/views/fa-login/forms/FaLoginAccountForm.vue";
-import FaLoginForgetPanel from "@/components/views/fa-login/panels/FaLoginForgetPanel.vue";
-import FaLoginMobilePanel from "@/components/views/fa-login/panels/FaLoginMobilePanel.vue";
-import FaLoginQrPanel from "@/components/views/fa-login/panels/FaLoginQrPanel.vue";
-import FaLoginRegisterPanel from "@/components/views/fa-login/panels/FaLoginRegisterPanel.vue";
-import FaAuthTopBar from "@/components/views/fa-login/widgets/FaAuthTopBar.vue";
 import { useLoginPanelAlign } from "@/components/views/fa-login/composables/useLoginPanelAlign";
+import type FaLoginAccountForm from "@/components/views/fa-login/forms/FaLoginAccountForm.vue";
+import type FaLoginRegisterPanel from "@/components/views/fa-login/panels/FaLoginRegisterPanel.vue";
+import type FaLoginForgetPanel from "@/components/views/fa-login/panels/FaLoginForgetPanel.vue";
 
 defineOptions({ name: "Login" });
 

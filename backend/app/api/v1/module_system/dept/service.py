@@ -8,6 +8,7 @@ from app.utils.common_util import (
     get_parent_id_map,
     get_parent_recursion,
     search_to_dict,
+    traversal_to_tree,
 )
 
 from .crud import DeptCRUD
@@ -15,7 +16,6 @@ from .schema import (
     DeptCreateSchema,
     DeptOutSchema,
     DeptQueryParam,
-    DeptTreeOutSchema,
     DeptUpdateSchema,
 )
 
@@ -44,9 +44,9 @@ class DeptService:
         search: DeptQueryParam | None = None,
         order_by: list[dict] | None = None,
     ) -> list[dict]:
-        dept_list = await DeptCRUD(self.auth, self.db).tree_list(search=search_to_dict(search), order_by=order_by)
-        dept_dict_list = [DeptTreeOutSchema.model_validate(dept).model_dump() for dept in dept_list]
-        return [d for d in dept_dict_list if d.get("parent_id") is None]
+        dept_list = await DeptCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by)
+        dept_dict_list = [DeptOutSchema.model_validate(dept).model_dump() for dept in dept_list]
+        return traversal_to_tree(dept_dict_list)
 
     async def create(self, data: DeptCreateSchema) -> DeptOutSchema:
         dept = await DeptCRUD(self.auth, self.db).get(name=data.name)
@@ -57,10 +57,10 @@ class DeptService:
             raise CustomException(msg="创建失败，编码已存在")
 
         dept = await DeptCRUD(self.auth, self.db).create(data=data)
-        return DeptOutSchema.model_validate(dept)
+        return await self.detail(id=dept.id)
 
     async def update(self, id: int, data: DeptUpdateSchema) -> DeptOutSchema:
-        dept = await DeptCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该数据不存在")
+        await DeptCRUD(self.auth, self.db).get_or_404(id=id, msg="更新失败，该数据不存在")
         exist_dept = await DeptCRUD(self.auth, self.db).get(name=data.name)
         if exist_dept and exist_dept.id != id:
             raise CustomException(msg="更新失败，名称已存在")
@@ -68,13 +68,8 @@ class DeptService:
         if exist_code and exist_code.id != id:
             raise CustomException(msg="更新失败，编码已存在")
 
-        dept = await DeptCRUD(self.auth, self.db).update(id=id, data=data)
-        dept_out = DeptOutSchema.model_validate(dept)
-        if dept_out.parent_id:
-            parent = await DeptCRUD(self.auth, self.db).get(id=dept_out.parent_id)
-            if parent:
-                dept_out.parent_name = parent.name
-        return dept_out
+        await DeptCRUD(self.auth, self.db).update(id=id, data=data)
+        return await self.detail(id=id)
 
     async def delete(self, ids: list[int]) -> None:
         if not ids:

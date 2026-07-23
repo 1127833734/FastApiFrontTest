@@ -70,16 +70,11 @@ import WorkflowDefinitionAPI, { type WorkflowTable } from "@/api/module_task/wor
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaWorkflowDesignDrawer from "./components/FaWorkflowDesignDrawer.vue";
-import { useTable } from "@/hooks/core/useTable";
-import type { ColumnOption } from "@/types/component";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
-import { ElMessage, ElMessageBox } from "element-plus";
+import type { TableOperationAction } from "@/utils/table";
+import { ElMessage, ElMessageBox } from "@/utils/message";
 import { computed, ref } from "vue";
 
 const { hasAuth } = useAuth();
-
-const BATCH_DELETE_MSG = "确认删除选中的工作流吗？";
 
 type WorkflowSearchForm = {
   name?: string;
@@ -151,14 +146,10 @@ function onTableSelectionChange(rows: WorkflowTable[]) {
   selectedRows.value = rows;
 }
 
-async function deleteWorkflowRow(id: number | undefined) {
+async function deleteWorkflowRow(id: number | undefined, name: string | number) {
   if (id == null) return;
   try {
-    await ElMessageBox.confirm("确认删除该工作流吗？", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmDelete(`确定删除工作流「${name}」吗？`);
     await WorkflowDefinitionAPI.deleteWorkflow([id]);
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
@@ -171,11 +162,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await ElMessageBox.confirm(BATCH_DELETE_MSG, "批量删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r?.name ?? r?.id ?? ""))
+    );
     batchDeleting.value = true;
     await WorkflowDefinitionAPI.deleteWorkflow(ids);
     selectedRows.value = [];
@@ -220,7 +210,7 @@ function buildWorkflowRowActions(row: WorkflowTable): TableOperationAction[] {
       label: "删除",
       artType: "delete",
       perm: "module_task:workflow:flow:delete",
-      run: () => deleteWorkflowRow(row.id),
+      run: () => deleteWorkflowRow(row.id, String(row?.name ?? row?.id ?? "")),
     }
   );
   return all.filter((a) => a.perm != null && hasAuth(a.perm));

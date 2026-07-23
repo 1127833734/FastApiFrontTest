@@ -12,8 +12,6 @@
 import { useChartOps, useChartComponent } from "@/hooks/core/useChart";
 import { getCssVar } from "@utils";
 import { graphic, type EChartsOption } from "@/plugins/echarts";
-import type { BarChartProps, BarDataItem } from "@/types/component/chart";
-
 defineOptions({ name: "FaHBarChart" });
 
 const props = withDefaults(defineProps<BarChartProps>(), {

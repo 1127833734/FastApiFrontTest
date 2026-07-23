@@ -20,7 +20,6 @@ def console_start(
     database_ready: bool | None = None,
     redis_ready: bool | None = None,
     scheduler_ready: bool | None = None,
-    limiter_ready: bool | None = None,
 ) -> None:
     """在终端输出 Rich 面板：服务信息、组件就绪状态与文档链接。
 
@@ -31,7 +30,6 @@ def console_start(
     - database_ready (bool | None): 数据库是否就绪。
     - redis_ready (bool | None): Redis 是否就绪。
     - scheduler_ready (bool | None): 调度器是否就绪。
-    - limiter_ready (bool | None): 限流器是否就绪。
 
     返回:
     - None
@@ -73,8 +71,6 @@ def console_start(
         "Redis", _status_text(redis_ready),
         sep,
         "调度器", _status_text(scheduler_ready),
-        sep,
-        "限流器", _status_text(limiter_ready),
     )
 
     # 文档链接

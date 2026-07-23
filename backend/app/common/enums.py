@@ -52,21 +52,38 @@ class RedisInitKeyConfig(Enum):
 
     @property
     def key(self) -> str:
-        """获取 Redis 键名。
-
-        返回:
-        - str: 键名字符串。
-        """
+        """获取 Redis 键名。"""
         return self.value.get("key", "")
 
     @property
     def remark(self) -> str:
-        """获取 Redis 键说明。
-
-        返回:
-        - str: 说明文案。
-        """
+        """获取 Redis 键说明。"""
         return self.value.get("remark", "")
+
+
+class SysParamKey(str, Enum):
+    """系统参数 config_key 常量定义
+
+    所有 sys_param 表的 config_key 值统一在此定义，避免前端/后端各处写死字符串导致拼写错误。
+    """
+
+    SYS_NAME = "sys_name"
+    LOGO_URL = "logo_url"
+    FAVICON = "favicon"
+    LOGIN_BG = "login_bg"
+    VERSION = "version"
+    HELP_DOC = "help_doc"
+    GIT_CODE = "git_code"
+    COPYRIGHT = "copyright"
+    KEEP_RECORD = "keep_record"
+    PRIVACY = "privacy"
+    CLAUSE = "clause"
+    DEMO_ENABLE = "demo_enable"
+    IP_WHITE_LIST = "ip_white_list"
+    IP_BLACK_LIST = "ip_black_list"
+    LOGIN_TITLE = "login_title"
+    LOGIN_SUBTITLE = "login_subtitle"
+    IP_LOCATION_ENABLE = "ip_location_enable"
 
 
 @unique

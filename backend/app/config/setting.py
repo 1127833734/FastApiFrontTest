@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.common.enums import EnvironmentEnum
-from app.config.path_conf import BASE_DIR, ENV_DIR
+from app.config.path_conf import ENV_DIR
 
 
 class Settings(BaseSettings):
@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     # ================================================= #
     DEBUG: bool = True  # 调试模式
     TITLE: str = "🎉 FastapiAdmin 🎉 "  # 文档标题
-    VERSION: str = "0.1.0"  # 版本号
-    DESCRIPTION: str = "后台接口文档"  # 文档描述
+    VERSION: str = "3.0.0"  # 版本号
+    DESCRIPTION: str = "一个基于fastapi、sqlalchemy、redis实现的轻量化框架"  # 文档描述
     SUMMARY: str = "接口汇总"  # 文档概述
     DOCS_URL: str = "/docs"  # Swagger UI路径
     REDOC_URL: str = "/redoc"  # ReDoc路径
@@ -52,7 +52,11 @@ class Settings(BaseSettings):
     # ================================================= #
     # ******************** 跨域配置 ******************** #
     # ================================================= #
-    ALLOW_ORIGINS: list[str] = ["*"]  # 允许的域名列表
+    # DEV 环境: ALLOW_ORIGINS=["*"] + ALLOW_CREDENTIALS=True
+    #   注意: 根据 W3C 规范，allow_origins=["*"] 时浏览器会忽略 allow_credentials，
+    #   实际表现为 credentials 不生效。但在开发场景下不影响使用。
+    # PROD 环境: 通过 PROD_CORS_ORIGINS 环境变量配置具体域名列表（逗号分隔），allow_credentials=True 正常生效。
+    PROD_CORS_ORIGINS: str = ""  # 生产环境允许的域名列表，逗号分隔，如 "https://admin.example.com,https://www.example.com"
     ALLOW_METHODS: list[str] = ["*"]  # 允许的HTTP方法
     ALLOW_HEADERS: list[str] = ["*"]  # 允许的请求头
     ALLOW_CREDENTIALS: bool = True  # 是否允许携带cookie
@@ -125,6 +129,8 @@ class Settings(BaseSettings):
     OAUTH_QQ_APP_ID: str = ""
     OAUTH_QQ_APP_SECRET: str = ""
     OAUTH_STATE_TTL: int = 600  # OAuth state 参数过期时间（秒）
+    # OAuth 回调域名白名单（["*"] 表示不限制，生产环境请设置为具体域名列表，如 ["example.com"]）
+    OAUTH_ALLOWED_HOSTS: list[str] = ["*"]
 
     # ================================================= #
     # ******************* 外部 HTTP（httpx）******************* #
@@ -167,12 +173,10 @@ class Settings(BaseSettings):
         "/api/v1/system/auth/captcha/get",
         "/api/v1/system/auth/captcha/slider/complete",
         "/api/v1/system/auth/logout",
-        "/api/v1/system/config/info",
+        "/api/v1/system/param/info",
+        "/api/v1/system/dict/info",
         "/api/v1/system/user/current/info",
         "/api/v1/system/notice/available",
-        "/api/v1/system/auth/auto-login/users",
-        "/api/v1/system/auth/auto-login/token",
-        "/api/v1/system/auth/auto-login",
         "/api/v1/common/health",
         "/api/v1/common/health/ready",
         "/api/v1/common/health/live",
@@ -182,10 +186,7 @@ class Settings(BaseSettings):
     # ================================================= #
     # ***************** 静态文件配置 ***************** #
     # ================================================= #
-    STATIC_ENABLE: bool = True  # 是否启用静态文件
     STATIC_URL: str = "/static"  # 访问路由
-    STATIC_DIR: str = "static"  # 目录名
-    STATIC_ROOT: Path = BASE_DIR.joinpath(STATIC_DIR)  # 绝对路径
 
     # ================================================= #
     # ***************** 动态文件配置 ***************** #
@@ -223,6 +224,14 @@ class Settings(BaseSettings):
     # ******************* 动态配置 ******************* #
     # ================================================= #
     @property
+    def ALLOW_ORIGINS(self) -> list[str]:
+        """根据环境动态返回 CORS 允许的域名列表。"""
+        if self.ENVIRONMENT == EnvironmentEnum.PROD and self.PROD_CORS_ORIGINS:
+            return [origin.strip() for origin in self.PROD_CORS_ORIGINS.split(",") if origin.strip()]
+        return ["*"]
+
+    # ================================================= #
+    @property
     def REDIS_URI(self) -> str:
         """构建 Redis 连接 URI（供 slowapi / 其他模块复用）。"""
         auth_part = ""
@@ -246,7 +255,6 @@ class Settings(BaseSettings):
             "app.core.middlewares.RequestLogMiddleware",
             "app.core.middlewares.CustomGZipMiddleware",
             "app.core.middlewares.CorrelationIdMiddleware",  # 请求上下文
-            "slowapi.middleware.SlowAPIMiddleware",  # 接口限流（读取 app.state.limiter）
         ]
         return MIDDLEWARES
 

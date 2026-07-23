@@ -94,7 +94,11 @@
               </template>
               <template #kwargs>
                 <div class="dynamic-params">
-                  <div v-for="(item, index) in kwargsList" :key="index" class="param-item">
+                  <div
+                    v-for="(item, index) in kwargsList"
+                    :key="item.key || index"
+                    class="param-item"
+                  >
                     <ElInput v-model="item.key" placeholder="键" />
                     <ElInput v-model="item.value" placeholder="值" />
                     <ElButton
@@ -159,13 +163,8 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
-import { useAuth } from "@/hooks/core/useAuth";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
-import { renderTableOperationCell, type TableOperationAction } from "@utils";
-import { useTable } from "@/hooks/core/useTable";
-import type { ColumnOption } from "@/types/component";
-import { ElMessage } from "element-plus";
+import type { TableOperationAction } from "@utils";
+import { ElMessage } from "@/utils/message";
 import type { FormRules } from "element-plus";
 import { computed, nextTick, ref } from "vue";
 import Codemirror, { CmComponentRef } from "codemirror-editor-vue3";
@@ -294,7 +293,12 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      (data.value as WorkflowNodeTypeTable[])
+        .filter((r) => r.id != null && selectedIds.value.includes(r.id))
+        .map((r) => String(r?.name ?? r?.id ?? ""))
+    );
     batchDeleting.value = true;
     await WorkflowNodeTypeAPI.deleteWorkflowNodeType(ids);
     faTableRef.value?.elTableRef?.clearSelection();

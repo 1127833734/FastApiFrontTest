@@ -1,6 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.common.enums import QueueEnum
 from app.core.base_schema import BaseQueryParam, BaseSchema
 
 ALLOWED_REQUEST_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
@@ -48,26 +47,18 @@ class LoginLogDetailOutSchema(LoginLogOutSchema):
 class LoginLogQueryParam(BaseQueryParam):
     """登录日志查询参数"""
 
-    username: str | tuple[str, str] | None = Field(None, max_length=64, description="用户名")
-    status: int | tuple[str, int] | None = Field(None, description="登录状态(1:成功 2:失败)")
-
-    @model_validator(mode="after")
-    def validate_query_params(self) -> "LoginLogQueryParam":
-        if isinstance(self.username, str):
-            self.username = (QueueEnum.like.value, self.username)
-        if isinstance(self.status, int):
-            self.status = (QueueEnum.eq.value, self.status)
-        return self
+    username: str | None = Field(None, max_length=64, description="用户名", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, description="登录状态(1:成功 2:失败)", json_schema_extra={"q": "eq"})
 
 
 class OperationLogQueryParam(BaseQueryParam):
     """操作日志查询参数"""
 
-    request_path: str | None = Field(None, description="请求路径")
+    request_path: str | None = Field(None, description="请求路径", json_schema_extra={"q": "like"})
     request_method: str | None = Field(None, description="请求方式", json_schema_extra={"q": "eq"})
-    username: str | None = Field(None, description="用户名")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:成功 1:失败)")
-    request_ip: str | None = Field(None, description="请求IP")
+    username: str | None = Field(None, description="用户名", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:成功 1:失败)", json_schema_extra={"q": "eq"})
+    request_ip: str | None = Field(None, description="请求IP", json_schema_extra={"q": "eq"})
 
 
 class OperationLogOutSchema(BaseSchema):

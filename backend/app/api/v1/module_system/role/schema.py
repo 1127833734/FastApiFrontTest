@@ -98,6 +98,6 @@ class RoleQueryParam(BaseQueryParam, UserByQueryParam):
     """角色管理查询参数
     """
 
-    name: str | None = Field(None, description="角色名称")
+    name: str | None = Field(None, description="角色名称", json_schema_extra={"q": "like"})
     code: str | None = Field(None, description="角色编码", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, description="状态(0:启动 1:停用)")
+    status: int | None = Field(None, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})

@@ -40,11 +40,9 @@ export function getDashboardMock(): DashboardMock {
     stats: {
       online_users: 128,
       total_users: 3842,
-      total_orders: 892,
       today_login_count: 47,
       today_unique_users: 89,
       week_user_created: 216,
-      paid_orders: 645,
       recent_logins: [
         {
           username: "admin",

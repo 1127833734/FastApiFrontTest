@@ -59,7 +59,7 @@ class JobOutSchema(JobCreateSchema, BaseSchema, UserBySchema):
 class JobQueryParam(BaseQueryParam, UserByQueryParam):
     """执行日志查询参数"""
 
-    job_id: str | None = Field(None, description="任务ID")
-    job_name: str | None = Field(None, description="任务名称")
+    job_id: str | None = Field(None, description="任务ID", json_schema_extra={"q": "eq"})
+    job_name: str | None = Field(None, description="任务名称", json_schema_extra={"q": "like"})
     trigger_type: str | None = Field(None, description="触发方式", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, ge=0, le=5, description="执行状态(0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消)")
+    status: int | None = Field(None, ge=0, le=5, description="执行状态(0:待执行 1:执行中 2:成功 3:失败 4:超时 5:已取消)", json_schema_extra={"q": "eq"})

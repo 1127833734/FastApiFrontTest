@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Request
 from redis.asyncio.client import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,24 +45,6 @@ async def get_current_user(
     token: str = Depends(OAuth2Schema),
 ) -> AuthSchema:
     """获取当前用户"""
-    return await _authenticate(token, db, redis)
-
-
-async def get_current_user_ws(
-    token: str = Query(..., description="认证token"),
-    db: AsyncSession = Depends(db_getter),
-    redis: Redis = Depends(redis_getter),
-) -> AuthSchema:
-    """获取当前用户（WebSocket专用，从查询参数获取token）
-
-    参数:
-    - token (str): 认证token
-    - db (AsyncSession): 数据库会话
-    - redis (Redis): Redis连接
-
-    返回:
-    - AuthSchema: 已认证的信息模型
-    """
     return await _authenticate(token, db, redis)
 
 

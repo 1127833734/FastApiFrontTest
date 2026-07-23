@@ -2,7 +2,6 @@
  * 路由注册表 —— 校验通过后批量 addRoute，支持注册/注销/重入判断。
  */
 import type { RouteRecordRaw, Router } from "vue-router";
-import type { AppRouteRecord } from "@/types/router";
 import { ComponentLoader } from "./ComponentLoader";
 import { RouteValidator } from "./RouteValidator";
 import { RouteTransformer } from "./RouteTransformer";

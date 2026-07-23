@@ -1,32 +1,58 @@
-<!-- 字典数据抽屉：Art 搜索 + useTable；固定 dict_type / dict_type_id 由父级传入 -->
+<!-- 字典数据面板（内嵌版）：替换原来的 DataDrawer，直接嵌入页面右侧 -->
 <template>
-  <FaDrawer
-    v-model="drawerVisible"
-    :title="'【' + dictLabel + '】字典数据'"
-    direction="rtl"
-    :size="drawerSize"
-  >
-    <div class="drawer-content">
-      <FaSearchBar
-        v-show="showSearchBar"
-        ref="searchBarRef"
-        v-model="searchForm"
-        :items="dictDataSearchItems"
-        :rules="searchBarRules"
-        :is-expand="false"
-        :show-expand="true"
-        :show-reset="true"
-        :show-search="true"
-        :disabled-search="false"
-        :default-expanded="false"
-        @search="handleSearchBarSearch"
-        @reset="onResetSearch"
-      />
+  <div class="dict-data-panel flex-1 flex flex-col min-h-0 overflow-hidden">
+    <!-- 未选择字典类型时的占位提示 -->
+    <div
+      v-if="!dictTypeId"
+      class="flex-1 flex flex-col items-center justify-center text-gray-400 select-none"
+    >
+      <div class="text-6xl mb-4 opacity-30">
+        <svg
+          width="80"
+          height="80"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <line x1="8" y1="9" x2="16" y2="9" />
+          <line x1="8" y1="13" x2="14" y2="13" />
+        </svg>
+      </div>
+      <p class="text-sm">请在左侧选择一个字典类型</p>
+      <p class="text-xs mt-1 opacity-50">选择后将在右侧展示该字典的数据列表</p>
+    </div>
+    <template v-else>
+      <ElCard class="fa-table-card" :style="{ 'margin-top': '0' }">
+        <template #header>
+          <div class="flex items-center">
+            <span class="text-base font-medium">字典数据【{{ dictLabel }}】</span>
+            <span class="text-gray-400 ml-1">({{ dictType }})</span>
+          </div>
+        </template>
 
-      <ElCard
-        class="fa-table-card drawer-table-card"
-        :style="{ 'margin-top': showSearchBar ? '12px' : '0' }"
-      >
+        <div class="mb-3">
+          <FaSearchBar
+            v-show="showSearchBar"
+            ref="searchBarRef"
+            v-model="searchForm"
+            :items="dictDataSearchItems"
+            :rules="searchBarRules"
+            :is-expand="false"
+            :show-expand="true"
+            :show-reset="true"
+            :show-search="true"
+            :disabled-search="false"
+            :default-expanded="false"
+            @search="handleSearchBarSearch"
+            @reset="onResetSearch"
+          />
+        </div>
+
         <FaTableHeader
           v-model:columns="columnChecks"
           v-model:showSearchBar="showSearchBar"
@@ -34,20 +60,13 @@
           @refresh="refreshData"
         >
           <template #left>
-            <FaTableHeaderLeft
-              :remove-ids="selectedIds"
-              :perm-create="['module_system:dict_data:create']"
-              :perm-export="['module_system:dict_data:export']"
-              :perm-delete="['module_system:dict_data:delete']"
-              :perm-patch="['module_system:dict_data:patch']"
-              :delete-loading="batchDeleting"
-              :create-loading="createLoading"
-              :more-loading="moreLoading"
-              @add="handleAdd"
-              @export="openExport"
-              @delete="handleBatchDelete"
-              @more="handleMoreClick"
-            />
+            <ElButton
+              v-if="hasAuth('module_system:dict_data:create')"
+              type="primary"
+              @click="handleAdd"
+            >
+              新增</ElButton
+            >
           </template>
         </FaTableHeader>
 
@@ -57,7 +76,6 @@
           :data="data"
           :columns="columns"
           :pagination="pagination"
-          @selection-change="onTableSelectionChange"
           @pagination:size-change="handleSizeChange"
           @pagination:current-change="handleCurrentChange"
         />
@@ -178,60 +196,39 @@
               <ElSwitch
                 v-model="formData.status"
                 inline-prompt
-                :active-value="'0'"
-                :inactive-value="'1'"
+                :active-value="0"
+                :inactive-value="1"
               />
             </template>
           </FaForm>
         </template>
       </FaDialog>
-
-      <FaExportDialog
-        v-model="exportVisible"
-        :content-config="dictDataExportContentConfig"
-        :query-params="exportQueryParams"
-        :page-data="data"
-        :selection-data="selectedRows"
-      />
-    </div>
-  </FaDrawer>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { h } from "vue";
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
-import type { ColumnOption } from "@/types/component";
+import { computed, h, onMounted, reactive, ref } from "vue";
 import DictAPI, {
   type DictDataForm,
   type DictDataPageQuery,
   type DictDataTable,
 } from "@/api/module_system/dict";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction, resolveStatusColumns } from "@utils";
-import { useDictStore, useAppStore } from "@stores";
-import { DeviceEnum } from "@/enums/settings/device.enum";
-import type { IObject } from "@/components/modal/types";
+import { type TableOperationAction } from "@utils";
+import { useDictStore } from "@stores";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
-import FaStatusTag from "@/components/others/fa-status-tag/index.vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 
-defineOptions({ name: "DictDataDrawer", inheritAttrs: false });
+defineOptions({ name: "DictDataPanel", inheritAttrs: false });
 
 const props = defineProps<{
   dictType: string;
   dictLabel: string;
   dictTypeId: number;
 }>();
-
-const drawerVisible = defineModel<boolean>({ required: true });
 
 const TAG_TYPE_STYLE_MAP: Record<string, { background: string; color: string; border: string }> = {
   primary: {
@@ -262,9 +259,7 @@ const TAG_TYPE_STYLE_MAP: Record<string, { background: string; color: string; bo
 };
 
 const dictStore = useDictStore();
-const appStore = useAppStore();
 const { hasAuth } = useAuth();
-const drawerSize = computed(() => (appStore.device === DeviceEnum.DESKTOP ? "80%" : "60%"));
 
 function getTagPreviewStyle(value?: string) {
   const preset = value ? TAG_TYPE_STYLE_MAP[value] : undefined;
@@ -289,13 +284,6 @@ type DictDataSearchForm = {
   created_time?: string[];
 };
 
-function normalizeDictDataQuery(params: Record<string, unknown>): DictDataPageQuery {
-  return cleanEmptyArrayParams({ ...params }, [
-    "created_time",
-    "updated_time",
-  ]) as unknown as DictDataPageQuery;
-}
-
 async function fetchDictDataListMerged(params: Record<string, unknown>) {
   const q: DictDataPageQuery = {
     page_no: Number(params.current) || Number(params.page_no) || 1,
@@ -305,12 +293,6 @@ async function fetchDictDataListMerged(params: Record<string, unknown>) {
     dict_type_id: props.dictTypeId,
     status:
       params.status !== undefined && params.status !== null ? Number(params.status) : undefined,
-    created_time: Array.isArray(params.created_time)
-      ? (params.created_time as string[])
-      : undefined,
-    updated_time: Array.isArray(params.updated_time)
-      ? (params.updated_time as string[])
-      : undefined,
   };
   return DictAPI.listDictData(q);
 }
@@ -337,7 +319,7 @@ const dictDataSearchItems = computed<SearchFormItem[]>(() => [
     type: "input",
     placeholder: "请输入字典标签",
     clearable: true,
-    span: 6,
+    span: 9,
   },
   {
     label: "状态",
@@ -348,31 +330,13 @@ const dictDataSearchItems = computed<SearchFormItem[]>(() => [
       options: statusOptions.value,
       clearable: true,
     },
-    span: 6,
-  },
-  {
-    label: "创建时间",
-    key: "created_time",
-    type: "datetimerange",
-    span: 6,
-    props: {
-      type: "datetimerange",
-      rangeSeparator: "至",
-      startPlaceholder: "开始日期",
-      endPlaceholder: "结束日期",
-      format: "YYYY-MM-DD HH:mm:ss",
-      valueFormat: "YYYY-MM-DD HH:mm:ss",
-      style: { width: "100%" },
-    },
+    span: 9,
   },
 ]);
 
 const faTableRef = ref<{ elTableRef?: { clearSelection: () => void } } | null>(null);
-const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
-  useTableSelection<DictDataTable>();
 
-const createLoading = ref(false);
-const moreLoading = ref(false);
+const statusUpdating = ref<Set<number>>(new Set());
 
 const {
   columns,
@@ -380,7 +344,6 @@ const {
   data,
   loading,
   pagination,
-  searchParams,
   getData,
   replaceSearchParams,
   resetSearchParams,
@@ -400,28 +363,9 @@ const {
       dict_type_id: props.dictTypeId,
     },
     columnsFactory: resolveStatusColumns<DictDataTable>(() => [
-      { type: "selection", width: 48, fixed: "left" },
       { type: "globalIndex", width: 56, label: "序号" },
       { prop: "dict_label", label: "标签", minWidth: 150, showOverflowTooltip: true },
-      {
-        prop: "status",
-        label: "状态",
-        width: 100,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
-      },
-      {
-        prop: "dict_type",
-        label: "类型",
-        minWidth: 180,
-        formatter: (row: DictDataTable) =>
-          h(FaStatusTag, { type: "primary", label: row.dict_type ?? "" }),
-      },
       { prop: "dict_value", label: "值", minWidth: 100, showOverflowTooltip: true },
-      { prop: "css_class", label: "样式属性", minWidth: 100, showOverflowTooltip: true },
-      { prop: "list_class", label: "列表类样式", minWidth: 100, showOverflowTooltip: true },
       { prop: "dict_sort", label: "排序", width: 72 },
       {
         prop: "is_default",
@@ -432,9 +376,21 @@ const {
           false: { type: "danger", text: "否" },
         },
       },
-      { prop: "description", label: "描述", minWidth: 100, showOverflowTooltip: true },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "status",
+        label: "状态",
+        width: 80,
+        formatter: (row: DictDataTable) =>
+          h(ElSwitch, {
+            modelValue: row.status ?? 0,
+            "onUpdate:modelValue": (val: string | number | boolean) =>
+              handleStatusChange(row.id!, Number(val)),
+            activeValue: 0,
+            inactiveValue: 1,
+            loading: statusUpdating.value.has(row.id!),
+            inlinePrompt: true,
+          }),
+      },
       {
         prop: "operation",
         label: "操作",
@@ -447,42 +403,6 @@ const {
   },
 });
 
-const dictDataCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<DictDataTable>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
-
-const exportQueryParams = computed(() => {
-  const sp = stripPaginationParams(searchParams as Record<string, unknown>);
-  return normalizeDictDataQuery({
-    ...sp,
-    dict_type: props.dictType,
-    dict_type_id: props.dictTypeId,
-  });
-});
-
-const dictDataExportContentConfig = computed(() => ({
-  permPrefix: "module_system:dict_data",
-  cols: dictDataCrudCols.value,
-  exportsBlobAction: async (params: IObject) => {
-    const merged = normalizeDictDataQuery({
-      ...(exportQueryParams.value as unknown as Record<string, unknown>),
-      ...params,
-      dict_type: props.dictType,
-      dict_type_id: props.dictTypeId,
-    } as Record<string, unknown>);
-    const res = await DictAPI.exportDictData(merged as DictDataPageQuery);
-    return res.data as Blob;
-  },
-}));
-
 const { dialogVisible } = useCrudDialog();
 
 const detailFormData = ref<DictDataTable>({});
@@ -492,8 +412,6 @@ const dictDataDetailItems: import("@/components/others/fa-descriptions/index.vue
     { label: "数据标签", prop: "dict_label" },
     { label: "数据类型", prop: "dict_type" },
     { label: "数据值", prop: "dict_value" },
-    { label: "样式属性", prop: "css_class" },
-    { label: "列表样式属性", prop: "list_class" },
     {
       label: "是否默认",
       prop: "is_default",
@@ -510,10 +428,6 @@ const dictDataDetailItems: import("@/components/others/fa-descriptions/index.vue
     },
     { label: "排序", prop: "dict_sort" },
     { label: "描述", prop: "description" },
-    { label: "创建时间", prop: "created_time" },
-    { label: "更新时间", prop: "updated_time" },
-    { label: "创建人", prop: "created_by.name" },
-    { label: "更新人", prop: "updated_by.name" },
   ];
 
 const formData = ref<DictDataForm>({
@@ -637,17 +551,15 @@ const initialFormData: DictDataForm = {
   dict_type_id: props.dictTypeId,
 };
 
-const { exportVisible, openExport } = useImportExport();
+onMounted(() => {
+  if (props.dictTypeId) getData();
+});
 
 async function handleSearchBarSearch(params: DictDataSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams({
     dict_label: params.dict_label,
     status: params.status,
-    created_time:
-      Array.isArray(params.created_time) && params.created_time.length === 2
-        ? params.created_time
-        : undefined,
     dict_type: props.dictType,
     dict_type_id: props.dictTypeId,
   } as Record<string, unknown>);
@@ -679,23 +591,26 @@ async function handleCloseDialog() {
 }
 
 async function handleAdd() {
-  createLoading.value = true;
-  try {
-    await handleOpenDialog("create");
-  } finally {
-    createLoading.value = false;
-  }
+  await handleOpenDialog("create");
 }
 
 async function handleOpenDialog(type: "create" | "update" | "detail", id?: number) {
   dialogVisible.type = type;
   if (id) {
-    const response = await DictAPI.detailDictData(id);
+    // 先打开弹窗再加载数据，避免点击后无响应
     if (type === "detail") {
       dialogVisible.title = "字典数据详情";
-      detailFormData.value = response.data.data ?? {};
     } else if (type === "update") {
       dialogVisible.title = "修改字典数据";
+      Object.assign(formData.value, initialFormData);
+    }
+    dictDataFormRenderKey.value += 1;
+    dialogVisible.visible = true;
+
+    const response = await DictAPI.detailDictData(id);
+    if (type === "detail") {
+      detailFormData.value = response.data.data ?? {};
+    } else if (type === "update") {
       Object.assign(formData.value, response.data.data);
     }
   } else {
@@ -705,9 +620,9 @@ async function handleOpenDialog(type: "create" | "update" | "detail", id?: numbe
     formData.value.dict_type_id = props.dictTypeId;
     formData.value.status = 0;
     formData.value.id = undefined;
+    dictDataFormRenderKey.value += 1;
+    dialogVisible.visible = true;
   }
-  dictDataFormRenderKey.value += 1;
-  dialogVisible.visible = true;
 }
 
 async function handleSubmit() {
@@ -729,7 +644,7 @@ async function handleSubmit() {
         await dictStore.getDict([formData.value.dict_type]);
       }
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   });
 }
@@ -758,7 +673,7 @@ function buildDictDataRowActions(row: DictDataTable): TableOperationAction[] {
       icon: "ri:delete-bin-4-line",
       perm: "module_system:dict_data:delete",
       run: () => {
-        if (row.id != null) deleteDictDataRow(row.id);
+        if (row.id != null) deleteDictDataRow(row.id, row.dict_label ?? "");
       },
     },
   ];
@@ -771,71 +686,36 @@ function formatDictDataOperationCell(row: DictDataTable) {
   });
 }
 
-async function deleteDictDataRow(id: number) {
+async function deleteDictDataRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await DictAPI.deleteDictData([id]);
     dictStore.clearDictData();
     if (props.dictType) await dictStore.getDict([props.dictType]);
-    faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
     ElMessage.error("删除失败");
   }
 }
 
-async function handleBatchDelete() {
-  const ids = selectedIds.value;
-  if (ids.length === 0) return;
+async function handleStatusChange(id: number, newStatus: number) {
+  statusUpdating.value = new Set([...statusUpdating.value, id]);
   try {
-    await confirmBatchDelete(ids.length);
-    batchDeleting.value = true;
-    await DictAPI.deleteDictData(ids);
-    dictStore.clearDictData();
-    if (props.dictType) await dictStore.getDict([props.dictType]);
-    faTableRef.value?.elTableRef?.clearSelection();
-    await refreshRemove();
-  } catch {
-    // 用户取消
-  } finally {
-    batchDeleting.value = false;
-  }
-}
-
-async function handleMoreClick(status: number) {
-  const ids = selectedIds.value;
-  if (!ids.length) {
-    ElMessage.warning("请先选择要操作的数据");
-    return;
-  }
-  try {
-    await confirmToggleStatus(status);
-    moreLoading.value = true;
-    await DictAPI.batchDictData({ ids, status });
+    await DictAPI.batchDictData({ ids: [id], status: newStatus });
     await refreshData();
     dictStore.clearDictData();
     if (props.dictType) await dictStore.getDict([props.dictType]);
   } catch {
-    // 用户取消
+    await refreshData();
   } finally {
-    moreLoading.value = false;
+    const next = new Set(statusUpdating.value);
+    next.delete(id);
+    statusUpdating.value = next;
   }
 }
 </script>
 
 <style lang="scss" scoped>
-.drawer-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.drawer-table-card {
-  flex: 1;
-  min-height: 0;
-}
-
 .tag-option-preview {
   display: inline-flex;
   align-items: center;

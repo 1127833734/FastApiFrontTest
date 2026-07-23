@@ -19,7 +19,6 @@
  *        ├─ handleRootPathRedirect()
  *        └─ setWorktab / setPageTitle / 404
  */
-import type { AppRouteRecord } from "@/types/router";
 import type { Router, RouteLocationNormalized } from "vue-router";
 import { nextTick } from "vue";
 import { useSettingsStore, useUserStore, useMenuStore, useWorktabStore } from "@stores";
@@ -101,7 +100,7 @@ export function setupBeforeEachGuard(router: Router): void {
     try {
       return await handleRouteGuard(to, from, router);
     } catch (error) {
-      console.error("[RouteGuard] 路由守卫处理失败:", error);
+      if (import.meta.env.DEV) console.error("[RouteGuard] 路由守卫处理失败:", error);
       closeLoading();
       return { name: "500" };
     }
@@ -227,6 +226,17 @@ function resolveStaticChildFullPath(parentFullPath: string, segment: string): st
 /**
  * 检查路由是否为静态路由
  */
+// 预编译静态路由正则缓存
+const staticRouteRegexCache = new Map<string, RegExp>();
+
+function buildRouteRegex(fullPath: string): RegExp {
+  if (!staticRouteRegexCache.has(fullPath)) {
+    const pattern = fullPath.replace(/:[^/]+/g, "[^/]+").replace(/\*/g, ".*");
+    staticRouteRegexCache.set(fullPath, new RegExp(`^${pattern}$`));
+  }
+  return staticRouteRegexCache.get(fullPath)!;
+}
+
 function isStaticRoute(path: string): boolean {
   const checkRoute = (routes: any[], targetPath: string, parentFullPath = ""): boolean => {
     return routes.some((route) => {
@@ -240,8 +250,7 @@ function isStaticRoute(path: string): boolean {
         ? routePath
         : resolveStaticChildFullPath(parentFullPath, routePath);
 
-      const pattern = fullPath.replace(/:[^/]+/g, "[^/]+").replace(/\*/g, ".*");
-      const regex = new RegExp(`^${pattern}$`);
+      const regex = buildRouteRegex(fullPath);
 
       if (regex.test(targetPath)) {
         return true;
@@ -297,7 +306,8 @@ async function handleDynamicRoutes(to: RouteLocationNormalized, router: Router) 
     // 3. 验证菜单数据（空菜单不阻塞：用户可能未分配角色，允许进入首页）
     const menuValid = menuProcessor.validateMenuList(menuList);
     if (!menuValid) {
-      console.warn("[RouteGuard] 菜单列表为空，用户可能未分配角色，使用空菜单继续导航");
+      if (import.meta.env.DEV)
+        console.warn("[RouteGuard] 菜单列表为空，用户可能未分配角色，使用空菜单继续导航");
     }
 
     // 4. 注册动态路由
@@ -314,38 +324,34 @@ async function handleDynamicRoutes(to: RouteLocationNormalized, router: Router) 
     // 7. 验证工作标签页
     useWorktabStore().validateWorktabs(router);
 
-    // 8. 静态路由不依赖菜单权限，初始化后直接恢复目标地址。
-    if (isStaticRoute(to.path)) {
-      routeInitInProgress = false;
-      return {
-        path: to.path,
-        query: to.query,
-        hash: to.hash,
-        replace: true,
-      };
+    // 8. 确定重定向目标并同步工作标签，不依赖二次 beforeEach。
+    const redirectPath: string = (() => {
+      if (isStaticRoute(to.path)) return to.path;
+      const { homePath } = useCommon();
+      const { path: validatedPath, hasPermission } = RoutePermissionValidator.validatePath(
+        to.path,
+        menuList,
+        homePath.value || "/"
+      );
+      if (!hasPermission) {
+        closeLoading();
+        if (import.meta.env.DEV)
+          console.warn(`[RouteGuard] 用户无权限访问路径: ${to.path}，已跳转到首页`);
+        return validatedPath;
+      }
+      return to.path;
+    })();
+
+    // 主动同步工作标签（需 resolve 获取完整 meta）
+    const resolved = router.resolve({ path: redirectPath, query: to.query, hash: to.hash });
+    if (resolved.matched.length > 0) {
+      setWorktab(resolved as RouteLocationNormalized);
     }
 
-    // 8. 验证目标路径权限
-    const { homePath } = useCommon();
-    const { path: validatedPath, hasPermission } = RoutePermissionValidator.validatePath(
-      to.path,
-      menuList,
-      homePath.value || "/"
-    );
-
-    // 初始化成功，重置进行中标记
     routeInitInProgress = false;
-
-    // 9. 重新导航到目标路由
-    if (!hasPermission) {
-      closeLoading();
-      console.warn(`[RouteGuard] 用户无权限访问路径: ${to.path}，已跳转到首页`);
-      return { path: validatedPath, replace: true };
-    }
-
-    return { path: to.path, query: to.query, hash: to.hash, replace: true };
+    return { path: redirectPath, query: to.query, hash: to.hash, replace: true };
   } catch (error) {
-    console.error("[RouteGuard] 动态路由注册失败:", error);
+    if (import.meta.env.DEV) console.error("[RouteGuard] 动态路由注册失败:", error);
     closeLoading();
 
     // 401 错误：axios 拦截器已处理退出登录，取消当前导航
@@ -358,7 +364,8 @@ async function handleDynamicRoutes(to: RouteLocationNormalized, router: Router) 
     routeInitInProgress = false;
 
     if (isHttpError(error)) {
-      console.error(`[RouteGuard] 错误码: ${error.code}, 消息: ${error.message}`);
+      if (import.meta.env.DEV)
+        console.error(`[RouteGuard] 错误码: ${error.code}, 消息: ${error.message}`);
     }
 
     return { name: "500", replace: true };

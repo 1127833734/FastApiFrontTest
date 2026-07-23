@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,7 +40,7 @@ async def get_obj_detail_controller(
 async def get_obj_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:node:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[NodeQueryParam, Query()],
+    search: Annotated[NodeQueryParam, Depends()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     service = NodeService(auth, db)

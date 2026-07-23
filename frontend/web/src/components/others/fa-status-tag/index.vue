@@ -5,8 +5,6 @@
 </template>
 
 <script setup lang="ts">
-import { ElTag } from "element-plus";
-
 defineOptions({ name: "FaStatusTag" });
 
 interface Props {

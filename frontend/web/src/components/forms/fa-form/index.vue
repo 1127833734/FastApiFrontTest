@@ -2,8 +2,8 @@
 <!-- 支持常用表单组件、自定义组件、插槽、校验、隐藏表单项 -->
 <!-- 写法同 ElementPlus 官方文档组件，把属性写在 props 里面就可以了 -->
 <template>
-  <ElScrollbar v-if="scrollbar" :max-height="maxHeight" :view-style="{ overflowX: 'hidden' }">
-    <section class="px-4 pb-0 pt-4 md:px-4 md:pt-4">
+  <section class="px-4 pb-0 pt-4 md:px-4 md:pt-4">
+    <ElScrollbar v-if="scrollbar" :max-height="maxHeight" :view-style="{ overflowX: 'hidden' }">
       <ElForm
         ref="formRef"
         :model="modelValue"
@@ -99,11 +99,9 @@
           </ElCol>
         </ElRow>
       </ElForm>
-    </section>
-  </ElScrollbar>
-  <!-- 不使用滚动条时直接渲染 -->
-  <section v-else class="px-4 pb-0 pt-4 md:px-4 md:pt-4">
+    </ElScrollbar>
     <ElForm
+      v-else
       ref="formRef"
       :model="modelValue"
       :label-position="labelPosition"
@@ -201,7 +199,7 @@
  */
 import { useWindowSize } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { toRaw, type Component } from "vue";
+import { type Component } from "vue";
 import FaDatePicker from "@/components/forms/fa-search-bar/FaDatePicker.vue";
 import {
   ElCascader,
@@ -220,7 +218,15 @@ import {
   ElTreeSelect,
   type FormInstance,
 } from "element-plus";
-import { calculateResponsiveSpan, type ResponsiveBreakpoint } from "@utils";
+import {
+  cloneModelValue as cloneModelValueShared,
+  sanitizeOutputValue as sanitizeOutputValueShared,
+  getProps as getPropsShared,
+  getSlots as getSlotsShared,
+  getColSpan as getColSpanShared,
+  useSanitizeOutputOptions,
+  type SanitizeOutputOptions,
+} from "../composables/useFormBase";
 
 defineOptions({ name: "FaForm" });
 
@@ -308,21 +314,6 @@ interface Props {
   maxHeight?: string;
 }
 
-interface SanitizeOutputOptions {
-  /** 移除空字符串 */
-  removeEmptyString: boolean;
-  /** 移除空数组 */
-  removeEmptyArray: boolean;
-  /** 移除清洗后为空的对象 */
-  removeEmptyObject: boolean;
-  /** 移除空富文本占位内容，如 <p><br></p> */
-  removeEmptyRichText: boolean;
-  /** 保留数字 0 这类有效值 */
-  keepZero: boolean;
-  /** 保留 false 这类有效值 */
-  keepFalse: boolean;
-}
-
 const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   span: 6,
@@ -350,41 +341,16 @@ const modelValue = defineModel<Record<string, any>>({ default: {} });
 const initialModelValue = ref<Record<string, any>>({});
 
 // 保存组件初始化时的表单快照，用于 reset 时恢复默认值。
-const cloneModelValue = (value: Record<string, any> | undefined) => {
-  if (!value) return {};
+initialModelValue.value = cloneModelValueShared(modelValue.value);
 
-  const deepClone = (source: unknown): unknown => {
-    if (Array.isArray(source)) {
-      return source.map((item) => deepClone(item));
-    }
+const sanitizeOutputOptions = useSanitizeOutputOptions(props.sanitizeOutput);
 
-    if (source && typeof source === "object") {
-      const rawSource = toRaw(source);
-      return Object.keys(rawSource).reduce<Record<string, unknown>>((accumulator, key) => {
-        accumulator[key] = deepClone((rawSource as Record<string, unknown>)[key]);
-        return accumulator;
-      }, {});
-    }
-
-    return source;
-  };
-
-  return deepClone(toRaw(value)) as Record<string, any>;
-};
-
-initialModelValue.value = cloneModelValue(modelValue.value);
-
-const rootProps = ["label", "labelWidth", "key", "type", "hidden", "span", "slots"];
-// 输出时的清洗策略默认偏“接口友好”，但允许按业务覆盖。
-const sanitizeOutputOptions = computed<SanitizeOutputOptions>(() => ({
-  removeEmptyString: true,
-  removeEmptyArray: true,
-  removeEmptyObject: true,
-  removeEmptyRichText: true,
-  keepZero: true,
-  keepFalse: true,
-  ...props.sanitizeOutput,
-}));
+// 模板引用的函数（从公共 composable 重新导出，使模板可访问）
+// 注：getColSpan 保持 2 参数签名（span 从组件内部读取）
+const getColSpan = (itemSpan: number | undefined, breakpoint: any) =>
+  getColSpanShared(itemSpan, span.value, breakpoint);
+const getProps = getPropsShared;
+const getSlots = getSlotsShared;
 
 const PATH_NUMBER_RE = /^\d+$/;
 
@@ -456,102 +422,11 @@ const setFieldValue = (path: string, value: unknown) => {
   });
 };
 
-const isRichTextEmpty = (value: string) => {
-  if (/<(img|video|audio|iframe|embed|object)\b/i.test(value)) {
-    return false;
-  }
-
-  // 去掉编辑器常见占位标签后再判断是否还有实际内容。
-  return (
-    value
-      .replace(/&nbsp;/gi, "")
-      .replace(/<br\s*\/?>/gi, "")
-      .replace(/<[^>]*>/g, "")
-      .trim() === ""
-  );
-};
-
-// 提交时按配置清洗空值，但保留 0 和 false 这类有效值。
-const sanitizeOutputValue = (value: unknown): unknown => {
-  const options = sanitizeOutputOptions.value;
-
-  if (Array.isArray(value)) {
-    const sanitizedArray = value
-      .map((item) => sanitizeOutputValue(item))
-      .filter((item) => item !== undefined);
-    return sanitizedArray.length === 0 && options.removeEmptyArray ? undefined : sanitizedArray;
-  }
-
-  if (value && typeof value === "object") {
-    const rawValue = toRaw(value);
-    const sanitizedObject = Object.entries(rawValue).reduce<Record<string, unknown>>(
-      (accumulator, [key, item]) => {
-        const sanitizedItem = sanitizeOutputValue(item);
-        if (sanitizedItem !== undefined) {
-          accumulator[key] = sanitizedItem;
-        }
-        return accumulator;
-      },
-      {}
-    );
-    return Object.keys(sanitizedObject).length === 0 && options.removeEmptyObject
-      ? undefined
-      : sanitizedObject;
-  }
-
-  if (typeof value === "string") {
-    if (options.removeEmptyString && value.trim() === "") {
-      return undefined;
-    }
-    if (options.removeEmptyRichText && isRichTextEmpty(value)) {
-      return undefined;
-    }
-    return value;
-  }
-
-  if (value === 0) {
-    return options.keepZero ? value : undefined;
-  }
-
-  if (value === false) {
-    return options.keepFalse ? value : undefined;
-  }
-
-  return value ?? undefined;
-};
-
 const getSanitizedOutput = () => {
-  return (sanitizeOutputValue(cloneModelValue(modelValue.value)) || {}) as Record<string, any>;
-};
-
-const getProps = (item: FormItem) => {
-  let props: Record<string, any>;
-  if (item.props) {
-    props = { ...item.props };
-  } else {
-    props = { ...item };
-    rootProps.forEach((key) => delete props[key]);
-  }
-
-  // 对于日期选择器组件，确保 type 被传递给 FaDatePicker
-  const datePickerTypes = ["date", "daterange", "datetime", "datetimerange", "monthrange"];
-  if (item.type && datePickerTypes.includes(item.type) && !props.type) {
-    props.type = item.type;
-  }
-
-  return props;
-};
-
-// 获取插槽
-const getSlots = (item: FormItem) => {
-  if (!item.slots) return {};
-  const validSlots: Record<string, () => any> = {};
-  Object.entries(item.slots).forEach(([key, slotFn]) => {
-    if (slotFn) {
-      validSlots[key] = slotFn;
-    }
-  });
-  return validSlots;
+  return (sanitizeOutputValueShared(
+    cloneModelValueShared(modelValue.value),
+    sanitizeOutputOptions.value
+  ) || {}) as Record<string, any>;
 };
 
 // 组件
@@ -562,15 +437,12 @@ const getComponent = (item: FormItem) => {
   }
   // 使用 type 获取预定义组件
   const { type } = item;
-  return componentMap[type as keyof typeof componentMap] || componentMap["input"];
-};
-
-/**
- * 获取列宽 span 值
- * 根据屏幕尺寸智能降级，避免小屏幕上表单项被压缩过小
- */
-const getColSpan = (itemSpan: number | undefined, breakpoint: ResponsiveBreakpoint): number => {
-  return calculateResponsiveSpan(itemSpan, span.value, breakpoint);
+  const comp = componentMap[type as keyof typeof componentMap];
+  if (!comp) {
+    console.warn(`[FaForm] 未知表单类型 "${type}"，回退到 input`, item);
+    return componentMap["input"];
+  }
+  return comp;
 };
 
 /**
@@ -602,7 +474,7 @@ const handleReset = () => {
   Object.keys(modelValue.value).forEach((key) => {
     delete modelValue.value[key];
   });
-  Object.assign(modelValue.value, cloneModelValue(initialModelValue.value));
+  Object.assign(modelValue.value, cloneModelValueShared(initialModelValue.value));
 
   // 触发 reset 事件
   emit("reset");

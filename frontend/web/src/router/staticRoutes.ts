@@ -7,7 +7,6 @@
  * 动态路由由 `beforeEach.ts` → `RouteRegistry` 在登录后根据不同角色的菜单列表动态 `addRoute`。
  */
 import type { AppRouteRecordRaw } from "@utils";
-import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { defineComponent, h, onMounted, ref } from "vue";
 import type { RouteRecordRaw } from "vue-router";
 import { RouterView, useRoute } from "vue-router";
@@ -297,7 +296,7 @@ export function mergeShellRoutesIntoMenu(menuList: AppRouteRecord[]): AppRouteRe
   tryPush(mergeShellHomeMenu);
 
   if (!paths.has("/dashboard")) {
-    tryPush(dashboardRoutesToShellMenu(structuredClone(getDashboardMenuTreeForMerge())));
+    tryPush(dashboardRoutesToShellMenu(getDashboardMenuTreeForMerge()));
   }
 
   if (additions.length === 0) return menuList;

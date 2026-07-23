@@ -11,7 +11,7 @@ export const UserAPI = {
     });
   },
 
-  uploadCurrentUserAvatar(body: any) {
+  uploadCurrentUserAvatar(body: FormData) {
     return request<ApiResponse<UploadFilePath>>({
       url: `/common/file/upload?upload_type=avatar`,
       method: "post",
@@ -117,14 +117,14 @@ export const UserAPI = {
   },
 
   downloadTemplateUser() {
-    return request<ApiResponse>({
+    return request<Blob>({
       url: `${API_PATH}/import/template`,
       method: "get",
       responseType: "blob",
     });
   },
 
-  importUser(body: any) {
+  importUser(body: FormData) {
     return request<ApiResponse>({
       url: `${API_PATH}/import/data`,
       method: "post",
@@ -143,6 +143,8 @@ export interface ForgetPasswordForm {
   new_password: string;
   mobile?: string;
   confirmPassword: string;
+  captcha_key?: string;
+  captcha?: string;
 }
 
 export interface RegisterForm {
@@ -150,6 +152,9 @@ export interface RegisterForm {
   password: string;
   confirmPassword: string;
   email?: string;
+  name?: string;
+  captcha_key?: string;
+  captcha?: string;
 }
 
 export interface UserPageQuery extends PageQuery, UserByQueryParams {
@@ -185,7 +190,7 @@ export interface UserInfo extends BaseType {
   position_names?: positionSelectorType["name"][];
   position_ids?: positionSelectorType["id"][];
   is_superuser?: boolean;
-  is_impersonate?: boolean;
+
   last_login?: string;
   created_by?: CommonType;
   updated_by?: CommonType;
@@ -224,7 +229,7 @@ export interface positionSelectorType {
 export interface InfoFormState {
   id?: number;
   name?: string;
-  gender?: number;
+  gender?: string;
   mobile?: string;
   email?: string;
   username?: string;
@@ -263,7 +268,7 @@ export interface UserForm extends BaseFormType {
   position_ids?: number[];
   position_names?: string[];
   password?: string;
-  gender?: number;
+  gender?: string;
   email?: string;
   mobile?: string;
   is_superuser?: boolean;
@@ -274,7 +279,7 @@ export interface UserForm extends BaseFormType {
 
 export interface CurrentUserFormState {
   name?: string;
-  gender?: number;
+  gender?: string;
   mobile?: string;
   email?: string;
   avatar?: string;

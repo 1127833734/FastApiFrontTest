@@ -10,7 +10,6 @@
  * @module config/modules/festival.builtin
  */
 
-import type { FestivalConfig } from "@/types/config";
 import hb from "@imgs/ceremony/hb.png";
 import sd from "@imgs/ceremony/sd.png";
 import yd from "@imgs/ceremony/yd.png";

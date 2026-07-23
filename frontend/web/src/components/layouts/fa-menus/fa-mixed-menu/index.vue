@@ -57,8 +57,6 @@ import { ref, computed, onMounted, nextTick } from "vue";
 import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
 import { useThrottleFn } from "@vueuse/core";
 import { formatMenuTitle, handleMenuJump } from "@utils";
-import type { AppRouteRecord } from "@/types/router";
-
 defineOptions({ name: "FaMixedMenu" });
 
 interface Props {

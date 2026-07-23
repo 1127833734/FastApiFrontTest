@@ -31,7 +31,7 @@
           <div
             class="box mt-0! cursor-pointer text-base leading-none"
             v-for="(item, index) in searchResult"
-            :key="index"
+            :key="item.path"
           >
             <div
               class="mt-2 h-12 flex items-center justify-between rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-700"
@@ -51,7 +51,7 @@
             <div
               class="box mt-2 h-12 cursor-pointer flex items-center justify-between rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-800"
               v-for="(item, index) in historyResult"
-              :key="index"
+              :key="item.path"
               :class="
                 historyHIndex === index
                   ? 'highlighted bg-theme/70! text-white! [&_.selected-icon]:text-white!'
@@ -108,11 +108,11 @@
 </template>
 
 <script lang="ts" setup>
-import { AppRouteRecord } from "@/types/router";
 import { Search } from "@element-plus/icons-vue";
 import { mittBus, formatMenuTitle, handleMenuJump } from "@utils";
 import { useUserStore, useMenuStore } from "@stores";
 import { type ScrollbarInstance } from "element-plus";
+import { useDebounceFn } from "@vueuse/core";
 defineOptions({ name: "FaGlobalSearch" });
 
 const userStore = useUserStore();
@@ -177,14 +177,14 @@ const focusInput = () => {
   }, 100);
 };
 
-// 搜索逻辑
-const search = (val: string) => {
+// 搜索逻辑（防抖优化）
+const search = useDebounceFn((val: string) => {
   if (val) {
     searchResult.value = flattenAndFilterMenuItems(menuList.value, val);
   } else {
     searchResult.value = [];
   }
-};
+}, 150);
 
 const flattenAndFilterMenuItems = (items: AppRouteRecord[], val: string): AppRouteRecord[] => {
   const lowerVal = val.toLowerCase();

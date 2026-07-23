@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security
+from fastapi import APIRouter, Body, Depends, Path, Security
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,7 +38,7 @@ async def get_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:login_log:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[LoginLogQueryParam, Query()],
+    search: Annotated[LoginLogQueryParam, Depends()],
 ) -> JSONResponse:
     result_dict = await LoginLogService(auth, db).page(
         page_no=page.page_no,
@@ -76,7 +76,7 @@ async def get_operation_log_list_controller(
     auth: Annotated[AuthSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[OperationLogQueryParam, Query()],
+    search: Annotated[OperationLogQueryParam, Depends()],
 ) -> JSONResponse:
     result_dict = await OperationLogService(auth, db).page(
         page_no=page.page_no,

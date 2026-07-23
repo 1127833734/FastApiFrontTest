@@ -37,7 +37,7 @@
           }"
         >
           <li
-            class="worktab-tab fa-card-xs inline-flex flex items-center justify-center h-8 mr-1.5 text-xs cursor-pointer hover:text-theme group"
+            class="worktab-tab fa-card-xs inline-flex items-center justify-center h-8 mr-1.5 text-xs cursor-pointer hover:text-theme group"
             :class="[
               item.path === activeTab
                 ? chromeTabStrip
@@ -99,7 +99,7 @@
             />
             <span
               v-if="list.length > 1 && !item.fixedTab"
-              class="worktab-close inline-flex flex items-center justify-center relative ml-0.5 rounded-full p-1 transition duration-200"
+              class="worktab-close inline-flex items-center justify-center relative ml-0.5 rounded-full p-1 transition duration-200"
               @click.stop="closeWorktab('current', item.path)"
             >
               <FaSvgIcon icon="ri:close-large-fill" class="text-[10px]" />
@@ -168,15 +168,15 @@
  * 关闭/切换/Pin 操作全部通过 worktabStore 管理。
  */
 import { computed, onMounted, ref, watch, nextTick, onUnmounted } from "vue";
+import { useDebounceFn } from "@vueuse/core";
 import { LocationQueryRaw, useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 import { refreshAppCaches, useWorktabStore, useUserStore, useSettingsStore } from "@stores";
 import { MenuItemType } from "@/components/others/fa-menu-right/index.vue";
 import { useCommon } from "@/hooks/core/useCommon";
 import { formatMenuTitle, quickStartManager } from "@utils";
-import { WorkTab } from "@/types";
 
 defineOptions({ name: "FaWorkTab" });
 
@@ -667,6 +667,9 @@ async function handleRefreshCache(): Promise<void> {
   }
 }
 
+// 防抖的 tab 溢出测量
+const debouncedMeasureTabOverflow = useDebounceFn(measureTabOverflow, 150);
+
 // 生命周期
 onMounted(() => {
   setupEventListeners();
@@ -676,14 +679,14 @@ onMounted(() => {
     measureTabOverflow();
     setupTabOverflowObserver();
   });
-  window.addEventListener("resize", measureTabOverflow);
+  window.addEventListener("resize", debouncedMeasureTabOverflow);
 });
 
 onUnmounted(() => {
   cleanupEventListeners();
   quickStartManager.removeListener(onQuickLinksChanged);
   teardownTabOverflowObserver();
-  window.removeEventListener("resize", measureTabOverflow);
+  window.removeEventListener("resize", debouncedMeasureTabOverflow);
 });
 
 // 监听器
@@ -693,7 +696,7 @@ watch(tabOverflow, (overflow) => {
   }
 });
 
-watch(list, () => nextTick(measureTabOverflow), { deep: true });
+watch(list, () => nextTick(measureTabOverflow));
 
 watch(
   () => currentRoute.value,

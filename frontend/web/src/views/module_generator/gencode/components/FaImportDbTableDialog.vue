@@ -41,9 +41,10 @@
       <ElTable
         ref="tableRef"
         :data="data"
-        :height="tableHeight"
+        height="calc(100vh - 460px)"
         @row-click="onRowClick"
         @selection-change="onSelectionChange"
+        class="mb-5"
       >
         <template #empty>
           <ElEmpty :image-size="80" description="暂无数据" />
@@ -90,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import type { FormInstance, TableInstance } from "element-plus";
 import type { DBTableSchema, GenTablePageQuery } from "@/api/module_generator/gencode";
 
@@ -117,12 +118,6 @@ const emit = defineEmits<Emits>();
 
 const importQueryRef = ref<FormInstance>();
 const tableRef = ref<TableInstance>();
-const isFullscreen = ref(false);
-
-// 根据全屏状态计算表格高度
-const tableHeight = computed(() => {
-  return isFullscreen.value ? "calc(100vh - 320px)" : "100%";
-});
 
 function onRowClick(row: DBTableSchema) {
   tableRef.value?.toggleRowSelection(row);

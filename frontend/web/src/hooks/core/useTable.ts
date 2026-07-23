@@ -21,12 +21,14 @@ import {
   onDeactivated,
   nextTick,
   readonly,
+  shallowRef,
   toRaw,
+  type ComputedRef,
+  type Ref,
 } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import type { AxiosResponse } from "axios";
 import { useTableColumns } from "./useTableColumns";
-import type { ColumnOption } from "@/types/component";
 import { MOBILE_BREAKPOINT } from "@utils/constants";
 import {
   TableCache,
@@ -208,7 +210,7 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   const error = ref<TableError | null>(null);
 
   // 表格数据
-  const data = ref<TRecord[]>([]);
+  const data = shallowRef<TRecord[]>([]);
 
   // 请求取消控制器
   let abortController: AbortController | null = null;
@@ -268,8 +270,8 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
   // 列配置
   const columnConfig = columnsFactory ? useTableColumns<TRecord>(columnsFactory) : null;
-  const columns = columnConfig?.columns;
-  const columnChecks = columnConfig?.columnChecks;
+  const columns = (columnConfig?.columns ?? null) as ComputedRef<ColumnOption[]> | undefined;
+  const columnChecks = (columnConfig?.columnChecks ?? null) as Ref<ColumnOption[]> | undefined;
 
   // 是否有数据
   const hasData = computed(() => data.value.length > 0);

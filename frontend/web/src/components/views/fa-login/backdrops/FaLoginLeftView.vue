@@ -18,8 +18,10 @@
     </div>
 
     <div class="text-wrap">
-      <h1>{{ $t("login.leftView.title") }}</h1>
-      <p>{{ $t("login.leftView.subTitle") }}</p>
+      <h1>{{ configStore.configData?.login_title?.config_value || $t("login.leftView.title") }}</h1>
+      <p>
+        {{ configStore.configData?.login_subtitle?.config_value || $t("login.leftView.subTitle") }}
+      </p>
     </div>
 
     <!-- 几何装饰元素 -->
@@ -114,7 +116,7 @@ const webLogoSrc = computed(
 );
 
 const siteTitle = computed(
-  () => configStore.configData.name?.config_value?.trim() || AppConfig.systemInfo.name
+  () => configStore.configData.sys_name?.config_value?.trim() || AppConfig.systemInfo.name
 );
 
 const DEFAULT_APP_VERSION = "3.0.0";

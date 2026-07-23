@@ -31,15 +31,13 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
         if not role_ids:
             raise CustomException(msg="角色ID列表不能为空")
 
-        roles = await self.get_list(search={"id": ("in", role_ids)})
-        # 校验：传入的 role_ids 必须全部存在（否则容易被 IDOR silent no-op）
+        roles = await self.get_list(search={"id": ("in", role_ids)}, preload=["menus"])
         if len(roles) != len(set(role_ids)):
             missing = sorted(set(role_ids) - {r.id for r in roles})
             raise CustomException(msg=f"角色不存在: {missing}")
 
         menus = [] if not menu_ids else await MenuCRUD(self.auth, self.db).get_list(search={"id": ("in", menu_ids)})
 
-        # 校验：传入的所有菜单必须存在
         if menu_ids and len(menus) != len(set(menu_ids)):
             missing = sorted(set(menu_ids) - {m.id for m in menus})
             raise CustomException(msg=f"菜单不存在: {missing}")
@@ -54,7 +52,7 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
         if not role_ids:
             raise CustomException(msg="角色ID列表不能为空")
 
-        roles = await self.get_list(search={"id": ("in", role_ids)})
+        roles = await self.get_list(search={"id": ("in", role_ids)}, preload=["depts"])
         if len(roles) != len(set(role_ids)):
             missing = sorted(set(role_ids) - {r.id for r in roles})
             raise CustomException(msg=f"角色不存在: {missing}")

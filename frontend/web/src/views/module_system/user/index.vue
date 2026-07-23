@@ -205,33 +205,21 @@ defineOptions({
 
 import { h } from "vue";
 import { UserFilled } from "@element-plus/icons-vue";
-import { ElAvatar } from "element-plus";
-import { ResultEnum } from "@/enums/api/result.enum";
+
 import { useAppStore } from "@stores";
 import { DeviceEnum } from "@/enums/settings/device.enum";
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { confirmDelete, confirmBatchDelete, confirmToggleStatus } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
+import { confirmToggleStatus } from "@/hooks/core/useConfirm";
+
 import UserAPI, {
   type UserForm,
   type UserInfo,
   type UserPageQuery,
 } from "@/api/module_system/user";
-import {
-  formatTree,
-  renderTableOperationCell,
-  type TableOperationAction,
-  resolveStatusColumns,
-} from "@utils";
+import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
 import PositionAPI from "@/api/module_system/position";
 import DeptAPI from "@/api/module_system/dept";
 import RoleAPI from "@/api/module_system/role";
 import { useUserStore } from "@stores";
-import { useAuth } from "@/hooks/core/useAuth";
-import type { ColumnOption } from "@/types/component";
 import type { DescriptionsItem } from "@/components/others/fa-descriptions/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
@@ -239,7 +227,7 @@ import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import FaDeptTree from "./components/FaDeptTree.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "@/utils/message";
 
 const { hasAuth } = useAuth();
 const userStore = useUserStore();
@@ -281,7 +269,7 @@ function buildUserRowActions(
     onResetPwd: (row: UserInfo) => void;
     onDetail: (id: number) => void;
     onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number, name: string) => void;
   }
 ): TableOperationAction[] {
   const sys = row.is_superuser === true;
@@ -324,7 +312,7 @@ function buildUserRowActions(
       disabled: sys,
       run: () => {
         if (sys) return;
-        ctx.onDelete(row.id!);
+        ctx.onDelete(row.id!, row.name ?? row.username ?? "");
       },
     },
   ];
@@ -514,7 +502,13 @@ async function handleResetPassword(row: UserInfo) {
     const { value } = await ElMessageBox.prompt(
       `请输入用户【${row.username ?? ""}】的新密码`,
       "重置密码",
-      { confirmButtonText: "确定", cancelButtonText: "取消" }
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputErrorMessage: "请输入密码",
+        draggable: true,
+      }
     );
     if (!value || value.length < 6) {
       ElMessage.warning("密码至少需要6位字符，请重新输入");
@@ -526,9 +520,9 @@ async function handleResetPassword(row: UserInfo) {
   }
 }
 
-async function deleteUserRow(id: number) {
+async function deleteUserRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await UserAPI.deleteUser([id]);
     const idSet = [id];
     if (userStore.basicInfo.id && idSet.includes(userStore.basicInfo.id)) {
@@ -631,7 +625,7 @@ const {
 });
 
 const userCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<UserInfo>) => {
+  (columns?.value ?? []).map((c: ColumnOption<UserInfo>) => {
     const t = (c as { type?: string }).type;
     return {
       prop: c.prop,
@@ -796,7 +790,7 @@ async function handleImportUpload(formDataUpload: FormData) {
     }
     // 失败分支提示由 axios 拦截器统一处理
   } catch (error: unknown) {
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
     // 接口错误已由拦截器提示
   } finally {
     uploadLoading.value = false;
@@ -882,7 +876,7 @@ async function handleSubmit() {
         await userStore.getUserInfo();
       }
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       submitLoading.value = false;
     }
@@ -893,7 +887,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r.name ?? r.username ?? r.id))
+    );
     batchDeleting.value = true;
     await UserAPI.deleteUser(ids);
     if (userStore.basicInfo.id && ids.includes(userStore.basicInfo.id)) {

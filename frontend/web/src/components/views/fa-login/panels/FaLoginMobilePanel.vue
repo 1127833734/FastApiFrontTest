@@ -19,26 +19,19 @@
       </div>
 
       <div class="login-mobile-code-row mb-[1.1rem] flex items-stretch gap-2 sm:gap-3">
-        <div
-          ref="otpWrapRef"
-          class="flex min-w-0 flex-1 gap-1.5 sm:gap-2"
-          @paste.prevent="onOtpPaste"
-        >
-          <input
-            v-for="idx in otpIndices"
-            :key="idx"
-            :value="otpDigits[idx]"
-            type="text"
+        <div class="flex min-w-0 flex-1">
+          <ElInputOtp
+            v-model="otpCode"
+            class="w-full"
+            :length="6"
+            size="large"
             inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="1"
-            class="login-mobile-otp-cell"
-            @input="onOtpCellInput(idx, $event)"
-            @keydown="onOtpCellKeydown(idx, $event)"
+            autofocus
+            @finish="onOtpFilled"
           />
         </div>
         <ElButton
-          class="login-mobile-sms-btn h-10 shrink-0 self-center px-3 sm:px-4"
+          class="login-mobile-sms-btn h-10 shrink-0 px-3 sm:px-4"
           plain
           :disabled="smsCountdown > 0"
           @click="sendSmsCodeMock"
@@ -76,7 +69,7 @@
 
 <script setup lang="ts">
 import { Iphone } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 
 defineOptions({ name: "FaLoginMobilePanel" });
 
@@ -93,9 +86,8 @@ const mobileForm = reactive({
   phone: "",
 });
 
-const otpDigits = ref<string[]>(Array.from({ length: 6 }, () => ""));
-const otpIndices = [0, 1, 2, 3, 4, 5];
-const otpWrapRef = ref<HTMLElement | null>(null);
+const otpCode = ref("");
+
 const smsCountdown = ref(0);
 let smsTimerId: number | null = null;
 
@@ -108,62 +100,12 @@ function clearSmsTimer() {
 
 function resetMobileLoginUi() {
   mobileForm.phone = "";
-  otpDigits.value = Array.from({ length: 6 }, () => "");
+  otpCode.value = "";
   smsCountdown.value = 0;
   clearSmsTimer();
 }
 
 defineExpose({ resetMobileLoginUi });
-
-function focusOtpCell(index: number) {
-  nextTick(() => {
-    const root = otpWrapRef.value;
-    if (!root) return;
-    const inputs = root.querySelectorAll<HTMLInputElement>(".login-mobile-otp-cell");
-    inputs[index]?.focus();
-  });
-}
-
-function onOtpCellInput(index: number, event: Event) {
-  const target = event.target as HTMLInputElement;
-  const digit = target.value.replace(/\D/g, "").slice(-1);
-  otpDigits.value[index] = digit;
-  target.value = digit;
-  if (digit && index < 5) {
-    focusOtpCell(index + 1);
-  }
-}
-
-function onOtpCellKeydown(index: number, event: KeyboardEvent) {
-  if (event.key === "Backspace" && !otpDigits.value[index] && index > 0) {
-    event.preventDefault();
-    otpDigits.value[index - 1] = "";
-    focusOtpCell(index - 1);
-    const root = otpWrapRef.value;
-    const inputs = root?.querySelectorAll<HTMLInputElement>(".login-mobile-otp-cell");
-    const prev = inputs?.[index - 1];
-    if (prev) prev.value = "";
-  }
-}
-
-function onOtpPaste(event: ClipboardEvent) {
-  const text = event.clipboardData?.getData("text")?.replace(/\D/g, "").slice(0, 6) ?? "";
-  if (!text) return;
-  event.preventDefault();
-  for (let i = 0; i < 6; i++) {
-    otpDigits.value[i] = text[i] ?? "";
-  }
-  nextTick(() => {
-    const root = otpWrapRef.value;
-    if (!root) return;
-    const inputs = root.querySelectorAll<HTMLInputElement>(".login-mobile-otp-cell");
-    inputs.forEach((el, i) => {
-      el.value = otpDigits.value[i] ?? "";
-    });
-    const nextIdx = Math.min(text.length, 5);
-    focusOtpCell(nextIdx);
-  });
-}
 
 function sendSmsCodeMock() {
   const phone = mobileForm.phone.trim();
@@ -183,14 +125,17 @@ function sendSmsCodeMock() {
   }, 1000);
 }
 
+function onOtpFilled(value: string) {
+  otpCode.value = value;
+}
+
 function submitMobileLogin() {
   const phone = mobileForm.phone.trim();
   if (!/^1\d{10}$/.test(phone)) {
     ElMessage.warning(t("login.message.mobile.invalid"));
     return;
   }
-  const code = otpDigits.value.join("");
-  if (code.length !== 6) {
+  if (otpCode.value.length !== 6) {
     ElMessage.warning(t("login.smsCodeRequired"));
     return;
   }

@@ -37,41 +37,23 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         await self.set([id], last_login=datetime.now())
 
     async def set_user_roles(self, user_ids: list[int], role_ids: list[int]) -> None:
-        """批量设置用户角色
-
-        参数:
-        - user_ids (list[int]): 用户ID列表
-        - role_ids (list[int]): 角色ID列表
-
-        返回:
-        - None
-        """
-        user_objs = await self.get_list(search={"id": ("in", user_ids)})
+        """批量设置用户角色"""
+        user_objs = await self.get_list(search={"id": ("in", user_ids)}, preload=["roles"])
         role_objs = [] if not role_ids else await RoleCRUD(self.auth, self.db).get_list(search={"id": ("in", role_ids)})
 
         for obj in user_objs:
-            relationship = obj.roles
-            relationship.clear()
-            relationship.extend(role_objs)
+            obj.roles.clear()
+            obj.roles.extend(role_objs)
         await self.db.flush()
 
     async def set_user_positions(self, user_ids: list[int], position_ids: list[int]) -> None:
-        """批量设置用户岗位
-
-        参数:
-        - user_ids (list[int]): 用户ID列表
-        - position_ids (list[int]): 岗位ID列表
-
-        返回:
-        - None
-        """
-        user_objs = await self.get_list(search={"id": ("in", user_ids)})
+        """批量设置用户岗位"""
+        user_objs = await self.get_list(search={"id": ("in", user_ids)}, preload=["positions"])
         position_objs = [] if not position_ids else await PositionCRUD(self.auth, self.db).get_list(search={"id": ("in", position_ids)})
 
         for obj in user_objs:
-            relationship = obj.positions
-            relationship.clear()
-            relationship.extend(position_objs)
+            obj.positions.clear()
+            obj.positions.extend(position_objs)
         await self.db.flush()
 
     async def change_password(self, id: int, password_hash: str) -> UserModel:

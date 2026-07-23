@@ -18,8 +18,6 @@
 </template>
 
 <script setup lang="ts">
-import type { LineDataItem } from "@/types/component/chart";
-
 /**
  * X 轴数据配置
  * 表示一年的月份（1-12月）

@@ -45,7 +45,6 @@
 
 <script lang="ts" setup>
 import { computed } from "vue";
-import { AppRouteRecord } from "@/types/router";
 import { handleMenuJump, formatMenuTitle } from "@utils";
 
 defineOptions({ name: "FaHorizontalSubmenu" });

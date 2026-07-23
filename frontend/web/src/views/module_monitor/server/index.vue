@@ -186,8 +186,8 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, onMounted } from "vue";
 import ServerAPI, { type ServerInfo } from "@/api/module_monitor/server";
-import { Auth } from "@utils";
 
 defineOptions({ name: "ServerMonitor" });
 
@@ -209,39 +209,18 @@ const server = ref<ServerInfo>({
   disks: [],
 });
 
-let eventSource: EventSource | null = null;
-
-function connectSSE() {
-  const token = Auth.getAccessToken();
-  const baseURL = import.meta.env.VITE_APP_BASE_API || "";
-  const url = `${baseURL}/monitor/server/stream?token=${encodeURIComponent(token)}`;
-
-  const es = new EventSource(url);
-  es.addEventListener("server_status", (event: MessageEvent) => {
-    try {
-      const data = JSON.parse(event.data);
-      server.value = data;
-    } catch {
-      /* 静默忽略解析错误 */
+async function fetchServerInfo() {
+  try {
+    const res = await ServerAPI.getServer();
+    if (res.data?.data) {
+      server.value = res.data.data;
     }
-  });
-  es.onerror = () => {
-    es.close();
-  };
-  eventSource = es;
+  } catch {
+    // 静默忽略错误
+  }
 }
 
-onMounted(() => {
-  // 先获取一次静态数据，再开启 SSE
-  ServerAPI.getServer().then((res) => {
-    server.value = res.data.data;
-  });
-  connectSSE();
-});
-
-onUnmounted(() => {
-  eventSource?.close();
-});
+onMounted(fetchServerInfo);
 </script>
 
 <style scoped lang="scss">

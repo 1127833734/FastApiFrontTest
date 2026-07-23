@@ -11,7 +11,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from app.common.enums import RedisInitKeyConfig
+from app.common.enums import RedisInitKeyConfig, SysParamKey
 from app.common.response import ErrorResponse
 from app.config.setting import settings
 from app.core.exceptions import CustomException
@@ -46,11 +46,11 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
         try:
             path = request.url.path
             config = await self._load_config(request)
-            is_blacklisted = bool(client_ip and client_ip in config["ip_black_list"])
+            is_blacklisted = bool(client_ip and client_ip in config[SysParamKey.IP_BLACK_LIST])
             in_demo = (
-                config.get("demo_enable", False)
+                config.get(SysParamKey.DEMO_ENABLE, False)
                 and request.method != "GET"
-                and (client_ip is None or client_ip not in config.get("ip_white_list", ()))
+                and (client_ip is None or client_ip not in config.get(SysParamKey.IP_WHITE_LIST, ()))
                 and not any(
                     path.startswith(item.rstrip("*")) if item.endswith("*") else path == item
                     for item in settings.WHITE_API_LIST_PATH
@@ -78,17 +78,17 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
         """加载中间件配置，失败时返回全部默认值。"""
         redis = getattr(request.app.state, "redis", None)
         if not redis:
-            return {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
+            return {SysParamKey.DEMO_ENABLE: False, SysParamKey.IP_WHITE_LIST: (), SysParamKey.IP_BLACK_LIST: ()}
         try:
             config_keys = [
-                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:demo_enable",
-                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:ip_white_list",
-                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:ip_black_list",
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{SysParamKey.DEMO_ENABLE.value}",
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{SysParamKey.IP_WHITE_LIST.value}",
+                f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{SysParamKey.IP_BLACK_LIST.value}",
             ]
             config_values = await RedisCURD(redis).mget(config_keys)
-            result: dict[str, Any] = {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
+            result: dict[str, Any] = {SysParamKey.DEMO_ENABLE: False, SysParamKey.IP_WHITE_LIST: (), SysParamKey.IP_BLACK_LIST: ()}
             raw_demo, raw_white, raw_black = config_values
-            for raw, key in ((raw_demo, "demo_enable"), (raw_white, "ip_white_list"), (raw_black, "ip_black_list")):
+            for raw, key in ((raw_demo, SysParamKey.DEMO_ENABLE), (raw_white, SysParamKey.IP_WHITE_LIST), (raw_black, SysParamKey.IP_BLACK_LIST)):
                 if not raw:
                     continue
                 try:
@@ -101,13 +101,13 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
                 cv = payload.get("config_value")
                 if cv is None:
                     continue
-                if key == "demo_enable":
-                    result[key] = cv in (True, "true", "1", "yes", "on")
+                if key == SysParamKey.DEMO_ENABLE:
+                    result[key.value] = cv in (True, "true", "1", "yes", "on")
                 else:
-                    result[key] = json.loads(cv) if isinstance(cv, str) else cv
+                    result[key.value] = json.loads(cv) if isinstance(cv, str) else cv
             return result
         except Exception:
-            return {"demo_enable": False, "ip_white_list": (), "ip_black_list": ()}
+            return {SysParamKey.DEMO_ENABLE: False, SysParamKey.IP_WHITE_LIST: (), SysParamKey.IP_BLACK_LIST: ()}
 
 
 class CustomGZipMiddleware(GZipMiddleware):

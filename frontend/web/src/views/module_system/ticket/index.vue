@@ -137,7 +137,7 @@
                       <ElDropdownItem
                         v-if="hasAuth('module_system:ticket:delete')"
                         divided
-                        @click="deleteTicketRow(item.id!)"
+                        @click="deleteTicketRow(item.id!, item.title ?? '')"
                       >
                         <ElIcon><Delete /></ElIcon>删除
                       </ElDropdownItem>
@@ -175,7 +175,7 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @confirm="handleDialogConfirm"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
@@ -267,6 +267,7 @@
       </template>
       <template v-else>
         <FaForm
+          v-if="dialogVisible.type === 'create'"
           :key="ticketFormRenderKey"
           scrollbar
           max-height="75vh"
@@ -316,16 +317,49 @@
               @update:model-value="(v: string) => (formData.ticket_content = v)"
             />
           </template>
-          <template #reply_content>
-            <FaWangEditor
-              :model-value="formData.reply_content ?? ''"
-              height="min(38vh, 280px)"
-              placeholder="请输入回复内容..."
-              :exclude-keys="[]"
-              @update:model-value="(v: string) => (formData.reply_content = v)"
-            />
-          </template>
         </FaForm>
+
+        <!-- 处理工单：展示工单信息 + 回复处理 -->
+        <div v-else class="ticket-process-panel">
+          <!-- 工单信息区 -->
+          <div class="ticket-info-section">
+            <div class="ticket-info-header">
+              <ElTag :type="typeTag(formData.ticket_type!)" size="small" effect="plain">
+                {{ typeLabel(formData.ticket_type!) }}
+              </ElTag>
+              <span class="ticket-info-title">{{ formData.title }}</span>
+            </div>
+            <FaMarkdownRenderer
+              :content="formData.ticket_content ?? ''"
+              class="ticket-process-content"
+            />
+          </div>
+
+          <ElDivider />
+
+          <!-- 处理区 -->
+          <div class="ticket-process-section">
+            <div class="process-field">
+              <label class="process-label">状态</label>
+              <ElRadioGroup v-model="formData.status">
+                <ElRadio :value="0">待处理</ElRadio>
+                <ElRadio :value="1">处理中</ElRadio>
+                <ElRadio :value="2">已完成</ElRadio>
+                <ElRadio :value="3">已关闭</ElRadio>
+              </ElRadioGroup>
+            </div>
+            <div class="process-field">
+              <label class="process-label">回复内容</label>
+              <FaWangEditor
+                :model-value="formData.reply_content ?? ''"
+                height="min(38vh, 280px)"
+                placeholder="请输入回复内容..."
+                :exclude-keys="[]"
+                @update:model-value="(v: string) => (formData.reply_content = v)"
+              />
+            </div>
+          </div>
+        </div>
       </template>
     </FaDialog>
   </div>
@@ -333,9 +367,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
 import TicketAPI, {
   getTicketComments,
   createTicketComment,
@@ -344,7 +376,6 @@ import TicketAPI, {
   type TicketTable,
   type TicketCommentTable,
 } from "@/api/module_system/ticket";
-import { useAuth } from "@/hooks/core/useAuth";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
@@ -537,7 +568,13 @@ function typeTag(t: string): any {
   return { suggestion: "success", bug: "danger", optimize: "warning", other: "info" }[t] || "info";
 }
 function statusTagType(s: string): "warning" | "info" | "success" | "danger" | undefined {
-  return { "0": "warning", "1": "info", "2": "success", "3": "info" }[s] as any;
+  const map: Record<string, "warning" | "info" | "success" | "danger"> = {
+    "0": "warning",
+    "1": "info",
+    "2": "success",
+    "3": "info",
+  };
+  return map[s];
 }
 function typeIcon(t: string): string {
   return (
@@ -654,9 +691,12 @@ const initialFormData: TicketForm & { reply_content?: string } = {
   reply_content: undefined,
 };
 
-const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } = useCrudForm<
-  TicketForm & { reply_content?: string }
->({
+const {
+  submitLoading,
+  handleCloseDialog,
+  handleOpenDialog,
+  handleSubmit: crudHandleSubmit,
+} = useCrudForm<TicketForm & { reply_content?: string }>({
   formData,
   initialFormData,
   dialogVisible,
@@ -677,6 +717,35 @@ const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } = use
     await fetchData();
   },
 });
+
+/** 对话框确认：创建走 crudHandleSubmit（含表单校验），处理直接调 API */
+async function handleDialogConfirm() {
+  if (dialogVisible.type === "create") {
+    await crudHandleSubmit();
+    return;
+  }
+  if (dialogVisible.type !== "update") {
+    handleCloseDialog();
+    return;
+  }
+  const id = formData.value.id;
+  if (!id) return;
+  submitLoading.value = true;
+  try {
+    const payload: Record<string, unknown> = {};
+    if (formData.value.status !== undefined) payload.status = formData.value.status;
+    if (formData.value.reply_content?.trim()) {
+      payload.reply_content = formData.value.reply_content.trim();
+    }
+    await TicketAPI.updateTicket(id, payload);
+    await fetchData();
+    handleCloseDialog();
+  } catch {
+    // 接口错误由全局拦截器处理
+  } finally {
+    submitLoading.value = false;
+  }
+}
 
 const ticketDialogFormItems = computed<FormItem[]>(() => [
   {
@@ -714,19 +783,12 @@ const ticketDialogFormItems = computed<FormItem[]>(() => [
     span: 24,
     placeholder: "",
   },
-  {
-    label: "回复内容",
-    key: "reply_content",
-    type: "input",
-    span: 24,
-    placeholder: "",
-  },
 ]);
 
 // ─── 操作 ───
-async function deleteTicketRow(id: number) {
+async function deleteTicketRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await TicketAPI.deleteTicket([id]);
     await fetchData();
   } catch {
@@ -752,7 +814,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      data.value.filter((r) => ids.includes(r.id!)).map((r) => String(r.title ?? r.id))
+    );
     batchDeleting.value = true;
     selectedIds.value = [];
     await TicketAPI.deleteTicket(ids);
@@ -1029,6 +1094,59 @@ async function handleSubmitComment() {
   margin: 0;
   font-size: 14px;
   color: var(--el-text-color-placeholder);
+}
+
+/* ─── 处理工单面板 ─── */
+.ticket-process-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.ticket-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ticket-info-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ticket-info-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ticket-process-content {
+  min-height: 120px;
+  padding: 12px;
+  background-color: var(--el-fill-color-lighter);
+  border-radius: calc(var(--custom-radius) / 3 + 2px);
+}
+
+.ticket-process-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 0;
+}
+
+.process-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.process-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .ticket-html-preview :deep(h1),

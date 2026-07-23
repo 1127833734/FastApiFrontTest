@@ -102,5 +102,37 @@
         "config_type": true,
         "status": 0,
         "description": "系统版本号"
+    },
+    {
+        "config_name": "系统名称",
+        "config_key": "sys_name",
+        "config_value": "FastapiAdmin系统",
+        "config_type": true,
+        "status": 0,
+        "description": "平台系统名称，用于登录页等界面展示"
+    },
+    {
+        "config_name": "登录页标题",
+        "config_key": "login_title",
+        "config_value": "一款兼具设计美学与高效开发的后台系统",
+        "config_type": true,
+        "status": 0,
+        "description": "登录页左侧面板主标题文案"
+    },
+    {
+        "config_name": "登录页副标题",
+        "config_key": "login_subtitle",
+        "config_value": "提供安全、高效、可扩展的管理解决方案，助力企业数字化转型与业务增长。",
+        "config_type": true,
+        "status": 0,
+        "description": "登录页左侧面板副标题文案"
+    },
+    {
+        "config_name": "IP归属地查询",
+        "config_key": "ip_location_enable",
+        "config_value": "on",
+        "config_type": true,
+        "status": 0,
+        "description": "是否启用IP归属地查询（登录时对外发起HTTP请求，关闭后只记录内网/未知）"
     }
 ]

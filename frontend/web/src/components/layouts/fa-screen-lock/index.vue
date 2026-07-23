@@ -150,7 +150,7 @@ import { Lock } from "@element-plus/icons-vue";
 
 defineOptions({ name: "FaScreenLock" });
 import type { FormInstance, FormRules } from "element-plus";
-import { ElInput } from "element-plus";
+
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import CryptoJS from "crypto-js";
@@ -158,7 +158,7 @@ import { useUserStore, useSettingsStore } from "@stores";
 import { mittBus, useNow } from "@utils";
 import bgDark from "@imgs/lock/bg_dark.webp";
 import bgLight from "@imgs/lock/bg_light.webp";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -184,15 +184,10 @@ const lockPageBgStyle = computed(() => {
 
 const { hour, month, minute, meridiem, year, day, week } = useNow(true);
 
-const displayName = computed(
-  () =>
-    (userInfo.value as { name?: string; username?: string })?.name ||
-    (userInfo.value as { username?: string })?.username ||
-    "—"
-);
+const displayName = computed(() => userInfo.value?.name || userInfo.value?.username || "—");
 
 const userAvatar = computed(() => {
-  const a = (userInfo.value as { avatar?: string })?.avatar?.trim();
+  const a = userInfo.value?.avatar?.trim();
   return a || "";
 });
 

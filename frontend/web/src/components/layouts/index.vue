@@ -9,12 +9,12 @@
 <template>
   <div class="app-layout">
     <!-- 左侧菜单导航 -->
-    <aside id="app-sidebar">
+    <aside id="app-sidebar" aria-label="主菜单导航">
       <FaSidebarMenu />
     </aside>
 
     <!-- 右侧主区域 -->
-    <main id="app-main">
+    <main id="app-main" aria-label="主要内容区域">
       <div id="app-header">
         <FaHeaderBar />
       </div>

@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "@/utils/message";
 
 interface Comment {
   id: number;

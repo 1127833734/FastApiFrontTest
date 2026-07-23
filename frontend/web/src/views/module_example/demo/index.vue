@@ -101,7 +101,7 @@
             <div class="flex flex-col gap-2">
               <div
                 v-for="(item, index) in metadataList"
-                :key="index"
+                :key="item.key"
                 class="flex items-center gap-2"
               >
                 <ElInput v-model="item.key" placeholder="键" />
@@ -151,26 +151,15 @@
 </template>
 
 <script setup lang="ts">
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete, confirmAction } from "@/hooks/core/useConfirm";
-import { stripPaginationParams } from "@/utils/query";
+import type { TableOperationAction } from "@/utils/table";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import FaJsonPretty from "@/components/others/fa-json-pretty/index.vue";
-import type { ColumnOption } from "@/types/component";
 import DemoAPI, {
   type DemoForm,
   type DemoPageQuery,
   type DemoTable,
 } from "@/api/module_example/demo";
-import { ResultEnum } from "@/enums/api/result.enum";
-import { ElMessage } from "element-plus";
 
 defineOptions({
   name: "Demo",
@@ -331,7 +320,7 @@ const {
 
 /** 供 CrudImportModal / CrudExportModal 的列配置（与 CrudContent.cols 结构一致） */
 const demoCrudCols = computed(() =>
-  columns.value.map((c: ColumnOption<DemoTable>) => {
+  (columns?.value ?? []).map((c: ColumnOption<DemoTable>) => {
     const t = (c as { type?: string }).type;
     return {
       prop: c.prop,
@@ -642,7 +631,7 @@ async function handleSubmit() {
       dialogVisible.visible = false;
       await resetForm();
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   });
 }
@@ -704,8 +693,8 @@ async function handleCrudImportUpload(formData: FormData) {
       await refreshData();
     }
     // 非 SUCCESS 分支提示由 axios 拦截器统一处理
-  } catch (error) {
-    console.error("[Import]", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("[Import]", error);
     /* 接口错误已由拦截器提示 */
   }
 }

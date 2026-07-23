@@ -14,7 +14,11 @@
       >
         <div
           class="button"
+          role="button"
+          tabindex="0"
           @click="search"
+          @keydown.enter.prevent="search"
+          @keydown.space.prevent="search"
           :class="!showSearchBar ? 'active bg-theme! hover:bg-theme/80!' : ''"
         >
           <FaSvgIcon icon="ri:search-line" :class="!showSearchBar ? 'text-white' : 'text-g-700'" />
@@ -25,7 +29,11 @@
       <div
         v-if="shouldShow('refresh')"
         class="button"
+        role="button"
+        tabindex="0"
         @click="refresh"
+        @keydown.enter.prevent="refresh"
+        @keydown.space.prevent="refresh"
         :class="{ loading: loading && isManualRefresh }"
       >
         <FaSvgIcon
@@ -59,7 +67,15 @@
       </ElDropdown>
 
       <!-- 全屏 -->
-      <div v-if="shouldShow('fullscreen')" class="button" @click="toggleFullScreen">
+      <div
+        v-if="shouldShow('fullscreen')"
+        class="button"
+        role="button"
+        tabindex="0"
+        @click="toggleFullScreen"
+        @keydown.enter.prevent="toggleFullScreen"
+        @keydown.space.prevent="toggleFullScreen"
+      >
         <FaSvgIcon :icon="isFullScreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
       </div>
 
@@ -71,7 +87,11 @@
       >
         <div
           class="button"
+          role="button"
+          tabindex="0"
           @click="toggleRowDrag"
+          @keydown.enter.prevent="toggleRowDrag"
+          @keydown.space.prevent="toggleRowDrag"
           :class="isRowDrag ? 'active bg-theme! hover:bg-theme/80!' : ''"
         >
           <FaSvgIcon icon="ri:drag-move-line" :class="isRowDrag ? 'text-white' : 'text-g-700'" />
@@ -156,8 +176,6 @@ import { TableSizeEnum } from "@/enums/formEnum";
 import { useTableStore } from "@stores";
 import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
-import type { ColumnOption } from "@/types/component";
-
 defineOptions({ name: "FaTableHeader" });
 
 // 显式声明插槽类型

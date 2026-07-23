@@ -6,13 +6,11 @@ import { router } from "@/router";
 import { useWorktabStore } from "./worktab.store";
 import { useMenuStore } from "./menu.store";
 import { useConfigStore } from "./config.store";
-import { AppRouteRecord } from "@/types/router";
 import { Auth, setPageTitle, StorageConfig } from "@utils";
-import AuthAPI from "@/api/module_system/auth";
+import AuthAPI, { type LoginFormData } from "@/api/module_system/auth";
 import UserAPI from "@/api/module_system/user";
 import type { MenuTable } from "@/api/module_system/menu";
-import { ResultEnum } from "@/enums/api/result.enum";
-import { ElNotification } from "element-plus";
+import { ElNotification } from "@/utils/message";
 import { store, useDictStore } from "@stores";
 import type { UserInfo } from "@/api/module_system/user";
 
@@ -64,22 +62,15 @@ export const useUserStore = defineStore(
     // 记住我状态
     const rememberMe = ref(Auth.getRememberMe());
     /** info 扩展类型：兼容 API 返回 `user_id`（非标准 UserInfo 字段） */
-    type UserInfoLike = Partial<UserInfo> & Record<string, any>;
+    type UserInfoLike = Partial<UserInfo> & { user_id?: number; [key: string]: unknown };
 
     // 计算属性：基础用户信息
     const basicInfo = computed(() => info.value as UserInfoLike);
-    // 计算属性：获取路由列表
-    const getRouteList = computed(() => routeList.value);
-    // 计算属性：获取权限列表
-    const getPerms = computed(() => prems.value);
-    // 计算属性：是否已获取路由
-    const getHasGetRoute = computed(() => hasGetRoute.value);
-
     /**
      * 设置用户信息
      * @param newInfo 新的用户信息
      */
-    const setUserInfo = (newInfo: UserInfo | UserInfo) => {
+    const setUserInfo = (newInfo: UserInfo) => {
       info.value = newInfo;
       // 设置用户信息后自动更新权限
       setPermissions([]);
@@ -231,7 +222,7 @@ export const useUserStore = defineStore(
     /**
      * 登录
      */
-    async function login(loginForm: any) {
+    async function login(loginForm: LoginFormData) {
       const response = await AuthAPI.login(loginForm);
       const data = response.data.data;
       if (response.data.code === ResultEnum.SUCCESS) {
@@ -241,7 +232,7 @@ export const useUserStore = defineStore(
           type: "success",
         });
       }
-      rememberMe.value = loginForm.remember;
+      rememberMe.value = loginForm.remember ?? false;
 
       const accessToken = data?.access_token || "";
       const refreshToken = data?.refresh_token || "";
@@ -275,7 +266,7 @@ export const useUserStore = defineStore(
       const token = Auth.getAccessToken();
       if (token) {
         try {
-          const response = await AuthAPI.logout({ token });
+          const response = await AuthAPI.logout(token);
           if (response.data.code === ResultEnum.SUCCESS) {
             ElNotification({
               title: "通知",
@@ -380,9 +371,6 @@ export const useUserStore = defineStore(
       rememberMe,
       getUserInfo,
       basicInfo,
-      getRouteList,
-      getPerms,
-      getHasGetRoute,
       setUserInfo,
       setLoginStatus,
       setLanguage,
@@ -406,6 +394,7 @@ export const useUserStore = defineStore(
     persist: {
       key: "user",
       storage: localStorage,
+      pick: ["language", "isLogin", "searchHistory", "rememberMe"],
     },
   }
 );

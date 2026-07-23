@@ -79,7 +79,8 @@
 defineOptions({ name: "FaUpload" });
 
 import { ref, watch } from "vue";
-import { UploadRawFile, UploadRequestOptions, ElMessage, type UploadUserFile } from "element-plus";
+import { ElMessage } from "@/utils/message";
+import type { UploadRawFile, UploadRequestOptions, UploadUserFile } from "element-plus";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
 import ParamsAPI from "@/api/module_system/params";
 import { dataURLToFile } from "@utils";

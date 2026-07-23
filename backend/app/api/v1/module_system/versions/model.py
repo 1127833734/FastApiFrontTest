@@ -9,9 +9,8 @@ class VersionModel(ModelMixin, UserMixin):
 
     __tablename__: str = "sys_version"
     __table_args__: dict[str, str] = {"comment": "版本管理表"}
-    __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by"]
 
-    version: Mapped[str] = mapped_column(String(50), nullable=False, comment="版本号")
+    version: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, comment="版本号")
     title: Mapped[str] = mapped_column(String(200), nullable=False, comment="版本标题")
     date: Mapped[str] = mapped_column(String(50), nullable=False, comment="发布日期")
     content: Mapped[str | None] = mapped_column(Text, nullable=True, default=None, comment="版本富文本内容")

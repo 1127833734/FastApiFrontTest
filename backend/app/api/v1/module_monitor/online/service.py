@@ -24,7 +24,7 @@ class OnlineService:
         tokens = await RedisCURD(redis).mget(keys)
 
         online_users = []
-        for token in tokens:
+        for key, token in zip(keys, tokens, strict=True):
             if not token:
                 continue
             try:
@@ -53,12 +53,23 @@ class OnlineService:
                             continue
 
                 online_users.append(session_info)
-            except Exception as e:
-                logger.error(f"解析在线用户数据失败: {e}")
+            except Exception:
+                # token 已过期或无效，清理 Redis 中的脏数据
+                key_str = key.decode() if isinstance(key, bytes) else key
+                session_id = key_str.split(":")[-1]
+                await RedisCURD(redis).delete(key_str)
+                await RedisCURD(redis).delete(f"{RedisInitKeyConfig.REFRESH_TOKEN.key}:{session_id}")
+                await RedisCURD(redis).delete(f"{RedisInitKeyConfig.USER_SESSION.key}:{session_id}")
                 continue
 
         online_users.sort(key=lambda x: x.get("login_time", ""), reverse=True)
         return online_users
+
+    @staticmethod
+    async def get_current_user_sessions(redis: Redis, user_id: int) -> list[dict]:
+        """获取当前用户的在线会话列表"""
+        all_online = await OnlineService.get_online_list(redis)
+        return [s for s in all_online if s.get("user_id") == user_id]
 
     @staticmethod
     async def delete_online(redis: Redis, session_id: str) -> None:

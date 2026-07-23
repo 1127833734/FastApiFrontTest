@@ -36,6 +36,12 @@ STATE_PREFIX = "oauth_state:"
 
 def _callback_url(request: Request, provider: OAuthProvider) -> str:
     root = str(request.base_url).rstrip("/")
+    # 域名白名单校验：防止 Host 头注入攻击重定向到恶意域名
+    allowed_hosts = settings.OAUTH_ALLOWED_HOSTS
+    if allowed_hosts and allowed_hosts != ["*"]:
+        host = request.url.hostname
+        if host is None or not any(host == allowed_host or host.endswith("." + allowed_host) for allowed_host in allowed_hosts):
+            raise CustomException(msg="非法的 OAuth 回调域名")
     return f"{root}/system/auth/oauth/{provider}/callback"
 
 

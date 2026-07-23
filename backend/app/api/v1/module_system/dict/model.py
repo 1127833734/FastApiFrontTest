@@ -1,35 +1,29 @@
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base_model import ModelMixin, UserMixin
+from app.core.base_model import ModelMixin
 
 
-class DictTypeModel(ModelMixin, UserMixin):
+class DictTypeModel(ModelMixin):
     """字典类型表"""
 
     __tablename__: str = "sys_dict_type"
     __table_args__: dict[str, str] = {"comment": "字典类型表"}
-    __loader_options__: list[str] = ["dict_data_list", "created_by", "updated_by", "deleted_by"]
 
-    dict_name: Mapped[str] = mapped_column(String(64), nullable=False, comment="字典名称")
-    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="字典类型")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
+    dict_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True, comment="字典名称")
+    dict_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True, unique=True, comment="字典类型")
+    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
-    dict_data_list: Mapped[list["DictDataModel"]] = relationship(
-        "DictDataModel",
-        back_populates="dict_type_obj",
-        cascade="all, delete-orphan",
-    )
+    dict_data_list: Mapped[list["DictDataModel"]] = relationship("DictDataModel", back_populates="dict_type_obj")
 
 
-class DictDataModel(ModelMixin, UserMixin):
+class DictDataModel(ModelMixin):
     """字典数据表"""
 
     __tablename__: str = "sys_dict_data"
     __table_args__: dict[str, str] = {"comment": "字典数据表"}
-    __loader_options__: list[str] = ["dict_type_obj", "created_by", "updated_by", "deleted_by"]
 
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
+    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, index=True, comment="状态(0:启动 1:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     dict_sort: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="字典排序")
     dict_label: Mapped[str] = mapped_column(String(255), nullable=False, comment="字典标签")

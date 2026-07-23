@@ -66,7 +66,7 @@ export const MANUAL_SYSTEM_TAIL_PAGES: CompactManualPage[] = [
       "检索：字典类型 FaSearchBar + 分页表。",
       "工具栏：新增类型、导出类型、批量删除、批量更多(patch)、刷新、列配置。",
       "类型弹层：详情 / 新增编辑 Dialog。",
-      "子层：`DataDrawer` 维护某字典类型下的字典数据项（二级）。",
+      "子层：`DictDataPanel` 维护某字典类型下的字典数据项（二级）。",
       "权限：`module_system:dict_type:*` 与字典数据接口权限（见行内按钮）。",
     ],
   },

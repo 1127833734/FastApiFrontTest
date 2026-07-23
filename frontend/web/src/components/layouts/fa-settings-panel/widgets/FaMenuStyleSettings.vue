@@ -21,10 +21,11 @@
 </template>
 
 <script setup lang="ts">
+import { MenuThemeEnum } from "@/enums/appEnum";
 import AppConfig from "@/config";
 
 defineOptions({ name: "FaMenuStyleSettings" });
-import { MenuTypeEnum, type MenuThemeEnum } from "@/enums/appEnum";
+
 import { useSettingsStore } from "@stores";
 
 const menuThemeList = AppConfig.themeList;

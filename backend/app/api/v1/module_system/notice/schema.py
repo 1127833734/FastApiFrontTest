@@ -62,6 +62,6 @@ class NoticeOutSchema(NoticeCreateSchema, BaseSchema, UserBySchema):
 class NoticeQueryParam(BaseQueryParam, UserByQueryParam):
     """公告通知查询参数"""
 
-    notice_title: str | None = Field(None, description="公告标题")
+    notice_title: str | None = Field(None, description="公告标题", json_schema_extra={"q": "like"})
     notice_type: str | None = Field(None, description="公告类型", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, ge=0, le=2, description="状态(0:草稿 1:已发布 2:已归档)")
+    status: int | None = Field(None, ge=0, le=2, description="状态(0:草稿 1:已发布 2:已归档)", json_schema_extra={"q": "eq"})

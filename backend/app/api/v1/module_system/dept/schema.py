@@ -10,10 +10,7 @@ class DeptCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=64, description="部门名称")
     order: int = Field(default=1, ge=0, description="显示顺序")
     code: str = Field(..., min_length=2, max_length=64, description="部门编码")
-    leader: str | None = Field(default=None, max_length=32, description="部门负责人")
-    phone: str | None = Field(default=None, max_length=20, description="联系电话")
-    email: str | None = Field(default=None, max_length=128, description="邮箱")
-    parent_id: int | None = Field(default=None, ge=0, description="父部门ID")
+    parent_id: int | None = Field(default=None, ge=1, description="父部门ID")
     status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
 
@@ -61,5 +58,5 @@ class DeptTreeOutSchema(DeptOutSchema):
 class DeptQueryParam(BaseQueryParam, UserByQueryParam):
     """部门管理查询参数"""
 
-    name: str | None = Field(None, description="部门名称")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    name: str | None = Field(None, description="部门名称", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})

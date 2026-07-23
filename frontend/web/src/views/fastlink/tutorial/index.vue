@@ -871,7 +871,10 @@
                   <h3>完整编辑器内容</h3>
                   <ElTabs v-model="fullActiveTab">
                     <ElTabPane label="渲染效果" name="preview">
-                      <div class="content-preview" v-html="fullEditorHtml"></div>
+                      <div
+                        class="content-preview"
+                        v-html="DOMPurify.sanitize(fullEditorHtml)"
+                      ></div>
                     </ElTabPane>
                     <ElTabPane label="HTML源码" name="html">
                       <ElInput
@@ -889,7 +892,10 @@
                   <h3>简化编辑器内容</h3>
                   <ElTabs v-model="simpleActiveTab">
                     <ElTabPane label="渲染效果" name="preview">
-                      <div class="content-preview" v-html="simpleEditorHtml"></div>
+                      <div
+                        class="content-preview"
+                        v-html="DOMPurify.sanitize(simpleEditorHtml)"
+                      ></div>
                     </ElTabPane>
                     <ElTabPane label="HTML源码" name="html">
                       <ElInput
@@ -1036,6 +1042,7 @@ import { computed, ref } from "vue";
 import lockImg from "@imgs/lock/bg_dark.webp";
 import { MANUAL_MODULES_AFTER_SYSTEM, MANUAL_SYSTEM_TAIL_PAGES } from "./manualSections";
 import { manualModuleMatchesQuery, manualPageMatchesQuery } from "./manualTocSearch";
+import DOMPurify from "dompurify";
 
 defineOptions({ name: "DashboardTutorial" });
 

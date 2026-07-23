@@ -1,18 +1,15 @@
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
 
 from .config import path_conf
 from .config.setting import settings
 from .core.exceptions import handle_exception
-from .core.http_limit import WebSocketRateLimiter, limiter
 from .core.logger import logger
 from .utils.common_util import import_module
 from .utils.console import console_end, console_start
@@ -36,10 +33,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     logger.info("✅ Redis数据字典初始化完成")
     await SchedulerUtil.init_scheduler(redis=app.state.redis)
     logger.info("✅ 定时任务调度器初始化完成")
-    FastAPICache.init(RedisBackend(app.state.redis), prefix="fastapi-admin-cache")
-    logger.info("✅ fastapi-admin-cache 初始化完成")
-    app.state.limiter = limiter
-    logger.info("✅ 请求限流器初始化完成")
 
     console_start(
         host=settings.SERVER_HOST,
@@ -48,7 +41,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
         database_ready=True,
         redis_ready=True,
         scheduler_ready=SchedulerUtil.is_running(),
-        limiter_ready=True,
     )
 
     yield
@@ -56,8 +48,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     try:
         SchedulerUtil.shutdown(wait=True)
         logger.info("✅ 定时任务调度器已关闭")
-        await FastAPICache.clear()
-        logger.info("✅ fastapi-admin-cache 已关闭")
         await redis_connect(app, status=False)
         logger.info("✅ Redis 连接已关闭")
         await async_engine.dispose()
@@ -95,21 +85,18 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(generator_router)
     app.include_router(task_router)
 
-    from app.api.v1.module_ai.chat.ws import WS_AI
-    app.include_router(router=WS_AI, dependencies=[Depends(WebSocketRateLimiter(max_calls=200, period=10))])
-
     from app.core.discover import dynamic_router
     dynamic_router.init_app(app)
 
 
 def register_static(app: FastAPI) -> None:
-    if settings.STATIC_ENABLE:
-        settings.STATIC_ROOT.mkdir(parents=True, exist_ok=True)
-        app.mount(path=settings.STATIC_URL, app=StaticFiles(directory=settings.STATIC_ROOT), name=settings.STATIC_DIR)
+    """注册静态文件路由。"""
+    path_conf.STATIC_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount(path=settings.STATIC_URL, app=StaticFiles(directory=path_conf.STATIC_DIR), name=path_conf.STATIC_DIR.name)
 
 
 def register_docs(app: FastAPI) -> None:
-    """注册文档路由并豁免 slowapi 限流。"""
+    """注册文档路由。"""
     swagger_ui_redirect_url = str(app.swagger_ui_oauth2_redirect_url)
     root_openapi_url = str(app.root_path) + str(app.openapi_url)
 

@@ -64,8 +64,8 @@ class WorkflowNodeTypeOutSchema(WorkflowNodeTypeCreateSchema, BaseSchema, UserBy
 class WorkflowNodeTypeQueryParam(BaseQueryParam, UserByQueryParam):
     """查询"""
 
-    name: str | None = Field(None, description="名称")
+    name: str | None = Field(None, description="名称", json_schema_extra={"q": "like"})
     code: str | None = Field(None, description="编码", json_schema_extra={"q": "eq"})
     category: str | None = Field(None, description="分类", json_schema_extra={"q": "eq"})
-    is_active: bool | None = Field(None, description="是否启用")
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    is_active: bool | None = Field(None, description="是否启用", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})

@@ -14,16 +14,20 @@
       :disabled-search="false"
       :default-expanded="false"
       include-audit
+      :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
       @search="handleSearchBarSearch"
       @reset="onResetSearch"
     />
 
     <ElTabs v-model="menuClientTab" @tab-change="handleMenuClientTabChange">
-      <ElTabPane label="PC 桌面菜单管理" name="pc" />
-      <ElTabPane label="APP 移动端菜单管理" name="app" />
+      <ElTabPane label="Web 菜单" name="pc" />
+      <ElTabPane label="APP 菜单" name="app" />
     </ElTabs>
 
-    <ElCard class="fa-table-card" :style="{ 'margin-top': showSearchBar ? '12px' : '0' }">
+    <ElCard
+      class="fa-table-card"
+      :style="{ 'margin-top': showSearchBar ? '12px' : '0', transition: 'margin-top 0.2s ease' }"
+    >
       <FaTableHeader
         v-model:columns="columnChecks"
         v-model:showSearchBar="showSearchBar"
@@ -85,7 +89,7 @@
             <FaStatusTag v-if="row?.type === MenuTypeEnum.BUTTON" type="danger" label="按钮" />
             <FaStatusTag v-if="row?.type === MenuTypeEnum.EXTLINK" type="info" label="外链" />
           </template>
-          <template #client="{ row }">
+          <template #scope="{ row }">
             <FaStatusTag v-if="row?.scope === MenuClientEnum.PC" type="primary" label="PC" />
             <FaStatusTag v-else-if="row?.scope === MenuClientEnum.APP" type="success" label="APP" />
             <FaStatusTag v-else type="info" :label="(row?.scope as string) || '—'" />
@@ -164,10 +168,15 @@
 
           <!-- 终端(禁用态+提示) -->
           <template #scope>
-            <ElRadioGroup v-model="formData.scope" :disabled="createParentLocked">
-              <ElRadio :value="MenuClientEnum.PC">PC 桌面</ElRadio>
-              <ElRadio :value="MenuClientEnum.APP">APP 移动</ElRadio>
-            </ElRadioGroup>
+            <ElSelect
+              v-model="formData.scope"
+              :disabled="createParentLocked"
+              placeholder="请选择终端"
+              style="width: 100%"
+            >
+              <ElOption :value="MenuClientEnum.PC" label="PC 桌面" />
+              <ElOption :value="MenuClientEnum.APP" label="APP 移动" />
+            </ElSelect>
             <ElText v-if="createParentLocked" type="info" size="small" class="block mt-1">
               子级终端与父菜单一致
             </ElText>
@@ -228,7 +237,7 @@
               </ElButton>
             </template>
             <template v-else>
-              <div v-for="(item, index) in formData.params" :key="index">
+              <div v-for="item in formData.params" :key="item.key">
                 <ElInput v-model="item.key" placeholder="参数名" :style="'width: 100px'" />
                 <span class="mx-1">=</span>
                 <ElInput v-model="item.value" placeholder="参数值" :style="'width: 100px'" />
@@ -348,17 +357,24 @@ import MenuAPI, {
 } from "@/api/module_system/menu";
 import { MenuClientEnum, MenuTypeEnum } from "@/enums/system/menu.enum";
 import { formatTree } from "@utils/common";
-import { useAuth } from "@/hooks/core/useAuth";
-import { renderTableOperationCell, type TableOperationAction, resolveStatusColumns } from "@utils";
+import { type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
 import FaMenuRouteIcon from "@/components/others/fa-menu-route-icon/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "@/utils/message";
 
 const { hasAuth } = useAuth();
 const userStore = useUserStore();
+
+// 预计算操作权限，避免每行反复调用 hasAuth
+const menuPerms = computed(() => ({
+  create: hasAuth("module_system:menu:create"),
+  detail: hasAuth("module_system:menu:detail"),
+  update: hasAuth("module_system:menu:update"),
+  delete: hasAuth("module_system:menu:delete"),
+}));
 
 type MenuSearchForm = {
   name?: string;
@@ -381,43 +397,48 @@ function buildMenuRowActions(
     onAdd?: (r: MenuTable) => void;
     onDetail: (id: number) => void;
     onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number, name: string) => void;
   }
 ): TableOperationAction[] {
+  const { create, detail, update: editPerm, delete: delPerm } = menuPerms.value;
   const actions: TableOperationAction[] = [];
-  if (ctx.onAdd && (row.type === MenuTypeEnum.CATALOG || row.type === MenuTypeEnum.MENU)) {
+  if (
+    ctx.onAdd &&
+    create &&
+    (row.type === MenuTypeEnum.CATALOG || row.type === MenuTypeEnum.MENU)
+  ) {
     actions.push({
       key: "add",
       label: "新增",
       artType: "add",
-      perm: "module_system:menu:create",
       run: () => ctx.onAdd!(row),
     });
   }
-  actions.push(
-    {
+  if (detail) {
+    actions.push({
       key: "detail",
       label: "详情",
       artType: "view",
-      perm: "module_system:menu:detail",
       run: () => ctx.onDetail(row.id!),
-    },
-    {
+    });
+  }
+  if (editPerm) {
+    actions.push({
       key: "edit",
       label: "编辑",
       artType: "edit",
-      perm: "module_system:menu:update",
       run: () => ctx.onEdit(row.id!),
-    },
-    {
+    });
+  }
+  if (delPerm) {
+    actions.push({
       key: "delete",
       label: "删除",
       artType: "delete",
-      perm: "module_system:menu:delete",
-      run: () => ctx.onDelete(row.id!),
-    }
-  );
-  return actions.filter((a) => a.perm != null && hasAuth(a.perm));
+      run: () => ctx.onDelete(row.id!, row.title ?? row.name ?? ""),
+    });
+  }
+  return actions;
 }
 
 function formatMenuOperationCell(row: MenuTable, ctx: Parameters<typeof buildMenuRowActions>[1]) {
@@ -489,7 +510,7 @@ const menuDetailItems: import("@/components/others/fa-descriptions/index.vue").D
     { label: "编号", prop: "id" },
     { label: "菜单名称", prop: "name" },
     { label: "菜单类型", prop: "type", slot: "type" },
-    { label: "终端", prop: "client", slot: "client" },
+    { label: "终端", prop: "scope", slot: "scope" },
     { label: "图标", prop: "icon", slot: "icon" },
     { label: "权限标识", prop: "permission" },
     { label: "路由名称", prop: "route_name" },
@@ -611,6 +632,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "input",
       hidden: t !== MenuTypeEnum.CATALOG && t !== MenuTypeEnum.MENU,
     },
+    { key: "scope", label: "终端", type: "select", props: { options: MenuClientEnum } },
     { key: "order", label: "排序", type: "number", props: { controlsPosition: "right", min: 1 } },
     { key: "is_iframe", label: "嵌入iframe", type: "input", hidden: t !== MenuTypeEnum.EXTLINK },
     {
@@ -637,7 +659,6 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "input",
       hidden: t !== MenuTypeEnum.MENU,
     },
-    { key: "client", label: "终端", type: "input" },
     { key: "affix", label: "常驻标签栏", type: "input", hidden: t === MenuTypeEnum.BUTTON },
     { key: "is_hide_tab", label: "隐藏标签页", type: "input", hidden: t === MenuTypeEnum.BUTTON },
     { key: "show_badge", label: "显示红点角标", type: "input", hidden: t === MenuTypeEnum.BUTTON },
@@ -758,7 +779,7 @@ async function loadMenuData() {
     tableData.value = tree;
     menuOptions.value = formatTree(filterMenuTypes(tree));
   } catch (e: unknown) {
-    console.error(e);
+    if (import.meta.env.DEV) console.error(e);
   } finally {
     loading.value = false;
   }
@@ -805,14 +826,9 @@ function toggleExpand() {
   });
 }
 
-async function deleteMenuRow(id: number) {
+async function deleteMenuRow(id: number, name: string) {
   try {
-    await ElMessageBox.confirm("确认删除该项数据?", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
-
+    await confirmDelete(`确定删除「${name}」吗？`);
     await MenuAPI.deleteMenu([id]);
     await userStore.getUserInfo();
     selectedRows.value = [];
@@ -833,30 +849,26 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
   resolveStatusColumns(() => [
     { type: "selection", width: 48, fixed: "left" },
     { type: "index", label: "序号", width: 60, fixed: "left" },
-    { prop: "name", label: "菜单名称", minWidth: 200, showOverflowTooltip: true },
+    // ─── 基础信息 ───
     {
-      prop: "icon",
-      label: "图标",
-      width: 72,
-      align: "center",
-      formatter: (row: MenuTable) =>
-        row.icon
-          ? h(FaMenuRouteIcon, { icon: row.icon, style: { verticalAlign: "-0.15em" } })
-          : h("span", { class: "text-g-400" }, "—"),
-    },
-    {
-      prop: "status",
-      label: "状态",
-      width: 88,
-      status: {
-        0: { type: "success", text: "启用" },
-        1: { type: "danger", text: "停用" },
+      prop: "name",
+      label: "菜单名称",
+      minWidth: 220,
+      showOverflowTooltip: true,
+      formatter: (row: MenuTable) => {
+        const isButton = row.type === MenuTypeEnum.BUTTON;
+        if (isButton || !row.icon) return row.name ?? "—";
+        const iconVNode = h(FaMenuRouteIcon, {
+          icon: row.icon,
+          style: { verticalAlign: "-0.15em", marginRight: "6px" },
+        });
+        return h("span", null, [iconVNode, row.name]);
       },
     },
     {
       prop: "type",
       label: "类型",
-      width: 88,
+      width: 80,
       align: "center",
       status: {
         1: { type: "warning", text: "目录" },
@@ -865,93 +877,53 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
         4: { type: "info", text: "外链" },
       },
     },
+    { prop: "title", label: "菜单标题", minWidth: 120, showOverflowTooltip: true },
+    { prop: "permission", label: "权限标识", minWidth: 160, showOverflowTooltip: true },
     {
       prop: "scope",
       label: "终端",
-      width: 88,
+      width: 80,
       align: "center",
       status: {
-        pc: { type: "primary", text: "PC" },
-        app: { type: "success", text: "APP" },
+        web: { type: "primary", text: "Web" },
+        app: { type: "success", text: "App" },
       },
     },
-    { prop: "order", label: "排序", width: 80 },
+    {
+      prop: "status",
+      label: "状态",
+      width: 80,
+      status: {
+        0: { type: "success", text: "启用" },
+        1: { type: "danger", text: "停用" },
+      },
+    },
+    { prop: "order", label: "排序", width: 72 },
+    // ─── 路由配置 ───
     { prop: "route_name", label: "路由名称", minWidth: 100, showOverflowTooltip: true },
     { prop: "route_path", label: "路由路径", minWidth: 140, showOverflowTooltip: true },
-    { prop: "permission", label: "权限标识", minWidth: 160, showOverflowTooltip: true },
-    { prop: "component_path", label: "组件路径", minWidth: 140, showOverflowTooltip: true },
-    { prop: "active_path", label: "激活路径", minWidth: 100, showOverflowTooltip: true },
-    { prop: "redirect", label: "重定向", minWidth: 100, showOverflowTooltip: true },
-    { prop: "link", label: "外链地址", minWidth: 140, showOverflowTooltip: true },
     {
-      prop: "keep_alive",
-      label: "是否缓存",
-      width: 96,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      prop: "component_path",
+      label: "组件路径",
+      minWidth: 140,
+      showOverflowTooltip: true,
+      visible: false,
     },
     {
-      prop: "hidden",
-      label: "是否隐藏",
-      width: 96,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      prop: "active_path",
+      label: "激活路径",
+      minWidth: 110,
+      showOverflowTooltip: true,
+      visible: false,
     },
-    {
-      prop: "always_show",
-      label: "显示根路由",
-      width: 108,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
-    },
-    {
-      prop: "affix",
-      label: "固定路由",
-      width: 96,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
-    },
-    { prop: "title", label: "菜单标题", minWidth: 100, showOverflowTooltip: true },
-    {
-      prop: "is_iframe",
-      label: "嵌入iframe",
-      width: 100,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
-    },
-    {
-      prop: "is_hide_tab",
-      label: "隐藏标签页",
-      width: 100,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
-    },
-    {
-      prop: "show_badge",
-      label: "红点角标",
-      width: 96,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
-    },
-    { prop: "show_text_badge", label: "文字角标", width: 100, showOverflowTooltip: true },
+    { prop: "redirect", label: "重定向", minWidth: 110, showOverflowTooltip: true, visible: false },
+    { prop: "link", label: "外链地址", minWidth: 140, showOverflowTooltip: true, visible: false },
     {
       prop: "params",
       label: "路由参数",
       minWidth: 100,
+      showOverflowTooltip: true,
+      visible: false,
       formatter: (row: MenuTable) =>
         row.params == null
           ? "—"
@@ -959,9 +931,114 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
             ? JSON.stringify(row.params)
             : String(row.params),
     },
-    { prop: "description", label: "描述", minWidth: 140, showOverflowTooltip: true },
-    { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-    { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+    // ─── 功能开关 ───
+    {
+      prop: "keep_alive",
+      label: "缓存",
+      width: 72,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "hidden",
+      label: "隐藏",
+      width: 72,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "always_show",
+      label: "常显",
+      width: 72,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "affix",
+      label: "固定标签",
+      width: 88,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "is_iframe",
+      label: "iframe",
+      width: 80,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "is_hide_tab",
+      label: "隐藏标签",
+      width: 88,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "show_badge",
+      label: "红点",
+      width: 72,
+      align: "center",
+      visible: false,
+      status: {
+        true: { type: "success", text: "是" },
+        false: { type: "danger", text: "否" },
+      },
+    },
+    {
+      prop: "show_text_badge",
+      label: "角标文字",
+      width: 90,
+      showOverflowTooltip: true,
+      visible: false,
+    },
+    // ─── 元信息 ───
+    {
+      prop: "description",
+      label: "描述",
+      minWidth: 140,
+      showOverflowTooltip: true,
+      visible: false,
+    },
+    {
+      prop: "created_time",
+      label: "创建时间",
+      width: 168,
+      showOverflowTooltip: true,
+      visible: false,
+    },
+    {
+      prop: "updated_time",
+      label: "更新时间",
+      width: 168,
+      showOverflowTooltip: true,
+      visible: false,
+    },
+    // ─── 操作 ───
     {
       prop: "operation",
       label: "操作",
@@ -1130,16 +1207,19 @@ function handleMenuTypeChange() {
 }
 
 async function handleSubmit() {
-  const allowed = allowedMenuTypeValues.value;
-  if (!allowed.length) return;
-  const t = formData.value.type as MenuTypeEnum;
-  if (!allowed.includes(t)) {
-    formData.value.type = allowed[0] as MenuForm["type"];
+  const id = formData.value.id;
+  // 仅在新增时校验类型是否合法，编辑时类型是已存的无需变更
+  if (!id) {
+    const allowed = allowedMenuTypeValues.value;
+    if (!allowed.length) return;
+    const t = formData.value.type as MenuTypeEnum;
+    if (!allowed.includes(t)) {
+      formData.value.type = allowed[0] as MenuForm["type"];
+    }
   }
   dataFormRef.value?.validate(async (valid: boolean) => {
     if (!valid) return;
     submitLoading.value = true;
-    const id = formData.value.id;
     try {
       if (id) {
         await MenuAPI.updateMenu(id, { id, ...formData.value });
@@ -1151,7 +1231,7 @@ async function handleSubmit() {
       await loadMenuData();
       await userStore.getUserInfo();
     } catch (error: unknown) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       submitLoading.value = false;
     }
@@ -1162,11 +1242,10 @@ async function handleBatchDelete() {
   const ids = selectedIds.value;
   if (ids.length === 0) return;
   try {
-    await ElMessageBox.confirm(`确定删除选中的 ${ids.length} 条数据吗？`, "批量删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await confirmBatchDelete(
+      ids.length,
+      selectedRows.value.map((r) => String(r.title ?? r.name ?? r.id))
+    );
     batchDeleting.value = true;
     await MenuAPI.deleteMenu(ids);
     await userStore.getUserInfo();

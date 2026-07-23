@@ -65,13 +65,6 @@
             </li>
             <li
               class="flex items-center p-2 mb-3 select-none rounded-md cursor-pointer last:mb-0 hover:bg-(--el-color-primary)/10"
-              @click="openParamConfig"
-            >
-              <FaSvgIcon icon="ri:settings-3-line" class="mr-2 text-base" />
-              <span class="text-sm">{{ $t("topBar.user.paramConfig") }}</span>
-            </li>
-            <li
-              class="flex items-center p-2 mb-3 select-none rounded-md cursor-pointer last:mb-0 hover:bg-(--el-color-primary)/10"
               @click="toGithub()"
             >
               <FaSvgIcon icon="ri:github-line" class="mr-2 text-base" />
@@ -102,15 +95,13 @@
         </div>
       </template>
     </ElPopover>
-
-    <FaConfigInfoDrawer v-model="paramDrawerVisible" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox } from "@/utils/message";
 import { useUserStore } from "@stores";
 import { WEB_LINKS, mittBus } from "@utils";
 
@@ -122,7 +113,6 @@ const userStore = useUserStore();
 
 const { info: userInfo } = storeToRefs(userStore);
 const userMenuPopover = ref();
-const paramDrawerVisible = ref(false);
 
 const userAvatar = computed(() => {
   const a = (userInfo.value as { avatar?: string })?.avatar?.trim();
@@ -137,11 +127,6 @@ const displayName = computed(
 );
 
 const displayEmail = computed(() => (userInfo.value as { email?: string })?.email || "");
-
-function openParamConfig(): void {
-  closeUserMenu();
-  paramDrawerVisible.value = true;
-}
 
 function goPage(path: string): void {
   router.push(path);

@@ -1,6 +1,5 @@
 <template>
-  <div class="flex flex-col h-full">
-    <!-- 搜索栏 + 操作按钮 -->
+  <div class="flex flex-col h-full" v-loading="loading">
     <div class="mb-3 flex items-center gap-3 shrink-0">
       <ElInput
         v-model="filterText"
@@ -17,8 +16,7 @@
       <ElCheckbox v-model="parentChildLinked">父子联动</ElCheckbox>
     </div>
 
-    <!-- 菜单树 -->
-    <div class="flex-1 overflow-auto" v-loading="loading">
+    <ElScrollbar class="flex-1" :native="false">
       <ElTree
         ref="treeRef"
         node-key="id"
@@ -28,6 +26,7 @@
         :default-expand-all="isExpanded"
         :filter-node-method="filterNode"
         :props="{ children: 'children', label: 'name' }"
+        @expand-change="handleExpandChange"
       >
         <template #default="{ data }">
           <div class="menu-node flex items-center gap-2">
@@ -41,18 +40,17 @@
           </div>
         </template>
       </ElTree>
-    </div>
+    </ElScrollbar>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, shallowRef } from "vue";
 import { Search, Switch as SwitchIcon } from "@element-plus/icons-vue";
 import FaMenuRouteIcon from "@/components/others/fa-menu-route-icon/index.vue";
 
 defineOptions({ name: "FaMenuTreeTable" });
 
-// ==================== 类型 ====================
 interface MenuNode {
   id?: number;
   type?: number; // 1=目录 2=菜单 3=按钮 4=链接
@@ -62,7 +60,6 @@ interface MenuNode {
   children?: MenuNode[];
 }
 
-// el-tree 内部节点结构（仅用到部分字段）
 interface TreeNode {
   data: MenuNode;
   checked: boolean;
@@ -83,10 +80,8 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
 });
 
-// 节点类型常量（1=目录 2=菜单 3=按钮 4=链接）
-const isLeaf = (t?: number) => t === 3 || t === 4; // 按钮 / 链接
+const isLeaf = (t?: number) => t === 3 || t === 4;
 
-// 节点类型 → 标签样式 / 文案
 type TagType = "primary" | "success" | "warning" | "danger" | "info";
 const NODE_META: Record<number, { type: TagType; label: string }> = {
   1: { type: "warning", label: "目录" },
@@ -96,16 +91,14 @@ const NODE_META: Record<number, { type: TagType; label: string }> = {
 };
 const nodeMeta = (n: MenuNode) => NODE_META[n.type ?? 2] ?? NODE_META[2];
 
-// ==================== 状态 ====================
 const treeRef = ref<any>(null);
 const filterText = ref("");
-const isExpanded = ref(true);
+const isExpanded = ref(false);
 const parentChildLinked = ref(true);
+const expandedKeys = shallowRef<Set<number>>(new Set());
 
-// 工具：安全获取 el-tree 内部 nodesMap
 const getNodesMap = () => treeRef.value?.store?.nodesMap as Record<number, TreeNode> | undefined;
 
-// ==================== 搜索 / 展开 ====================
 function filterNode(value: string, data: any) {
   if (!value) return true;
   return (data.name ?? "").toLowerCase().includes(value.toLowerCase());
@@ -126,8 +119,35 @@ function toggleExpandAll() {
   setAllExpanded(isExpanded.value);
 }
 
-// ==================== 父级状态计算 ====================
-// 单次遍历子节点：统计 fully checked + 是否存在 indeterminate
+function handleExpandChange(data: MenuNode, expanded: boolean) {
+  if (data.id != null) {
+    if (expanded) {
+      expandedKeys.value.add(data.id);
+    } else {
+      expandedKeys.value.delete(data.id);
+    }
+  }
+}
+
+function expandMatchingNodes(value: string) {
+  nextTick(() => {
+    const tree = treeRef.value;
+    if (!tree) return;
+    const nodesMap = getNodesMap();
+    if (!nodesMap) return;
+
+    for (const node of Object.values(nodesMap)) {
+      if ((node.data.name ?? "").toLowerCase().includes(value.toLowerCase())) {
+        let p: TreeNode | null = node;
+        while (p) {
+          p.expanded = true;
+          p = p.parent;
+        }
+      }
+    }
+  });
+}
+
 function recomputeNode(p: TreeNode) {
   let fully = 0;
   let hasIndeterminate = false;
@@ -140,21 +160,18 @@ function recomputeNode(p: TreeNode) {
   p.indeterminate = (fully > 0 || hasIndeterminate) && !p.checked;
 }
 
-// ==================== 初始化 ====================
-// 回显策略：只勾叶子（按钮/链接），父级状态自动向上传播半选
 function initFromProps() {
   nextTick(() => {
     const tree = treeRef.value;
     const nodesMap = getNodesMap();
     if (!tree || !nodesMap) return;
 
-    // 1. 清空
     for (const node of Object.values(nodesMap)) {
       node.checked = false;
       node.indeterminate = false;
+      node.expanded = expandedKeys.value.has(node.data.id ?? -1);
     }
 
-    // 2. 勾叶子 + 收集受影响父级（去重，每个父级只重算一次）
     const affected = new Set<TreeNode>();
     for (const id of props.checkedIds ?? []) {
       const node = tree.getNode(id) as TreeNode | null;
@@ -163,21 +180,17 @@ function initFromProps() {
       for (let p = node.parent; p; p = p.parent) affected.add(p);
     }
 
-    // 3. 统一重算
     for (const p of affected) recomputeNode(p);
   });
 }
 
-// ==================== 对外 API ====================
 function getCheckedIds(): number[] {
   const tree = treeRef.value;
   if (!tree) return [];
   const ids = new Set<number>();
-  // 完全选中的菜单 / 按钮 / 链接
   for (const n of (tree.getCheckedNodes() ?? []) as MenuNode[]) {
     if (n.id != null && n.type !== 1) ids.add(n.id);
   }
-  // 半选父级（菜单 + 目录）—— 作为父级路径传后端
   for (const n of (tree.getHalfCheckedNodes() ?? []) as MenuNode[]) {
     if (n.id != null) ids.add(n.id);
   }
@@ -186,19 +199,20 @@ function getCheckedIds(): number[] {
 
 defineExpose({ getCheckedIds, refresh: initFromProps });
 
-// ==================== 监听 ====================
 watch(
-  () => [props.menuTree, props.checkedIds] as const,
+  () => props.menuTree,
   () => initFromProps(),
-  { immediate: true, deep: true }
+  { immediate: true }
 );
-// 切换父子联动时重新初始化：check-strictly 改变需要重置半选状态
+watch(
+  () => props.checkedIds,
+  () => initFromProps()
+);
 watch(parentChildLinked, () => initFromProps());
 watch(filterText, (val) => {
   treeRef.value?.filter(val);
   if (val) {
-    isExpanded.value = true;
-    setAllExpanded(true);
+    expandMatchingNodes(val);
   }
 });
 </script>

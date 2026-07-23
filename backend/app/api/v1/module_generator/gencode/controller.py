@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ GenRouter = APIRouter(route_class=OperationLogRoute, prefix="/gencode", tags=["ä
 async def gen_table_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_generator:gencode:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[GenTableQueryParam, Query()],
+    search: Annotated[GenTableQueryParam, Depends()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     order_by = [{"created_time": "desc"}]
@@ -40,7 +40,7 @@ async def gen_table_list_controller(
 async def get_gen_db_table_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_generator:dblist:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[GenTableQueryParam, Query()],
+    search: Annotated[GenTableQueryParam, Depends()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await GenTableService(auth, db).get_gen_db_table_page(

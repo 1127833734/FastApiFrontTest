@@ -8,7 +8,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
+from app.core.base_schema import BaseQueryParam, BaseSchema
 
 
 class DictTypeCreateSchema(BaseModel):
@@ -71,18 +71,18 @@ class DictTypeUpdateSchema(DictTypeCreateSchema):
     """字典类型更新模型"""
 
 
-class DictTypeOutSchema(DictTypeCreateSchema, BaseSchema, UserBySchema):
+class DictTypeOutSchema(DictTypeCreateSchema, BaseSchema):
     """字典类型响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class DictTypeQueryParam(BaseQueryParam, UserByQueryParam):
+class DictTypeQueryParam(BaseQueryParam):
     """字典类型查询参数"""
 
-    dict_name: str | None = Field(default=None, description="字典名称", max_length=100)
+    dict_name: str | None = Field(default=None, description="字典名称", max_length=100, json_schema_extra={"q": "like"})
     dict_type: str | None = Field(default=None, description="字典类型", max_length=100, json_schema_extra={"q": "eq"})
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
 
 
 class DictDataCreateSchema(BaseModel):
@@ -138,16 +138,16 @@ class DictDataUpdateSchema(DictDataCreateSchema):
     """字典数据更新模型"""
 
 
-class DictDataOutSchema(DictDataCreateSchema, BaseSchema, UserBySchema):
+class DictDataOutSchema(DictDataCreateSchema, BaseSchema):
     """字典数据响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class DictDataQueryParam(BaseQueryParam, UserByQueryParam):
+class DictDataQueryParam(BaseQueryParam):
     """字典数据查询参数"""
 
-    dict_label: str | None = Field(default=None, description="字典标签", max_length=100)
-    dict_type: str | None = Field(default=None, description="字典类型", max_length=100, json_schema_extra={"q": "eq"})
-    dict_type_id: int | None = Field(default=None, description="字典类型ID")
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    dict_label: str | None = Field(default=None, description="字典标签", max_length=255, json_schema_extra={"q": "like"})
+    dict_type: str | None = Field(default=None, description="字典类型", max_length=255, json_schema_extra={"q": "eq"})
+    dict_type_id: int | None = Field(default=None, description="字典类型ID", json_schema_extra={"q": "eq"})
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})

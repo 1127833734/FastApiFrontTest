@@ -120,9 +120,9 @@ class MenuUpdateSchema(BaseModel):
     active_path: str | None = Field(default=None, max_length=200, description="激活菜单路径")
     show_badge: bool | None = Field(default=None, description="是否显示红点角标")
     show_text_badge: str | None = Field(default=None, max_length=20, description="文字角标内容")
-    scope: Literal["platform"] | None = Field(
+    scope: Literal["web", "app"] | None = Field(
         default=None,
-        description="菜单可见范围",
+        description="菜单可见范围(web:管理端 app:移动端)",
     )
     parent_name: str | None = Field(default=None, max_length=50, description="父菜单名称")
 
@@ -190,13 +190,13 @@ class MenuTreeOutSchema(MenuOutSchema):
 class MenuQueryParam(BaseQueryParam):
     """菜单管理查询参数（菜单为平台级资源，无用户归属）"""
 
-    name: str | None = Field(None, description="菜单名称")
-    route_path: str | None = Field(None, description="路由地址")
-    component_path: str | None = Field(None, description="组件路径")
-    type: int | None = Field(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)")
-    permission: str | None = Field(None, description="权限标识")
-    description: str | None = Field(None, description="描述")
-    status: int | None = Field(None, description="是否启用")
+    name: str | None = Field(None, description="菜单名称", json_schema_extra={"q": "like"})
+    route_path: str | None = Field(None, description="路由地址", json_schema_extra={"q": "like"})
+    component_path: str | None = Field(None, description="组件路径", json_schema_extra={"q": "like"})
+    type: int | None = Field(None, description="菜单类型(1:目录 2:菜单 3:按钮 4:外链)", json_schema_extra={"q": "eq"})
+    permission: str | None = Field(None, description="权限标识", json_schema_extra={"q": "eq"})
+    description: str | None = Field(None, description="描述", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, description="是否启用", json_schema_extra={"q": "eq"})
     scope: str | None = Field(
         None,
         description="菜单范围过滤(web:管理端 desktop app:移动端)",

@@ -13,8 +13,8 @@
     <ElScrollbar class="h-[calc(100%-40px)]">
       <div
         class="flex items-center justify-between h-17.5 border-b border-g-300 text-sm last:border-b-0"
-        v-for="(item, index) in list"
-        :key="index"
+        v-for="item in list"
+        :key="item.target"
       >
         <div>
           <p class="text-sm">

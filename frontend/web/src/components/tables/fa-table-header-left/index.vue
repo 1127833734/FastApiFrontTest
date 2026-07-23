@@ -2,14 +2,14 @@
 <template>
   <div class="data-table__toolbar--left inline-flex flex-wrap items-center gap-2">
     <template v-if="configButtons && configButtons.length">
-      <template v-for="(btn, index) in configButtons" :key="index">
+      <template v-for="btn in configButtons" :key="btn.name">
         <ElButton
           v-hasPerm="btn.perm ?? '*:*:*'"
           v-bind="btn.attrs"
           :disabled="btn.name === 'delete' && removeIds.length === 0"
           @click="$emit('toolbar', btn.name)"
         >
-          {{ btn.text }}
+          {{ btn.name === "delete" ? batchDeleteText(btn.text ?? "") : btn.text }}
         </ElButton>
       </template>
     </template>
@@ -61,7 +61,7 @@
             @click="$emit('delete')"
             plain
           >
-            批量删除
+            {{ batchDeleteText("批量删除") }}
           </ElButton>
           <ElDropdown
             v-if="permPatch"
@@ -123,6 +123,8 @@ interface Props {
   createLoading?: boolean;
   /** 「更多」下拉项（启用/停用）loading */
   moreLoading?: boolean;
+  /** 是否全选状态，用于显示 "已选择全部 X 项" */
+  isAllSelected?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -132,6 +134,7 @@ const props = withDefaults(defineProps<Props>(), {
   exportLoading: false,
   createLoading: false,
   moreLoading: false,
+  isAllSelected: false,
 });
 
 interface Emits {
@@ -149,4 +152,10 @@ defineEmits<Emits>();
 const moreDisabled = computed(
   () => props.removeIds.length === 0 || props.deleteLoading || props.moreLoading
 );
+
+/** 生成带选中计数的批量删除按钮文本 */
+function batchDeleteText(baseText: string): string {
+  const count = props.removeIds.length;
+  return count > 0 ? `${baseText} (${count})` : baseText;
+}
 </script>

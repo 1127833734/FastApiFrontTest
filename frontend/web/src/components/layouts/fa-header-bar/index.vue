@@ -79,9 +79,7 @@
             <FaSvgIcon icon="ri:search-line" class="text-sm text-g-500" />
             <span class="ml-1 text-xs font-normal text-g-500">{{ $t("topBar.search.title") }}</span>
           </div>
-          <div
-            class="flex items-center h-5 px-1.5 text-g-500/80 border border-(--el-color-primary) rounded"
-          >
+          <div class="flex items-center h-5 px-1.5 text-g-500/80 border rounded">
             <FaSvgIcon v-if="isWindows" icon="vaadin:ctrl-a" class="text-sm" />
             <FaSvgIcon v-else icon="ri:command-fill" class="text-xs" />
             <span class="ml-0.5 text-xs">k</span>
@@ -195,10 +193,11 @@
 </template>
 
 <script setup lang="ts">
+import { LanguageEnum } from "@/enums/appEnum";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useFullscreen, useWindowSize } from "@vueuse/core";
-import { LanguageEnum, MenuTypeEnum } from "@/enums/appEnum";
+
 import {
   useSettingsStore,
   useMenuStore,
@@ -235,7 +234,7 @@ const headerLogoSrc = computed(() => {
 });
 
 const headerSystemName = computed(() => {
-  const raw = configStore.configData.name?.config_value;
+  const raw = configStore.configData.sys_name?.config_value;
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return AppConfig.systemInfo.name;
 });

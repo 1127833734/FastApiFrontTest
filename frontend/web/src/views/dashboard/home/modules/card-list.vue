@@ -1,6 +1,6 @@
 <template>
   <ElRow :gutter="16">
-    <ElCol v-for="(item, index) in dataList" :key="index" :sm="12" :md="8" :lg="8" class="mb-5">
+    <ElCol v-for="item in dataList" :key="item.des" :sm="12" :md="8" :lg="8" class="mb-5">
       <div class="fa-card relative flex flex-col justify-center h-30 px-5">
         <div class="flex items-center justify-between">
           <span class="text-sm text-g-600">{{ item.des }}</span>
@@ -113,14 +113,14 @@ const dataList = ref<CardDataItem[]>([
     totalValue: 0,
   },
   {
-    des: "总订单",
+    des: "今日登录",
     icon: "ri:eye-line",
     iconBg: "bg-primary/10",
     iconColor: "text-primary",
     num: 0,
     rich: true,
     animatedCount: 0,
-    totalLabel: "已支付",
+    totalLabel: "唯一用户",
     totalValue: 0,
   },
 ]);
@@ -143,10 +143,10 @@ async function loadStats() {
     dataList.value[1]!.totalValue = `本周 +${stats.week_user_created}`;
     dataList.value[1]!.animatedCount = stats.total_users;
 
-    // 总订单（第3个卡片）
-    dataList.value[2]!.num = stats.total_orders;
-    dataList.value[2]!.totalValue = stats.paid_orders;
-    dataList.value[2]!.animatedCount = stats.total_orders;
+    // 今日登录（第3个卡片）
+    dataList.value[2]!.num = stats.today_login_count;
+    dataList.value[2]!.totalValue = stats.today_unique_users;
+    dataList.value[2]!.animatedCount = stats.today_login_count;
   } catch {
     // 接口错误不影响页面渲染
   }
@@ -154,8 +154,6 @@ async function loadStats() {
 
 onMounted(() => {
   loadStats();
-  // 每 30 秒刷新一次
-  setInterval(loadStats, 30000);
 });
 </script>
 

@@ -38,8 +38,10 @@
 }
 
 /**
-* css3动画
-* 
+* 动画 mixin（已简化，移除重复 keyframes）
+* @param {Map} $from 起始属性
+* @param {Map} $to 结束属性
+* @param {String} $name 动画名称
 */
 @mixin animation(
   $from: (
@@ -48,14 +50,8 @@
   $to: (
     width: 100px,
   ),
-  $name: mymove,
-  $animate: mymove 2s 1 linear infinite
+  $name: mymove
 ) {
-  -webkit-animation: $animate;
-  -moz-animation: $animate;
-  -o-animation: $animate;
-  animation: $animate;
-
   @keyframes #{$name} {
     from {
       @each $key, $value in $from {
@@ -66,20 +62,6 @@
     to {
       @each $key, $value in $to {
         #{$key}: #{$value};
-      }
-    }
-  }
-
-  @keyframes #{$name} {
-    from {
-      @each $key, $value in $from {
-        $key: $value;
-      }
-    }
-
-    to {
-      @each $key, $value in $to {
-        $key: $value;
       }
     }
   }
@@ -118,7 +100,7 @@
   }
 }
 
-//背景透明，文字不透明。兼容IE8
+// 背景透明，文字不透明。兼容IE8
 @mixin betterTransparentize($color, $alpha) {
   $c: rgba($color, $alpha);
   $ie_c: ie_hex_str($c);
@@ -131,7 +113,7 @@
   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#{$ie_c}, endColorstr=#{$ie_c});
 }
 
-//添加浏览器前缀
+// 添加浏览器前缀
 @mixin browserPrefix($propertyName, $value) {
   @each $prefix in -webkit-, -moz-, -ms-, -o-, "" {
     #{$prefix}#{$propertyName}: $value;

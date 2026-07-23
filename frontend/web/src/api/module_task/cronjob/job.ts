@@ -94,6 +94,14 @@ const JobAPI = {
     });
   },
 
+  modifyJob(jobId: string, body: Record<string, any>) {
+    return request<ApiResponse>({
+      url: `${API_PATH}/task/modify/${jobId}`,
+      method: "put",
+      data: body,
+    });
+  },
+
   getJobLogList(query: JobLogPageQuery) {
     return request<ApiResponse<PageResult<JobLogTable>>>({
       url: `${API_PATH}/log/list`,

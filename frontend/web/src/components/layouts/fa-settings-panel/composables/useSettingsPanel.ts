@@ -1,10 +1,11 @@
 import { ref, computed, watch } from "vue";
 import { useSettingsStore } from "@stores";
 import { storeToRefs } from "pinia";
+import { MenuTypeEnum } from "@/enums/appEnum";
 import { useWindowSize } from "@vueuse/core";
 import { MOBILE_BREAKPOINT } from "@utils/constants";
 import AppConfig from "@/config";
-import { SystemThemeEnum, MenuTypeEnum } from "@/enums/appEnum";
+
 import { mittBus, StorageConfig } from "@utils";
 import { useTheme } from "@/hooks/core/useTheme";
 import { useCeremony } from "@/hooks/core/useCeremony";

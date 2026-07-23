@@ -9,7 +9,8 @@ import {
   NestedRouterParent,
   ROUTE_COMPONENT_LAYOUT,
   ROUTE_COMPONENT_NESTED_PARENT,
-} from "../staticRoutes";
+  Layout,
+} from "@/router/staticRoutes";
 
 export class ComponentLoader {
   private modules: Record<string, () => Promise<any>>;
@@ -62,7 +63,7 @@ export class ComponentLoader {
   }
 
   loadLayout(): () => Promise<any> {
-    return () => import("@/components/layouts/index.vue");
+    return Layout;
   }
 
   loadIframe(): () => Promise<any> {

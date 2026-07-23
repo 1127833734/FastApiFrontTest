@@ -3,7 +3,6 @@
  * 处理 iframe、一级叶子路由、普通路由三种形态，支持 shellChild 模式。
  */
 import type { RouteRecordRaw } from "vue-router";
-import type { AppRouteRecord } from "@/types/router";
 import { ComponentLoader } from "./ComponentLoader";
 import { IframeRouteManager, ROUTE_COMPONENT_LAYOUT } from "../staticRoutes";
 
@@ -38,8 +37,6 @@ export class RouteTransformer {
     } else {
       this.handleNormalRoute(converted, component as string, depth);
     }
-
-    converted.path = pathOut;
 
     if (children?.length) {
       converted.children = children.map((c) => this.transform(c, depth + 1, absPath));

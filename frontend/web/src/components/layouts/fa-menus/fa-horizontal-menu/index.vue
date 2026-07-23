@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import type { AppRouteRecord } from "@/types/router";
 import { useSettingsStore } from "@stores";
 
 defineOptions({ name: "FaHorizontalMenu" });

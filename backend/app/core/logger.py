@@ -44,6 +44,7 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logger() -> None:
+    """配置日志记录器"""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     logger.remove()
     logger.configure(patcher=_context_patcher)

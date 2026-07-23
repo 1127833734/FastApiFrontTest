@@ -29,8 +29,6 @@
  */
 import { h, type VNode } from "vue";
 import StatusTag from "@/components/others/fa-status-tag/index.vue";
-import type { ColumnOption, StatusColumnConfig } from "@/types/component";
-
 /** ElTag 支持的 type */
 export type StatusType = "primary" | "success" | "warning" | "danger" | "info";
 

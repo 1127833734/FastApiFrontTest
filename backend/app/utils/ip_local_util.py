@@ -6,6 +6,7 @@ from collections.abc import Callable
 import httpx
 from starlette.requests import Request
 
+from app.common.enums import RedisInitKeyConfig, SysParamKey
 from app.config.setting import settings
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
@@ -48,6 +49,22 @@ class IpLocalUtil:
             return False
 
     @classmethod
+    async def _is_location_enabled(cls, redis) -> bool:
+        """从参数缓存读取 IP 归属地查询开关。"""
+        if not redis:
+            return False
+        redis_key = f"{RedisInitKeyConfig.SYSTEM_CONFIG.key}:{SysParamKey.IP_LOCATION_ENABLE.value}"
+        try:
+            raw = await RedisCURD(redis).get(redis_key)
+            if raw:
+                payload = json.loads(raw)
+                cv = payload.get("config_value", "off")
+                return cv in (True, "true", "1", "yes", "on")
+        except (json.JSONDecodeError, TypeError, Exception):
+            pass
+        return False
+
+    @classmethod
     async def resolve_location_for_log(cls, redis, ip: str | None) -> str | None:
         """登录日志写入入口：仅返回可同步获取的值（内网/缓存/降级），
 
@@ -55,7 +72,7 @@ class IpLocalUtil:
         """
         if not ip:
             return None
-        if not settings.IP_LOCATION_ENABLE:
+        if not await cls._is_location_enabled(redis):
             return "内网IP" if cls.is_private_ip(ip) else "未解析(已关闭归属地查询)"
         if cls.is_private_ip(ip):
             return "内网IP"
@@ -70,6 +87,8 @@ class IpLocalUtil:
         """异步查询归属地（含缓存、降级、硬超时）。"""
         if not cls.is_valid_ip(ip):
             return "未知"
+        if not await cls._is_location_enabled(redis):
+            return "未解析(已关闭归属地查询)"
         if cls.is_private_ip(ip):
             return "内网IP"
 

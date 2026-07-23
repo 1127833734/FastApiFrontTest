@@ -30,7 +30,6 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { AppRouteRecord } from "@/types/router";
 import { getFirstMenuPath } from "@utils";
 import { HOME_PAGE_PATH } from "@/router";
 import { mergeShellRoutesIntoMenu } from "@/router/staticRoutes";
@@ -52,11 +51,10 @@ export const useMenuStore = defineStore(
     const removeRouteFns = ref<(() => void)[]>([]);
 
     /**
-     * 可见菜单列表，直接返回所有菜单，不做 scope 过滤
+     * 可见菜单列表，当前直接返回所有菜单（保留 computed 以供未来 scope 过滤扩展）
+     * TODO: 移除本别名，消费者直接使用 menuList
      */
-    const visibleMenus = computed(() => {
-      return menuList.value;
-    });
+    const visibleMenus = computed(() => menuList.value);
 
     /**
      * 设置菜单列表

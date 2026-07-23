@@ -1,7 +1,7 @@
 <!-- 日志管理：登录日志 + 操作日志 -->
 <template>
   <div class="fa-full-height">
-    <ElTabs v-model="activeTab" type="card">
+    <ElTabs v-model="activeTab">
       <ElTabPane label="操作日志" name="operation">
         <FaSearchBar
           v-show="opShowSearchBar"
@@ -16,6 +16,7 @@
           :disabled-search="false"
           :default-expanded="false"
           include-audit
+          :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
           @search="handleOpSearch"
           @reset="onOpResetSearch"
         />
@@ -115,6 +116,7 @@
           :disabled-search="false"
           :default-expanded="false"
           include-audit
+          :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
           @search="handleLoginSearch"
           @reset="onLoginResetSearch"
         />
@@ -178,26 +180,14 @@
 
 <script setup lang="ts">
 import { h } from "vue";
-import { useTable } from "@/hooks/core/useTable";
-import { useImportExport } from "@/hooks/core/useImportExport";
-import { useCrudDialog } from "@/hooks/core/useCrudDialog";
-import { useTableSelection } from "@/hooks/core/useTableSelection";
-import { confirmDelete, confirmBatchDelete } from "@/hooks/core/useConfirm";
-import { cleanEmptyArrayParams, stripPaginationParams } from "@/utils/query";
-import type { ColumnOption } from "@/types/component";
+
 import OperationLogAPI, {
   type OperationLogPageQuery,
   type OperationLogTable,
   type LoginLogTable,
   LoginLogAPI,
 } from "@/api/module_system/log";
-import { useAuth } from "@/hooks/core/useAuth";
-import {
-  renderTableOperationCell,
-  type TableOperationAction,
-  resolveStatusColumns,
-  type StatusType,
-} from "@utils";
+import { renderTableOperationCell, type TableOperationAction, type StatusType } from "@utils";
 import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
@@ -213,19 +203,24 @@ const { hasAuth } = useAuth();
 
 const activeTab = ref<"operation" | "login">("operation");
 
+function handleIpSearch(ip: string) {
+  activeTab.value = "operation";
+  opSearchForm.value.request_ip = ip;
+  opReplaceSearchParams(buildOpReplaceParams(opSearchForm.value));
+  opGetData();
+}
+
 // ==================== 操作日志 ====================
 
 type OpSearchForm = {
   request_path?: string;
   request_ip?: string;
-  created_id?: number;
   created_time?: string[];
 };
 
 const opSearchForm = ref<OpSearchForm>({
   request_path: undefined,
   request_ip: undefined,
-  created_id: undefined,
   created_time: undefined,
 });
 const opShowSearchBar = ref(true);
@@ -255,7 +250,6 @@ function buildOpReplaceParams(p: OpSearchForm): Record<string, unknown> {
   return {
     request_path: p.request_path,
     request_ip: p.request_ip,
-    created_id: p.created_id,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
   };
@@ -311,7 +305,13 @@ const {
             label: String(row.response_code ?? ""),
           }),
       },
-      { prop: "request_ip", label: "请求IP", minWidth: 140, showOverflowTooltip: true },
+      {
+        prop: "request_ip",
+        label: "请求IP",
+        minWidth: 140,
+        showOverflowTooltip: true,
+        formatter: (row: OperationLogTable) => row.request_ip ?? "-",
+      },
       { prop: "process_time", label: "处理时间", minWidth: 120 },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
       { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
@@ -328,7 +328,7 @@ const {
 });
 
 const opCrudCols = computed(() =>
-  opColumns.value.map((c: ColumnOption<OperationLogTable>) => ({
+  opColumns!.value.map((c: ColumnOption<OperationLogTable>) => ({
     prop: c.prop,
     label: c.label,
     type:
@@ -383,7 +383,6 @@ function onOpResetSearch() {
   opSearchForm.value = {
     request_path: undefined,
     request_ip: undefined,
-    created_id: undefined,
     created_time: undefined,
   };
   void opResetSearchParams();
@@ -401,9 +400,9 @@ async function handleOpOpenDetail(id: number) {
   opDialogVisible.visible = true;
 }
 
-async function deleteOpRow(id: number) {
+async function deleteOpRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await OperationLogAPI.delete([id]);
     opTableRef.value?.elTableRef?.clearSelection();
     await opRefreshRemove();
@@ -430,7 +429,7 @@ function buildOpRowActions(row: OperationLogTable): TableOperationAction[] {
       icon: "ri:delete-bin-4-line",
       perm: "module_system:log:delete",
       run: () => {
-        if (row.id != null) deleteOpRow(row.id);
+        if (row.id != null) deleteOpRow(row.id, row.description ?? String(row.id));
       },
     },
   ];
@@ -447,7 +446,10 @@ async function handleOpBatchDelete() {
   const ids = opSelectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      opSelectedRows.value.map((r) => String(r.description ?? r.id))
+    );
     opBatchDeleting.value = true;
     await OperationLogAPI.delete(ids);
     opTableRef.value?.elTableRef?.clearSelection();
@@ -564,12 +566,20 @@ const {
         label: "登录IP",
         minWidth: 140,
         formatter: (row: LoginLogTable) =>
-          h("span", { class: "inline-flex items-center gap-0.5" }, [
-            row.login_ip ?? "",
-            row.login_ip
-              ? h(FaCopyButton, { text: row.login_ip, style: { marginLeft: "2px" } })
-              : null,
-          ]),
+          row.login_ip
+            ? h("span", { class: "inline-flex items-center gap-0.5" }, [
+                h(
+                  "span",
+                  {
+                    class: "ip-link-cell",
+                    title: "点击搜索该IP",
+                    onClick: () => handleIpSearch(row.login_ip!),
+                  },
+                  [row.login_ip ?? ""]
+                ),
+                h(FaCopyButton, { text: row.login_ip, style: { marginLeft: "2px" } }),
+              ])
+            : "-",
       },
       { prop: "login_location", label: "登录地点", minWidth: 160, showOverflowTooltip: true },
       { prop: "request_os", label: "操作系统", minWidth: 120 },
@@ -625,9 +635,9 @@ function handleLoginCloseDialog() {
   loginCloseDialog();
 }
 
-async function deleteLoginRow(id: number) {
+async function deleteLoginRow(id: number, name: string) {
   try {
-    await confirmDelete();
+    await confirmDelete(`确定删除「${name}」吗？`);
     await LoginLogAPI.delete([id]);
     loginTableRef.value?.elTableRef?.clearSelection();
     await loginRefreshRemove();
@@ -654,7 +664,7 @@ function buildLoginRowActions(row: LoginLogTable): TableOperationAction[] {
       icon: "ri:delete-bin-4-line",
       perm: "module_system:login_log:delete",
       run: () => {
-        if (row.id != null) deleteLoginRow(row.id);
+        if (row.id != null) deleteLoginRow(row.id, row.username ?? String(row.id));
       },
     },
   ];
@@ -671,7 +681,12 @@ async function handleLoginBatchDelete() {
   const ids = loginSelectedIds.value;
   if (ids.length === 0) return;
   try {
-    await confirmBatchDelete(ids.length);
+    await confirmBatchDelete(
+      ids.length,
+      (loginData.value as LoginLogTable[])
+        .filter((r) => ids.includes(r.id!))
+        .map((r) => String(r.username ?? r.id))
+    );
     loginBatchDeleting.value = true;
     await LoginLogAPI.delete(ids);
     loginTableRef.value?.elTableRef?.clearSelection();

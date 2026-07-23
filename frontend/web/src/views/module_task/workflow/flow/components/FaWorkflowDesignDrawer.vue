@@ -184,7 +184,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, markRaw, type Component } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "@/utils/message";
 import { Panel, VueFlow, useVueFlow } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { MiniMap } from "@vue-flow/minimap";
@@ -589,15 +589,18 @@ function handleValidate() {
     );
   }
 
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
   if (errors.length > 0) {
     ElMessageBox.alert(
-      `<div :style="'max-height: 300px; overflow-y: auto;'">
+      `<div style="max-height:300px;overflow-y:auto;">
         <strong>错误 (${errors.length}):</strong>
-        <ul>${errors.map((e) => `<li :style="'color: #f56c6c;'">${e}</li>`).join("")}</ul>
+        <ul>${errors.map((e) => `<li style="color:#f56c6c;">${escapeHtml(e)}</li>`).join("")}</ul>
         ${
           warnings.length > 0
             ? `<strong>警告 (${warnings.length}):</strong>
-        <ul>${warnings.map((w) => `<li :style="'color: #e6a23c;'">${w}</li>`).join("")}</ul>`
+        <ul>${warnings.map((w) => `<li style="color:#e6a23c;">${escapeHtml(w)}</li>`).join("")}</ul>`
             : ""
         }
       </div>`,
@@ -610,9 +613,9 @@ function handleValidate() {
     throw new Error("验证失败");
   } else if (warnings.length > 0) {
     ElMessageBox.alert(
-      `<div :style="'max-height: 300px; overflow-y: auto;'">
+      `<div style="max-height:300px;overflow-y:auto;">
         <strong>流程验证通过，但有警告 (${warnings.length}):</strong>
-        <ul>${warnings.map((w) => `<li :style="'color: #e6a23c;'">${w}</li>`).join("")}</ul>
+        <ul>${warnings.map((w) => `<li style="color:#e6a23c;">${escapeHtml(w)}</li>`).join("")}</ul>
       </div>`,
       "流程验证结果",
       {
@@ -671,11 +674,7 @@ function handleDeleteNode() {
   if (!nodeId) return;
   (async () => {
     try {
-      await ElMessageBox.confirm("确定要删除该节点吗？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      });
+      await confirmDelete(`确定删除节点「${selectedNode.value?.data?.label ?? nodeId}」吗？`);
       deleteNode(nodeId, getNodes, setNodes, getEdges, setEdges);
       handleClosePanel();
       saveToHistory(nodes.value as Node[], edges.value as Edge[]);
@@ -699,11 +698,7 @@ function handleDeleteEdge() {
   if (!edgeId) return;
   (async () => {
     try {
-      await ElMessageBox.confirm("确定要删除该连线吗？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      });
+      await confirmDelete(`确定删除连线「${selectedEdge.value?.label ?? edgeId}」吗？`);
       deleteEdge(edgeId, getEdges, setEdges);
       handleClosePanel();
       saveToHistory(nodes.value as Node[], edges.value as Edge[]);
@@ -767,13 +762,13 @@ const handleFinish = async () => {
   if (!formRef.value) return;
 
   try {
-    await formRef.value.validate?.();
-    await handleValidate();
+    formRef.value.validate?.();
+    handleValidate();
     await handleSave();
     emit("refresh");
     handleClose();
-  } catch (error) {
-    console.error("保存流程失败", error);
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error("保存流程失败", error);
   }
 };
 

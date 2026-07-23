@@ -13,7 +13,6 @@ from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
 from app.utils.common_util import search_to_dict
-from app.utils.excel_util import ExcelUtil
 
 from .crud import DictDataCRUD, DictTypeCRUD
 from .schema import (
@@ -233,37 +232,6 @@ class DictTypeService:
         - None
         """
         await DictTypeCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
-
-    @staticmethod
-    def export(data_list: list[dict]) -> bytes:
-        """导出数据字典类型列表（无状态工具方法）
-
-        参数:
-        - data_list (list[dict]): 数据字典类型列表
-
-        返回:
-        - bytes: Excel文件字节流
-        """
-        mapping_dict = {
-            "id": "编号",
-            "dict_name": "字典名称",
-            "dict_type": "字典类型",
-            "status": "状态",
-            "description": "备注",
-            "created_time": "创建时间",
-            "updated_time": "更新时间",
-            "created_id": "创建者ID",
-            "updated_id": "更新者ID",
-        }
-
-        # 复制数据并转换状态
-        data = data_list.copy()
-        for item in data:
-            # 处理状态
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
-
-        return ExcelUtil.export_list2excel(list_data=data, mapping_dict=mapping_dict)
-
 
 class DictDataService:
     """字典数据管理服务
@@ -553,38 +521,3 @@ class DictDataService:
         - None
         """
         await DictDataCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
-
-    @staticmethod
-    def export(data_list: list[dict]) -> bytes:
-        """导出数据字典数据列表（无状态工具方法）
-
-        参数:
-        - data_list (list[dict]): 数据字典数据列表
-
-        返回:
-        - bytes: Excel文件字节流
-        """
-        mapping_dict = {
-            "id": "编号",
-            "dict_type": "字典类型",
-            "dict_label": "字典标签",
-            "dict_value": "字典键值",
-            "dict_sort": "字典排序",
-            "status": "状态",
-            "description": "备注",
-            "created_time": "创建时间",
-            "updated_time": "更新时间",
-            "created_id": "创建者ID",
-            "updated_id": "更新者ID",
-        }
-
-        # 复制数据并转换状态
-        data = data_list.copy()
-        for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
-            if item.get("is_default") is True:
-                item["is_default"] = "是"
-            else:
-                item["is_default"] = "否"
-
-        return ExcelUtil.export_list2excel(list_data=data, mapping_dict=mapping_dict)

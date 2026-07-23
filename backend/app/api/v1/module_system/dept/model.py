@@ -11,22 +11,16 @@ if TYPE_CHECKING:
 
 
 class DeptModel(ModelMixin, UserMixin):
-    """部门模型
-    """
+    """部门模型"""
 
     __tablename__: str = "sys_dept"
     __table_args__: dict[str, str] = {"comment": "部门表"}
-    __tree_children_attr__: str = "children"
-    __loader_options__: list[str] = ["children", "created_by", "updated_by", "deleted_by"]
 
-    name: Mapped[str] = mapped_column(String(64), nullable=False, comment="部门名称")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)", index=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="部门名称")
+    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
-    order: Mapped[int] = mapped_column(Integer, nullable=False, default=999, comment="显示排序")
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=999, index=True, comment="显示排序")
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="部门编码")
-    leader: Mapped[str | None] = mapped_column(String(32), default=None, comment="部门负责人")
-    phone: Mapped[str | None] = mapped_column(String(20), default=None, comment="手机")
-    email: Mapped[str | None] = mapped_column(String(128), default=None, comment="邮箱")
     parent_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("sys_dept.id", ondelete="SET NULL", onupdate="CASCADE"),
@@ -40,10 +34,6 @@ class DeptModel(ModelMixin, UserMixin):
         foreign_keys=[parent_id],
         uselist=False,
     )
-    children: Mapped[list["DeptModel"]] = relationship(back_populates="parent", foreign_keys=[parent_id], lazy="selectin")
-    roles: Mapped[list["RoleModel"]] = relationship(secondary="sys_role_depts", back_populates="depts", lazy="selectin")
-    users: Mapped[list["UserModel"]] = relationship(
-        back_populates="dept",
-        foreign_keys="UserModel.dept_id",
-        lazy="selectin",
-    )
+    children: Mapped[list["DeptModel"]] = relationship(back_populates="parent", foreign_keys=[parent_id])
+    roles: Mapped[list["RoleModel"]] = relationship(secondary="sys_role_depts", back_populates="depts")
+    users: Mapped[list["UserModel"]] = relationship(back_populates="dept", foreign_keys="UserModel.dept_id")

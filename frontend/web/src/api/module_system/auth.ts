@@ -26,7 +26,7 @@ const AuthAPI = {
     return request<ApiResponse<JWTOut>>({
       url: `${API_PATH}/token/refresh`,
       method: "post",
-      data: refreshToken,
+      data: { refresh_token: refreshToken },
     });
   },
 
@@ -37,7 +37,7 @@ const AuthAPI = {
     });
   },
 
-  logout(body: LogoutBody) {
+  logout(body: string) {
     return request<ApiResponse>({
       url: `${API_PATH}/logout`,
       method: "post",
@@ -64,6 +64,7 @@ export interface LoginFormData {
   username: string;
   password: string;
   captcha_key?: string;
+  captcha?: string;
   remember?: boolean;
   login_type?: string;
 }
@@ -78,11 +79,6 @@ export interface JWTOut {
 
 /** 登录成功返回 */
 export type LoginResult = JWTOut;
-
-/** 退出登录请求体 */
-export interface LogoutBody {
-  token: string;
-}
 
 /** 验证码信息 */
 export interface CaptchaInfo {

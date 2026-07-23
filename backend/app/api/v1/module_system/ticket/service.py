@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.module_system.user.model import UserModel
 from app.core.base_schema import AuthSchema, PageResultSchema
-from app.core.event_bus import EventBus
 from app.core.exceptions import CustomException
 from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
@@ -34,6 +33,9 @@ _TICKET_STATUS_LABELS = {
     2: "已完成",
     3: "已关闭",
 }
+
+
+_TICKET_PRELOAD = ["assigned_by"]
 
 
 class TicketService:
@@ -88,17 +90,18 @@ class TicketService:
             order_by=order_by or [{"created_time": "desc"}],
             search=search_to_dict(search),
             out_schema=TicketOutSchema,
+            preload=_TICKET_PRELOAD,
         )
 
     async def detail(self, id: int) -> TicketOutSchema:
-        obj = await TicketCRUD(self.auth, self.db).get_or_404(id=id)
+        obj = await TicketCRUD(self.auth, self.db).get_or_404(id=id, preload=_TICKET_PRELOAD)
         return TicketOutSchema.model_validate(obj)
 
     async def create(self, data: TicketCreateSchema) -> TicketOutSchema:
         obj = await TicketCRUD(self.auth, self.db).create(data=data)
         if not obj:
             raise CustomException(msg="创建工单失败")
-        return TicketOutSchema.model_validate(obj)
+        return await self.detail(id=obj.id)
 
     async def update(self, id: int, data: TicketUpdateSchema) -> TicketOutSchema:
         obj = await TicketCRUD(self.auth, self.db).get_or_404(id=id, msg="工单不存在")
@@ -120,19 +123,7 @@ class TicketService:
         if not updated:
             raise CustomException(msg="工单不存在")
 
-        # 有回复内容时 SSE 推送通知给工单创建者
-        if data.reply and obj.created_id:
-            await EventBus.publish(
-                obj.created_id,
-                {
-                    "type": "ticket_reply",
-                    "ticket_id": obj.id,
-                    "title": obj.title,
-                    "ticket_type": obj.ticket_type,
-                },
-            )
-
-        return TicketOutSchema.model_validate(updated)
+        return await self.detail(id=updated.id)
 
     async def delete(self, ids: list[int]) -> None:
         if not ids:
@@ -160,6 +151,7 @@ class TicketService:
         obj_list = await TicketCRUD(self.auth, self.db).get_list(
             search=search_to_dict(search),
             order_by=order_by or [{"created_time": "desc"}],
+            preload=_TICKET_PRELOAD,
         )
         return [TicketOutSchema.model_validate(obj) for obj in obj_list]
 

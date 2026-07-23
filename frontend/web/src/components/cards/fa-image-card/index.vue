@@ -6,6 +6,7 @@
         <ElImage
           :src="props.imageUrl"
           fit="cover"
+          lazy
           class="w-full h-full transition-transform duration-300 ease-in-out hover:scale-105"
         >
           <template #placeholder>

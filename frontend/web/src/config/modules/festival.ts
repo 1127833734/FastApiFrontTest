@@ -46,8 +46,6 @@
  * @author FastapiAdmin Team
  */
 
-import { FestivalConfig } from "@/types/config";
-
 export const festivalConfigList: FestivalConfig[] = [
   /**
    * 非节日常驻：全年顶栏公告（匹配优先级最低，见文件头「优先级」说明）

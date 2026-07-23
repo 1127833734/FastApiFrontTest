@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import autoprefixer from "autoprefixer";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "url";
 import vueDevTools from "vite-plugin-vue-devtools";
@@ -12,6 +11,8 @@ import ElementPlus from "unplugin-element-plus/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 import tailwindcss from "@tailwindcss/vite";
 import vitePluginStart from "./build/vitePluginStart";
+import Icons from "unplugin-icons/vite";
+import IconsResolver from "unplugin-icons/resolver";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,50 +21,6 @@ const __APP_INFO__ = {
   pkg: { name, version, engines, dependencies, devDependencies },
   buildTimestamp: Date.now(),
 };
-
-/**
- * 返回所有 Element Plus 组件的样式入口（style/index + style/css）。
- *
- * 这些路径路由懒加载组件首次渲染时若未预热，vite optimizer 会重新处理
- * → "new dependencies optimized → reloading" 循环，导致菜单切换卡顿 + 整页刷新。
- * 提前加入 optimizeDeps.include 可消除此问题（仅影响 dev 启动预编译，不影响生产）。
- *
- * - style/css：预编译 CSS（兜底）
- * - style/index：SCSS 入口。useSource: true 时必须预热，否则懒加载触发 optimizer。
- *
- * 性能权衡
- * --------
- * - 当前实现：一次性预热 ~244 个 EP 路径（122 个组件 × 2 入口），dev 启动慢 1-2 分钟
- *   但后续路由切换零卡顿。
- * - 未来优化：扫描 src/ 中实际用到的 el-xxx 组件名，只预热这部分。
- *   实测本项目用到了约 70 个不同 EP 组件，可减少 40%+ 预热开销。
- *   需在新增 EP 组件时同步更新扫描结果，否则会再次触发菜单卡顿。
- */
-function elementPlusStyleIncludes(): string[] {
-  // 预构建所有 Element Plus 组件的样式，避免开发时访问新页面触发依赖优化刷新
-  const componentsDir = path.join(
-    process.cwd(),
-    "node_modules",
-    "element-plus",
-    "es",
-    "components"
-  );
-  try {
-    const result: string[] = [];
-    for (const entry of fs.readdirSync(componentsDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const styleDir = path.join(componentsDir, entry.name, "style");
-      // 只包含实际存在 style 目录的组件
-      if (fs.existsSync(styleDir) && fs.statSync(styleDir).isDirectory()) {
-        result.push(`element-plus/es/components/${entry.name}/style/index`);
-        result.push(`element-plus/es/components/${entry.name}/style/css`);
-      }
-    }
-    return result;
-  } catch {
-    return [];
-  }
-}
 
 export default ({ mode }: { mode: string }) => {
   const root = process.cwd();
@@ -98,7 +55,6 @@ export default ({ mode }: { mode: string }) => {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
         "@views": resolvePath("src/views"),
-        "@views/*": resolvePath("src/views/*"),
         "@imgs": resolvePath("src/assets/images"),
         "@icons": resolvePath("src/assets/images/svg"),
         "@utils": resolvePath("src/utils"),
@@ -107,7 +63,6 @@ export default ({ mode }: { mode: string }) => {
         "@styles": resolvePath("src/styles"),
         "@api": resolvePath("src/api"),
         "@fa_imgs": resolvePath("src/assets/fa_imgs"),
-        "@fa_imgs/*": resolvePath("src/assets/fa_imgs/*"),
       },
     },
     build: {
@@ -203,32 +158,89 @@ export default ({ mode }: { mode: string }) => {
       vitePluginStart(),
       tailwindcss(),
       AutoImport({
-        imports: ["vue", "vue-router", "pinia", "@vueuse/core", "vue-i18n"],
-        dts: "src/types/import/auto-imports.d.ts",
-        resolvers: [ElementPlusResolver()],
+        imports: [
+          "vue",
+          "vue-router",
+          "pinia",
+          "@vueuse/core",
+          "vue-i18n",
+          {
+            axios: [["default", "axios"]],
+          },
+          {
+            "element-plus/es": [
+              "ElScrollbar",
+              "ElInput",
+              "ElMessageBox",
+              "ElNotification",
+              "ElMessage",
+              "ElSwitch",
+              "ElAvatar",
+              "ElButton",
+            ],
+          },
+          // ---- 项目公共模块 ----
+          {
+            "@/utils/query": ["stripPaginationParams", "cleanEmptyArrayParams"],
+            "@/utils/table": ["renderTableOperationCell", "resolveStatusColumns"],
+            "@/enums/api/result.enum": ["ResultEnum"],
+            "@/enums/appEnum": [
+              "MenuTypeEnum",
+              "SystemThemeEnum",
+              "MenuThemeEnum",
+              "LanguageEnum",
+              "ContainerWidthEnum",
+            ],
+          },
+        ],
+        dirs: ["./src/hooks/core"],
+        dts: "src/types/auto-imports.d.ts",
+        resolvers: [ElementPlusResolver(), IconsResolver({})],
         eslintrc: {
           enabled: true,
-          filepath: "./.auto-import.json",
+          filepath: "./eslint-globals.json",
           globalsPropValue: true,
         },
         vueTemplate: true,
       }),
       Components({
-        dirs: ["src/components"],
-        dts: "src/types/import/components.d.ts",
-        resolvers: [ElementPlusResolver()],
+        dirs: ["src/components", "src/**/components"],
+        dts: "src/types/components.d.ts",
+        resolvers: [
+          ElementPlusResolver(),
+          IconsResolver({
+            enabledCollections: ["ep"],
+          }),
+        ],
+      }),
+      Icons({
+        // 自动安装图标库
+        autoInstall: true,
       }),
       ElementPlus({
-        useSource: true,
+        // useSource: false 使用预编译 CSS，减少构建时间和样式按需加载时的依赖优化触发
+        useSource: false,
       }),
-      viteCompression({
-        verbose: false, // 是否在控制台输出压缩结果
-        disable: false, // 是否禁用
-        algorithm: "gzip", // 压缩算法
-        ext: ".gz", // 压缩后的文件名后缀
-        threshold: 10240, // 只有大小大于该值的资源会被处理 10240B = 10KB
-        deleteOriginFile: false, // 压缩后是否删除原文件
-      }),
+      // 生产环境：gzip 压缩（兼容性好）
+      ...(isProduction
+        ? [
+            viteCompression({
+              verbose: false,
+              algorithm: "gzip",
+              ext: ".gz",
+              threshold: 10240,
+              deleteOriginFile: false,
+            }),
+            // 生产环境：brotli 压缩（压缩率更高，现代浏览器支持）
+            viteCompression({
+              verbose: false,
+              algorithm: "brotliCompress",
+              ext: ".br",
+              threshold: 10240,
+              deleteOriginFile: false,
+            }),
+          ]
+        : []),
       /** 仅开发启用：避免生产包体积膨胀与运行期 DevTools 开销 */
       ...(isProduction ? [] : [vueDevTools()]),
     ],
@@ -238,9 +250,6 @@ export default ({ mode }: { mode: string }) => {
         "@vue-flow/background",
         "@vue-flow/controls",
         "@vue-flow/minimap",
-        "vue",
-        "vue-router",
-        "vue-i18n",
         "vue-json-pretty",
         "vue-web-terminal",
         "vue3-cron-plus",
@@ -251,18 +260,11 @@ export default ({ mode }: { mode: string }) => {
         "element-plus/es",
         "element-plus/es/locale/lang/en",
         "element-plus/es/locale/lang/zh-cn",
-        "pinia",
-        "axios",
-        "@vueuse/core",
         "codemirror",
         "codemirror-editor-vue3",
         "@wangeditor-next/editor",
         "@wangeditor-next/editor-for-vue",
         "exceljs",
-        "echarts/core",
-        "echarts/renderers",
-        "echarts/charts",
-        "echarts/components",
         "nprogress",
         "qs",
         "path-to-regexp",
@@ -283,7 +285,10 @@ export default ({ mode }: { mode: string }) => {
         "mitt",
         "ohash",
         "pinia-plugin-persistedstate",
-        ...elementPlusStyleIncludes(),
+        "echarts/core",
+        "echarts/renderers",
+        "echarts/charts",
+        "echarts/components",
       ],
     },
     css: {

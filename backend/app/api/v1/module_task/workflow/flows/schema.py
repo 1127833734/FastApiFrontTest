@@ -93,8 +93,8 @@ class WorkflowOutSchema(BaseSchema, UserBySchema):
 class WorkflowQueryParam(BaseQueryParam, UserByQueryParam):
     """工作流查询"""
 
-    name: str | None = Field(None, description="流程名称")
-    code: str | None = Field(None, description="流程编码")
+    name: str | None = Field(None, description="流程名称", json_schema_extra={"q": "like"})
+    code: str | None = Field(None, description="流程编码", json_schema_extra={"q": "eq"})
 
 
 class WorkflowExecuteSchema(BaseModel):

@@ -42,6 +42,7 @@ export default OperationLogAPI;
 
 export interface OperationLogPageQuery extends PageQuery, UserByQueryParams {
   request_path?: string;
+  request_method?: string;
   username?: string;
   status?: number;
   request_ip?: string;
@@ -49,10 +50,13 @@ export interface OperationLogPageQuery extends PageQuery, UserByQueryParams {
 
 export interface OperationLogTable {
   id: number;
-  request_path?: string;
-  request_method?: string;
+  username: string;
+  status?: number;
+  description?: string;
+  request_path: string;
+  request_method: string;
   request_payload?: Record<string, unknown> | string;
-  response_code?: number;
+  response_code: number;
   response_json?: Record<string, unknown> | string;
   process_time?: string;
   created_time?: string;

@@ -1,7 +1,7 @@
 import urllib.parse
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Path, Query, Security, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Path, Security, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -120,7 +120,7 @@ async def get_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[UserQueryParam, Query()],
+    search: Annotated[UserQueryParam, Depends()],
 ) -> JSONResponse:
     result_dict = await UserService(auth, db).page(
         page_no=page.page_no,

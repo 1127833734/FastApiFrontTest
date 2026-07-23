@@ -3,10 +3,10 @@ from typing import Annotated
 
 import typer
 import uvicorn
+from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 
-from alembic import command
 from app.common.enums import EnvironmentEnum
 from app.config.setting import settings
 from app.utils.banner import worship
@@ -72,6 +72,7 @@ def run(
         reload=env.value == EnvironmentEnum.DEV.value,
         factory=True,
         log_config=None,
+        timeout_graceful_shutdown=5,
     )
 
 

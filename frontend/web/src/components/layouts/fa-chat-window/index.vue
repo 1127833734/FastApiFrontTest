@@ -22,7 +22,7 @@
           ref="messageContainer"
           class="flex-1 border-t border-(--default-border) px-4 py-7.5"
         >
-          <template v-for="(message, index) in messages" :key="index">
+          <template v-for="message in messages" :key="message.id">
             <div
               :class="[
                 'mb-7.5 flex w-full items-start gap-2',
@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import { Picture, Paperclip, Close } from "@element-plus/icons-vue";
-import { ElScrollbar } from "element-plus";
+
 import { mittBus } from "@utils";
 import meAvatar from "@imgs/avatar/avatar5.webp";
 import aiAvatar from "@imgs/avatar/avatar10.webp";

@@ -2,7 +2,7 @@
  * 通用文件下载（axios + blob），非 Vue 插件。
  */
 import axios from "axios";
-import { ElLoading, ElMessage } from "element-plus";
+import { ElLoading, ElMessage } from "@/utils/message";
 import { saveAs as fileSaverSaveAs } from "file-saver";
 import { Auth, errorCode, blobValidate } from "@utils";
 

@@ -53,8 +53,6 @@ import { echarts, type EChartsOption } from "@/plugins/echarts";
 import { storeToRefs } from "pinia";
 import { useSettingsStore } from "@stores";
 import { getCssVar } from "@utils";
-import type { BaseChartProps, ChartThemeConfig, UseChartOptions } from "@/types/component/chart";
-
 // 图表主题配置
 export const useChartOps = (): ChartThemeConfig => ({
   /** */
@@ -94,6 +92,8 @@ export function useChart(options: UseChartOptions = {}) {
   let pendingOptions: EChartsOption | null = null;
   let resizeTimeoutId: number | null = null;
   let resizeFrameId: number | null = null;
+  let initDelayTimerId: number | null = null;
+  const multiDelayTimerIds: number[] = [];
   let isDestroyed = false;
   let emptyStateDiv: HTMLElement | null = null;
 
@@ -107,6 +107,12 @@ export function useChart(options: UseChartOptions = {}) {
       cancelAnimationFrame(resizeFrameId);
       resizeFrameId = null;
     }
+    if (initDelayTimerId) {
+      clearTimeout(initDelayTimerId);
+      initDelayTimerId = null;
+    }
+    multiDelayTimerIds.forEach((id) => clearTimeout(id));
+    multiDelayTimerIds.length = 0;
   };
 
   // 使用 requestAnimationFrame 优化 resize 处理
@@ -133,12 +139,17 @@ export function useChart(options: UseChartOptions = {}) {
 
   // 多延迟resize处理 - 统一方法
   const multiDelayResize = (delays: readonly number[]) => {
+    // 清理之前残留的定时器
+    multiDelayTimerIds.forEach((id) => clearTimeout(id));
+    multiDelayTimerIds.length = 0;
+
     // 立即调用一次，快速响应
     nextTick(requestAnimationResize);
 
     // 使用延迟时间，确保图表正确适应变化
     delays.forEach((delay) => {
-      setTimeout(requestAnimationResize, delay);
+      const id = window.setTimeout(requestAnimationResize, delay);
+      multiDelayTimerIds.push(id);
     });
   };
 
@@ -521,7 +532,10 @@ export function useChart(options: UseChartOptions = {}) {
       if (isContainerVisible(chartRef.value)) {
         // 容器可见，正常初始化
         if (initDelay > 0) {
-          setTimeout(() => performChartInit(mergedOptions), initDelay);
+          initDelayTimerId = window.setTimeout(() => {
+            initDelayTimerId = null;
+            performChartInit(mergedOptions);
+          }, initDelay);
         } else {
           performChartInit(mergedOptions);
         }
@@ -695,7 +709,8 @@ export function useChartComponent<T extends BaseChartProps>(options: UseChartCom
   const setupWatchers = () => {
     // 监听自定义数据源
     if (watchSources.length > 0) {
-      const stopHandle = watch(watchSources, updateChart, { deep: true });
+      // 无需 deep：watchSources 为 getter 数组，Vue 自动追踪 getter 内部的响应式依赖
+      const stopHandle = watch(watchSources, updateChart);
       stopHandles.push(stopHandle);
     }
 

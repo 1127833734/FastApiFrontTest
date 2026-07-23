@@ -21,7 +21,7 @@ ResourceRouter = APIRouter(route_class=OperationLogRoute, prefix="/resource", ta
 async def get_directory_list_controller(
     request: Request,
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[ResourceSearchQueryParam, Query()],
+    search: Annotated[ResourceSearchQueryParam, Depends()],
 ) -> JSONResponse:
     result_dict_list = await ResourceService.get_resources_list(search=search, base_url=str(request.base_url))
     result_dict = await PaginationService.paginate(
@@ -111,7 +111,7 @@ async def create_directory_controller(
 @ResourceRouter.post("/export", summary="导出资源列表", dependencies=[Security(AuthPermission(["module_monitor:resource:export"]))])
 async def export_resource_list_controller(
     request: Request,
-    search: Annotated[ResourceSearchQueryParam, Query()],
+    search: Annotated[ResourceSearchQueryParam, Depends()],
 ) -> StreamingResponse:
     result_dict_list = await ResourceService.get_resources_list(search=search, base_url=str(request.base_url))
     export_result = await ResourceService.export_resource(data_list=result_dict_list)

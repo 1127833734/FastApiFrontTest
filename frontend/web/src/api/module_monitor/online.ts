@@ -21,6 +21,14 @@ const OnlineAPI = {
     });
   },
 
+  // 获取当前用户自己的在线会话
+  listCurrentOnline() {
+    return request<ApiResponse<OnlineUserTable[]>>({
+      url: `${API_PATH}/current`,
+      method: "get",
+    });
+  },
+
   // 强退用户
   clearOnline() {
     return request<ApiResponse>({

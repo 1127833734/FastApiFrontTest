@@ -84,10 +84,10 @@ class TicketBatchSchema(BaseModel):
 class TicketQueryParam(BaseQueryParam, UserByQueryParam):
     """工单查询参数"""
 
-    title: str | None = Field(None, description="工单标题")
+    title: str | None = Field(None, description="工单标题", json_schema_extra={"q": "like"})
     ticket_type: str | None = Field(None, description="工单类型", json_schema_extra={"q": "eq"})
-    assigned_id: int | None = Field(None, description="处理人ID")
-    status: int | None = Field(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)")
+    assigned_id: int | None = Field(None, description="处理人ID", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=3, description="状态(0:待处理 1:处理中 2:已完成 3:已关闭)", json_schema_extra={"q": "eq"})
 
 
 class TicketCommentCreateSchema(BaseModel):

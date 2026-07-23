@@ -76,7 +76,8 @@
 
 <script lang="ts" setup>
 import { Download, UploadFilled } from "@element-plus/icons-vue";
-import { ElMessage, type UploadUserFile } from "element-plus";
+import { ElMessage } from "@/utils/message";
+import type { UploadUserFile } from "element-plus";
 import { ref, reactive } from "vue";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 

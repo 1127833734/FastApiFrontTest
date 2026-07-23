@@ -127,7 +127,7 @@
 <script setup lang="ts">
 import AppConfig from "@/config";
 import { useConfigStore, useSettingsStore, useMenuStore } from "@stores";
-import { MenuTypeEnum, MenuWidth } from "@/enums/appEnum";
+import { MenuWidth } from "@/enums/appEnum";
 import { isIframe, handleMenuJump } from "@utils";
 import SidebarSubmenu from "./widgets/FaSidebarSubmenu.vue";
 import { useCommon } from "@/hooks/core/useCommon";
@@ -150,7 +150,7 @@ const sidebarLogoSrc = computed(() => {
 });
 
 const sidebarTitle = computed(() => {
-  const raw = configStore.configData.name?.config_value;
+  const raw = configStore.configData.sys_name?.config_value;
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return AppConfig.systemInfo.name;
 });
@@ -253,9 +253,9 @@ const { start: delayHideMobileModal } = useTimeoutFn(
 /**
  * 查找 iframe 对应的二级菜单列表
  */
-const findIframeMenuList = (currentPath: string, menuList: any[]) => {
+const findIframeMenuList = (currentPath: string, menuList: AppRouteRecord[]) => {
   // 递归查找包含当前路径的菜单项
-  const hasPath = (items: any[]): boolean => {
+  const hasPath = (items: AppRouteRecord[]): boolean => {
     for (const item of items) {
       if (item.path === currentPath) {
         return true;

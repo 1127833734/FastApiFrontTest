@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
-import { ElButton, ElColorPicker, ElIcon, ElScrollbar } from "element-plus";
+
 import { Close } from "@element-plus/icons-vue";
 
 interface Props {

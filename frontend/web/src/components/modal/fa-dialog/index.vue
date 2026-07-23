@@ -37,12 +37,27 @@
     </template>
     <template v-else-if="formMode" #footer>
       <div class="fa-dialog-footer" :style="'padding-right: var(--el-dialog-padding-primary)'">
-        <ElButton v-if="formMode !== 'detail'" type="primary" plain @click="emit('cancel')">
-          {{ cancelText }}
+        <!-- detail 模式仅显示关闭按钮 -->
+        <ElButton v-if="formMode === 'detail'" type="primary" @click="emit('confirm')">
+          {{ confirmText || "关闭" }}
         </ElButton>
-        <ElButton type="primary" :loading="confirmLoading" @click="emit('confirm')">
-          {{ confirmText }}
-        </ElButton>
+        <template v-else>
+          <ElButton type="primary" plain @click="emit('cancel')">
+            {{ cancelText }}
+          </ElButton>
+          <!-- 创建模式支持"提交并继续添加" -->
+          <ElButton
+            v-if="showSubmitAndContinue && formMode === 'create'"
+            type="primary"
+            :loading="confirmLoading"
+            @click="emit('submitAndContinue')"
+          >
+            提交并继续添加
+          </ElButton>
+          <ElButton type="primary" :loading="confirmLoading" @click="emit('confirm')">
+            {{ confirmText }}
+          </ElButton>
+        </template>
       </div>
     </template>
   </ElDialog>
@@ -50,7 +65,7 @@
 
 <script setup lang="ts">
 import type { DialogProps } from "element-plus";
-import { computed, ref, useAttrs, watch } from "vue";
+import { computed, ref, useAttrs, watch, onMounted, onUnmounted } from "vue";
 import FaIconButton from "@/components/widget/fa-icon-button/index.vue";
 
 defineOptions({ name: "FaDialog", inheritAttrs: false });
@@ -65,7 +80,7 @@ interface Props {
   dialogClass?: string;
   /** 遮罩层自定义 class */
   modalClass?: string;
-  /** 表单模式：detail 仅显示确定；create/update 显示取消+确定 */
+  /** 表单模式：detail 仅显示关闭；create/update 显示取消+确定 */
   formMode?: "detail" | "create" | "update";
   /** 确定按钮 loading 状态 */
   confirmLoading?: boolean;
@@ -73,12 +88,15 @@ interface Props {
   confirmText?: string;
   /** 取消按钮文本 */
   cancelText?: string;
+  /** 是否显示"提交并继续添加"按钮（仅 create 模式有效） */
+  showSubmitAndContinue?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   draggable: true,
   confirmText: "确定",
   cancelText: "取消",
+  showSubmitAndContinue: false,
 });
 
 interface Emits {
@@ -91,6 +109,8 @@ interface Emits {
   cancel: [];
   /** 点击确定按钮 */
   confirm: [];
+  /** 点击提交并继续添加按钮 */
+  submitAndContinue: [];
 }
 
 const emit = defineEmits<Emits>();
@@ -101,6 +121,19 @@ const fullscreen = ref(false);
 watch(fullscreen, (newVal) => {
   emit("fullscreen-change", newVal);
 });
+
+// Ctrl+Enter / Cmd+Enter 快捷键触发确认提交（非 detail 模式）
+function onKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    if (props.modelValue && props.formMode && props.formMode !== "detail") {
+      e.preventDefault();
+      emit("confirm");
+    }
+  }
+}
+
+onMounted(() => window.addEventListener("keydown", onKeydown));
+onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 
 const dialogClass = computed(() => {
   const a = attrs.class;

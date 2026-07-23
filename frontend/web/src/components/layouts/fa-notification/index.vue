@@ -17,7 +17,7 @@
       <ul>
         <li
           v-for="(item, index) in noticeList"
-          :key="index"
+          :key="item.title + item.time"
           class="box-border flex-c px-3.5 py-3.5 c-p last:border-b-0 hover:bg-g-200/60"
           @click="handleMarkAsRead(index)"
         >
@@ -54,7 +54,7 @@
 import { ref, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
-import NoticeAPI, { type NoticeTable } from "@/api/module_system/notice";
+import NoticeAPI from "@/api/module_system/notice";
 
 defineOptions({ name: "FaNotification" });
 
@@ -85,11 +85,10 @@ const fetchNotices = async () => {
   loading.value = true;
   try {
     const res = await NoticeAPI.listNoticeAvailable();
-    const data = (res.data as any)?.data ?? res.data ?? {};
-    const items: any[] = data.items || data.list || [];
-    noticeList.value = items.map((n: NoticeTable) => ({
-      title: n.notice_title || "",
-      time: n.created_time || "",
+    const items = res.data?.data ?? [];
+    noticeList.value = items.map((n) => ({
+      title: n.notice_title ?? "",
+      time: n.created_time ?? "",
       read: false,
     }));
   } catch {
@@ -154,7 +153,7 @@ watch(
   duration-300
   origin-top 
   will-change-[top,left] 
-  max-[640px]:top-[65px]
+  max-[640px]:top-16.25
   max-[640px]:right-0
   max-[640px]:w-full 
   max-[640px]:h-[80vh];

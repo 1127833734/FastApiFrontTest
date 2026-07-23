@@ -16,6 +16,8 @@ from .schema import (
     RoleUpdateSchema,
 )
 
+_ROLE_PRELOAD = ["menus", "depts"]
+
 
 class RoleService:
     """角色管理服务
@@ -36,7 +38,7 @@ class RoleService:
         返回:
         - RoleOutSchema: 角色详情响应模型
         """
-        obj = await RoleCRUD(self.auth, self.db).get_or_404(id=id)
+        obj = await RoleCRUD(self.auth, self.db).get_or_404(id=id, preload=_ROLE_PRELOAD)
         return RoleOutSchema.model_validate(obj)
 
     async def get_options(self) -> list[dict[str, Any]]:
@@ -57,7 +59,7 @@ class RoleService:
         返回:
         - list[RoleOutSchema]: 角色响应模型列表
         """
-        role_list = await RoleCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by)
+        role_list = await RoleCRUD(self.auth, self.db).get_list(search=search_to_dict(search), order_by=order_by, preload=_ROLE_PRELOAD)
         return [RoleOutSchema.model_validate(role) for role in role_list]
 
     async def page(
@@ -85,6 +87,7 @@ class RoleService:
             order_by=order_by or [{"id": "asc"}],
             search=search_to_dict(search),
             out_schema=RoleOutSchema,
+            preload=_ROLE_PRELOAD,
         )
 
     async def create(self, data: RoleCreateSchema) -> RoleOutSchema:
@@ -105,7 +108,7 @@ class RoleService:
             raise CustomException(msg="创建失败，编码已存在")
 
         new_role = await RoleCRUD(self.auth, self.db).create(data=data)
-        return RoleOutSchema.model_validate(new_role)
+        return await self.detail(id=new_role.id)
 
     async def update(self, id: int, data: RoleUpdateSchema) -> RoleOutSchema:
         """更新角色
@@ -124,8 +127,8 @@ class RoleService:
         exist_code = await RoleCRUD(self.auth, self.db).get(code=data.code)
         if exist_code and exist_code.id != id:
             raise CustomException(msg="更新失败，角色编码已存在")
-        updated_role = await RoleCRUD(self.auth, self.db).update(id=id, data=data)
-        return RoleOutSchema.model_validate(updated_role)
+        await RoleCRUD(self.auth, self.db).update(id=id, data=data)
+        return await self.detail(id=id)
 
     async def delete(self, ids: list[int]) -> None:
         """删除角色

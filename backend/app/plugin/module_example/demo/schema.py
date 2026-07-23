@@ -90,6 +90,6 @@ class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema):
 class DemoQueryParam(BaseQueryParam, UserByQueryParam):
     """示例查询参数（演示 Mixin 继承用法）"""
 
-    name: str | None = Field(None, description="名称")
-    description: str | None = Field(None, description="描述")
-    status: int | None = Field(None, description="是否启用")
+    name: str | None = Field(None, description="名称", json_schema_extra={"q": "like"})
+    description: str | None = Field(None, description="描述", json_schema_extra={"q": "like"})
+    status: int | None = Field(None, description="是否启用", json_schema_extra={"q": "eq"})
