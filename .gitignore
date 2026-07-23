@@ -66,8 +66,6 @@ frontend/web/.env.dev
 frontend/web/.env.prod
 frontend/web/.env.test
 
-docker/docker-compose.yaml
-
 frontend/node_modules
 frontend/dist
 frontend/src/types/auto-imports.d.ts
