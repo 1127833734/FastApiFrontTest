@@ -1,7 +1,7 @@
 import { ref, computed, watch } from "vue";
 import { useSettingsStore } from "@stores";
 import { storeToRefs } from "pinia";
-import { MenuTypeEnum } from "@/enums/appEnum";
+import { MenuTypeEnum, SystemThemeEnum } from "@/enums/appEnum";
 import { useWindowSize } from "@vueuse/core";
 import { MOBILE_BREAKPOINT } from "@utils/constants";
 import AppConfig from "@/config";

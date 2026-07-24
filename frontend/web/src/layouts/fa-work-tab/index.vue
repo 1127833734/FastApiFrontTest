@@ -29,7 +29,7 @@
       >
         <ul
           class="float-left whitespace-nowrap bg-transparent! flex"
-          :class="[chromeTabStrip ? 'pl-1' : '']"
+          :class="['pl-1']"
           ref="tabsRef"
           :style="{
             transform: `translateX(${scrollState.translateX}px)`,
@@ -128,15 +128,6 @@
         <button
           type="button"
           class="worktab-bar-btn worktab-bar-cell"
-          :title="t('navbar.refreshCache')"
-          @click="handleRefreshCache"
-        >
-          <FaSvgIcon icon="ri:loop-right-line" class="text-base text-current" />
-        </button>
-
-        <button
-          type="button"
-          class="worktab-bar-btn worktab-bar-cell"
           :title="t('worktab.menuMore')"
           @click="(e: MouseEvent) => showMenu(e, activeTab)"
         >
@@ -173,7 +164,7 @@ import { LocationQueryRaw, useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
 import { ElMessage } from "element-plus";
-import { refreshAppCaches, useWorktabStore, useUserStore, useSettingsStore } from "@stores";
+import { useWorktabStore, useUserStore, useSettingsStore } from "@stores";
 import { MenuItemType } from "@/components/others/fa-menu-right/index.vue";
 import { useCommon } from "@/hooks/core/useCommon";
 import { formatMenuTitle, quickStartManager } from "@utils";
@@ -654,17 +645,6 @@ function toggleQuickBookmark(item: WorkTab): void {
 function onMiddleClickClose(item: WorkTab): void {
   if (!item.fixedTab && list.value.length > 1) {
     closeWorktab("current", item.path);
-  }
-}
-
-async function handleRefreshCache(): Promise<void> {
-  try {
-    await refreshAppCaches();
-    useCommon().refresh();
-    ElMessage.success(t("worktab.refreshCacheDone"));
-  } catch (e) {
-    console.error(e);
-    ElMessage.error(t("worktab.refreshCacheFail"));
   }
 }
 

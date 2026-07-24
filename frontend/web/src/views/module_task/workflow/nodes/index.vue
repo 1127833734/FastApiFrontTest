@@ -167,6 +167,7 @@ import FaTable from "@/components/tables/fa-table/index.vue";
 import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import FaForm from "@/components/forms/fa-form/index.vue";
 import type { TableOperationAction } from "@utils";
+import { renderTableOperationCell } from "@utils";
 import { ElMessage } from "element-plus";
 import type { FormRules } from "element-plus";
 import { computed, nextTick, ref } from "vue";

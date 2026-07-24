@@ -129,6 +129,7 @@ import FaForm from "@/components/forms/fa-form/index.vue";
 import { ElMessage } from "element-plus";
 import type { ColumnOption } from "@/types/component";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import { renderTableOperationCell, resolveStatusColumns, stripPaginationParams, cleanEmptyArrayParams } from "@utils";
 
 defineOptions({
   name: "Position",
@@ -257,8 +258,16 @@ const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
 const createLoading = ref(false);
 const moreLoading = ref(false);
 
+async function handleOpenPositionDetail(id: number) {
+  dialogVisible.title = "岗位详情";
+  dialogVisible.type = "detail";
+  const res = await PositionAPI.detailPosition(id);
+  detailFormData.value = (res.data?.data ?? {}) as PositionTable;
+  dialogVisible.visible = true;
+}
+
 const opCtx = {
-  onDetail: (id: number) => void handleOpenDialog("detail", id),
+  onDetail: (id: number) => void handleOpenPositionDetail(id),
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deletePositionRow,
 };

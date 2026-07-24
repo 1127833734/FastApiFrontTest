@@ -80,7 +80,7 @@
       <template v-if="dialogVisible.type === 'detail'">
         <ElScrollbar max-height="70vh" :view-style="{ overflowX: 'hidden' }">
           <FaDescriptions
-            :column="2"
+            :column="4"
             :data="detailFormData"
             :items="memoryDetailItems"
             :scrollbar="false"
@@ -150,7 +150,7 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import type FaForm from "@/components/forms/fa-form/index.vue";
-import { formatToDateTime, type TableOperationAction } from "@utils";
+import { formatToDateTime, renderTableOperationCell, type TableOperationAction } from "@utils";
 import type { ColumnOption } from "@/types/component";
 import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 import FaTable from "@/components/tables/fa-table/index.vue";
@@ -418,6 +418,14 @@ async function handleAdd() {
   }
 }
 
+async function handleOpenMemoryDetail(id: string) {
+  dialogVisible.title = "详情";
+  dialogVisible.type = "detail";
+  const response = await AiChatAPI.getSessionDetail(id);
+  detailFormData.value = response.data.data ?? {};
+  dialogVisible.visible = true;
+}
+
 async function handleOpenDialog(type: "create" | "detail", id?: string) {
   await resetForm();
   dialogVisible.type = type;
@@ -443,7 +451,7 @@ function buildMemoryRowActions(row: ChatSession): TableOperationAction[] {
       artType: "view",
       perm: "module_ai:chat:detail",
       run: () => {
-        void handleOpenDialog("detail", row.id);
+        void handleOpenMemoryDetail(row.id);
       },
     },
     {

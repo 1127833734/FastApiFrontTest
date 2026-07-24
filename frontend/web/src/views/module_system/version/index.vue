@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { renderTableOperationCell, type TableOperationAction } from "@/utils/table";
+import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@/utils/table";
 import VersionAPI, { type VersionForm, type VersionTable } from "@/api/module_system/version";
 import { Plus } from "@element-plus/icons-vue";
 import { reactive } from "vue";

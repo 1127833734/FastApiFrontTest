@@ -74,7 +74,7 @@
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
-          :column="2"
+          :column="4"
           :data="detailFormData"
           :items="dictDetailItems"
           max-height="70vh"
@@ -119,7 +119,7 @@ import { computed, h, ref, watch } from "vue";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import DictAPI, { type DictForm, type DictTable } from "@/api/module_system/dict";
 import { useDictStore } from "@stores";
-import { type TableOperationAction } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -389,6 +389,15 @@ function onResetSearch() {
   void resetSearchParams();
 }
 
+async function handleOpenDictTypeDetail(id: number) {
+  dialogVisible.title = "字典详情";
+  dialogVisible.type = "detail";
+  const res = await DictAPI.detailDictType(id);
+  const data = (res.data?.data ?? {}) as DictTable;
+  Object.assign(detailFormData.value, data);
+  dialogVisible.visible = true;
+}
+
 function buildDictRowActions(row: DictTable): TableOperationAction[] {
   const all: TableOperationAction[] = [
     {
@@ -396,7 +405,7 @@ function buildDictRowActions(row: DictTable): TableOperationAction[] {
       label: "详情",
       artType: "view",
       perm: "module_system:dict_type:detail",
-      run: () => void handleOpenDialog("detail", row.id),
+      run: () => void handleOpenDictTypeDetail(row.id!),
     },
     {
       key: "edit",

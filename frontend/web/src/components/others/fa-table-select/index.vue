@@ -151,6 +151,7 @@ defineSlots<{
   [slotName: string]: (props: Record<string, any>) => void;
 }>();
 
+import { ArrowDown } from "@element-plus/icons-vue";
 import { ref, reactive, computed } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import type { FormInstance, PopoverProps, TableInstance } from "element-plus";

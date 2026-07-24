@@ -71,6 +71,7 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import FaWorkflowDesignDrawer from "./components/FaWorkflowDesignDrawer.vue";
 import type { TableOperationAction } from "@/utils/table";
+import { renderTableOperationCell } from "@utils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, ref } from "vue";
 import type { ColumnOption } from "@/types/component";

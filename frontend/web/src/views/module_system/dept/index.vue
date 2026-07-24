@@ -115,7 +115,7 @@ import DeptAPI, {
   type DeptTable,
 } from "@/api/module_system/dept";
 import { useUserStore } from "@stores";
-import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
+import { formatTree, renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -369,10 +369,18 @@ async function handleAdd() {
   }
 }
 
+async function handleOpenDeptDetail(id: number) {
+  dialogVisible.title = "部门详情";
+  dialogVisible.type = "detail";
+  const response = await DeptAPI.detailDept(id);
+  Object.assign(detailFormData.value, response.data.data ?? {});
+  dialogVisible.visible = true;
+}
+
 const opCtx = {
   onAddChild: (parentId: number) =>
     void handleOpenDialog("create", undefined, { parent_id: parentId }),
-  onDetail: (id: number) => void handleOpenDialog("detail", id),
+  onDetail: (id: number) => void handleOpenDeptDetail(id),
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deleteDeptRow,
 };

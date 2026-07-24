@@ -160,7 +160,7 @@
           @confirm="handleLoginCloseDialog"
         >
           <FaDescriptions
-            :column="2"
+            :column="4"
             :data="loginFormData"
             :items="loginDetailItems"
             label-width="120px"
@@ -187,7 +187,7 @@ import OperationLogAPI, {
   type LoginLogTable,
   LoginLogAPI,
 } from "@/api/module_system/log";
-import { renderTableOperationCell, type TableOperationAction, type StatusType } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, stripPaginationParams, cleanEmptyArrayParams, type TableOperationAction, type StatusType } from "@utils";
 import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";

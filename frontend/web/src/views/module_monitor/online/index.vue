@@ -60,6 +60,7 @@ import { h, ref, computed } from "vue";
 import OnlineAPI, { type OnlineUserTable } from "@/api/module_monitor/online";
 import { ElMessageBox } from "element-plus";
 import type { TableOperationAction } from "@/utils/table";
+import { renderTableOperationCell } from "@utils";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaCopyButton from "@/components/others/fa-copy-button/index.vue";

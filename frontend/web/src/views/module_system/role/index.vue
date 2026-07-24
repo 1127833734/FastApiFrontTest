@@ -155,7 +155,7 @@ import { h } from "vue";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 
-import { type TableOperationAction } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, stripPaginationParams, cleanEmptyArrayParams, type TableOperationAction } from "@utils";
 import RoleAPI, {
   type RoleForm,
   type RoleTable,
@@ -461,9 +461,17 @@ async function handleAdd() {
   }
 }
 
+async function handleOpenRoleDetail(id: number) {
+  dialogVisible.title = "角色详情";
+  dialogVisible.type = "detail";
+  const response = await RoleAPI.detailRole(id);
+  Object.assign(detailFormData.value, response.data.data ?? {});
+  dialogVisible.visible = true;
+}
+
 const opCtx = {
   onPerm: handleOpenAssignPermDialog,
-  onDetail: (id: number) => void handleOpenDialog("detail", id),
+  onDetail: (id: number) => void handleOpenRoleDetail(id),
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deleteRoleRow,
 };

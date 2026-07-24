@@ -135,7 +135,7 @@
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 import NoticeAPI, { type NoticeForm, type NoticeTable } from "@/api/module_system/notice";
-import { type TableOperationAction } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import { useDictStore, useNoticeStore } from "@stores";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
@@ -309,6 +309,20 @@ const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } =
       await noticeStore.getNotice();
     },
   });
+
+/**
+ * 打开详情弹窗：先加载数据再打开对话框，避免抖动
+ */
+async function handleOpenNoticeDetail(id: number) {
+  dialogVisible.title = "公告通知详情";
+  dialogVisible.type = "detail";
+  const response = await NoticeAPI.detailNotice(id);
+  const data = response.data.data;
+  if (data) {
+    detailFormData.value = { ...data };
+  }
+  dialogVisible.visible = true;
+}
 
 async function handleAdd() {
   createLoading.value = true;
@@ -501,7 +515,7 @@ function buildNoticeRowActions(row: NoticeTable): TableOperationAction[] {
       artType: "view",
       perm: "module_system:notice:detail",
       run: () => {
-        if (row.id != null) void handleOpenDialog("detail", row.id);
+        if (row.id != null) void handleOpenNoticeDetail(row.id);
       },
     },
     {

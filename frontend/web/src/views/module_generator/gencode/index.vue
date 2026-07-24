@@ -162,6 +162,7 @@ import FaImportDbTableDialog from "./components/FaImportDbTableDialog.vue";
 import FaCreateTableDialog from "./components/FaCreateTableDialog.vue";
 import { GENCODE_BASIC_FORM_KEY, GENCODE_CM_KEY } from "./gencodeInjectionKeys";
 import type { TableOperationAction } from "@utils";
+import { renderTableOperationCell } from "@utils";
 import type { TreeNode } from "./types";
 import type { ColumnOption } from "@/types/component";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";

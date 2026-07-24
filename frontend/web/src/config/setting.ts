@@ -22,6 +22,7 @@
 
 import AppConfig from "@/config";
 import { LayoutMode, ComponentSize, SidebarColor, ThemeMode } from "@/enums";
+import { SystemThemeEnum, MenuTypeEnum, MenuThemeEnum, LanguageEnum, ContainerWidthEnum } from "@/enums/appEnum";
 
 const env = import.meta.env;
 const { pkg } = __APP_INFO__;

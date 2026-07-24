@@ -44,7 +44,7 @@
     </ElScrollbar>
 
     <!-- 右侧滚动按钮 -->
-    <div v-show="showRightArrow" class="button-arrow right-2" @click="scroll('right')">
+    <div v-show="showRightArrow" class="button-arrow" @click="scroll('right')">
       <ElIcon>
         <ArrowRight />
       </ElIcon>
@@ -223,6 +223,34 @@ onMounted(initScrollState);
 </script>
 
 <style scoped>
+.button-arrow {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--fa-gray-600);
+  font-size: 1.125rem;
+  border-radius: 0.25rem;
+  transition: color 0.3s, background 0.3s;
+}
+
+.button-arrow:first-child {
+  left: 2px;
+}
+
+.button-arrow:last-child {
+  right: 2px;
+}
+
+.button-arrow:hover {
+  color: var(--el-color-primary);
+  background: var(--hover-color);
+}
+
 :deep(.el-scrollbar__bar.is-horizontal) {
   bottom: 5px;
   display: none;

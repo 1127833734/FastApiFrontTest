@@ -287,6 +287,7 @@ import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 import FaTable from "@/components/tables/fa-table/index.vue";
 import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import type { TableOperationAction } from "@utils";
+import { renderTableOperationCell } from "@utils";
 import { computed, nextTick, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { vue3CronPlus } from "vue3-cron-plus";

@@ -32,6 +32,7 @@
 import { configImages } from "./assets/images";
 import fastEnterConfig from "./modules/fastEnter";
 import { headerBarConfig } from "./modules/headerBar";
+import { SystemThemeEnum, MenuTypeEnum, MenuThemeEnum } from "@/enums/appEnum";
 import type { SystemConfig } from "@/types/config";
 
 const appConfig: SystemConfig = {

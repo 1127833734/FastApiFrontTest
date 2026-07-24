@@ -14,11 +14,12 @@ import type { AppRouteRecord } from "@/types/router";
 import { ElNotification } from "element-plus";
 import { store, useDictStore } from "@stores";
 import type { UserInfo } from "@/api/module_system/user";
+import { ResultEnum } from "@/enums/api/result.enum";
 
-/** 延迟加载 beforeEach 工具函数，避免 user.store 与 beforeEach 的循环依赖 */
-let _routerUtilsPromise: Promise<typeof import("@/router/beforeEach")> | null = null;
+/** 延迟加载 guards 工具函数，避免 user.store 与 guards 的循环依赖 */
+let _routerUtilsPromise: Promise<typeof import("@/router/guards")> | null = null;
 const getRouterUtils = () => {
-  if (!_routerUtilsPromise) _routerUtilsPromise = import("@/router/beforeEach");
+  if (!_routerUtilsPromise) _routerUtilsPromise = import("@/router/guards");
   return _routerUtilsPromise;
 };
 

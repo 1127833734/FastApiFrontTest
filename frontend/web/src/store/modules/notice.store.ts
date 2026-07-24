@@ -115,7 +115,11 @@ export const useNoticeStore = defineStore(
     };
   },
   {
-    persist: true,
+    persist: {
+      key: "notice",
+      storage: localStorage,
+      pick: ["readIds"],
+    },
   }
 );
 

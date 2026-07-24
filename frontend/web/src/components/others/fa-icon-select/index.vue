@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: "FaIconSelect" });
+import { CircleClose, ArrowDown } from "@element-plus/icons-vue";
 import {
   listLocalIconBasenames,
   isIconifyStoredIcon,
@@ -90,12 +91,12 @@ import {
 
 interface Props {
   modelValue?: string;
-  width?: string;
+  width?: string | number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: "",
-  width: "500px",
+  width: 500,
 });
 
 interface Emits {

@@ -357,7 +357,7 @@ import MenuAPI, {
 } from "@/api/module_system/menu";
 import { MenuClientEnum, MenuTypeEnum } from "@/enums/system/menu.enum";
 import { formatTree } from "@utils/common";
-import { type TableOperationAction } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -840,9 +840,23 @@ async function deleteMenuRow(id: number, name: string) {
   }
 }
 
+/**
+ * 打开菜单详情弹窗：先加载数据再打开对话框，避免抖动
+ */
+async function handleOpenMenuDetail(id: number) {
+  dialogVisible.title = "菜单详情";
+  dialogVisible.type = "detail";
+  const response = await MenuAPI.detailMenu(id);
+  const data = response.data.data;
+  if (data) {
+    detailFormData.value = { ...data };
+  }
+  dialogVisible.visible = true;
+}
+
 const opCtx = {
   onAdd: (r: MenuTable) => void handleOpenDialog("create", undefined, r),
-  onDetail: (id: number) => void handleOpenDialog("detail", id),
+  onDetail: (id: number) => void handleOpenMenuDetail(id),
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deleteMenuRow,
 };

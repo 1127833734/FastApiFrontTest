@@ -96,7 +96,11 @@ export const useConfigStore = defineStore(
     };
   },
   {
-    persist: true,
+    persist: {
+      key: "config",
+      storage: localStorage,
+      pick: ["configData", "isConfigLoaded"],
+    },
   }
 );
 

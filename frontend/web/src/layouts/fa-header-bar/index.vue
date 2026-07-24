@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { LanguageEnum } from "@/enums/appEnum";
+import { LanguageEnum, MenuTypeEnum } from "@/enums/appEnum";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useFullscreen, useWindowSize } from "@vueuse/core";
@@ -204,12 +204,14 @@ import {
   useUserStore,
   useNoticeStore,
   useConfigStore,
+  refreshAppCaches,
 } from "@stores";
 import AppConfig from "@/config";
 import { languageOptions } from "@/locales";
 import { mittBus, themeAnimation } from "@utils";
 import { useCommon } from "@/hooks/core/useCommon";
 import { useHeaderBar } from "@/hooks/core/useHeaderBar";
+import { ElMessage } from "element-plus";
 import FaUserMenu from "./widgets/FaUserMenu.vue";
 
 defineOptions({ name: "FaHeaderBar" });
@@ -218,7 +220,7 @@ defineOptions({ name: "FaHeaderBar" });
 const isWindows = navigator.userAgent.includes("Windows");
 
 const router = useRouter();
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const { width } = useWindowSize();
 
 const settingStore = useSettingsStore();
@@ -307,13 +309,20 @@ const toHome = (): void => {
 };
 
 /**
- * 刷新页面
- * @param {number} time - 延迟时间，默认为0毫秒
+ * 刷新缓存并刷新页面
  */
-const reload = (time: number = 0): void => {
-  setTimeout(() => {
+const reload = async (): Promise<void> => {
+  try {
+    await refreshAppCaches();
     refresh();
-  }, time);
+    ElMessage.success({
+      message: t("worktab.refreshCacheDone"),
+      duration: 3000,
+    });
+  } catch (e) {
+    console.error(e);
+    ElMessage.error(t("worktab.refreshCacheFail"));
+  }
 };
 
 /**
@@ -331,7 +340,7 @@ const changeLanguage = (lang: LanguageEnum): void => {
   if (locale.value === lang) return;
   locale.value = lang;
   userStore.setLanguage(lang);
-  reload(50);
+  reload();
 };
 
 /**

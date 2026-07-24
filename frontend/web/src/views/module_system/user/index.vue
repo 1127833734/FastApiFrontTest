@@ -92,7 +92,7 @@
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
-          :column="2"
+          :column="4"
           :data="detailFormData"
           :items="userDetailItems"
           :scrollbar="false"
@@ -215,7 +215,7 @@ import UserAPI, {
   type UserInfo,
   type UserPageQuery,
 } from "@/api/module_system/user";
-import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
+import { formatTree, renderTableOperationCell, resolveStatusColumns, stripPaginationParams, cleanEmptyArrayParams, type TableOperationAction } from "@utils";
 import PositionAPI from "@/api/module_system/position";
 import DeptAPI from "@/api/module_system/dept";
 import RoleAPI from "@/api/module_system/role";
@@ -233,6 +233,7 @@ import type { IContentConfig, IObject } from "@/components/modal/types";
 import FaDeptTree from "./components/FaDeptTree.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { ColumnOption } from "@/types/component";
+import { ResultEnum } from "@/enums/api/result.enum";
 
 const { hasAuth } = useAuth();
 const userStore = useUserStore();
@@ -541,9 +542,20 @@ async function deleteUserRow(id: number, name: string) {
   }
 }
 
+/**
+ * 打开用户详情：先请求数据再打开对话框，避免抖动。
+ */
+async function handleOpenUserDetail(id: number) {
+  dialogVisible.type = "detail";
+  dialogVisible.title = "用户详情";
+  const response = await UserAPI.detailUser(id);
+  Object.assign(detailFormData.value, response.data.data ?? {});
+  dialogVisible.visible = true;
+}
+
 const opCtx = {
   onResetPwd: handleResetPassword,
-  onDetail: (id: number) => void handleOpenDialog("detail", id),
+  onDetail: handleOpenUserDetail,
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deleteUserRow,
 };

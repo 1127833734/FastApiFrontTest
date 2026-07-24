@@ -345,6 +345,7 @@ import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import FaDrawer from "@/components/modal/fa-drawer/index.vue";
 import { ElMessageBox } from "element-plus";
 import type { TableOperationAction } from "@/utils/table";
+import { renderTableOperationCell } from "@utils";
 import { computed, h, nextTick, onMounted, ref } from "vue";
 import { Terminal, TerminalApi } from "vue-web-terminal";
 import type { ColumnOption } from "@/types/component";

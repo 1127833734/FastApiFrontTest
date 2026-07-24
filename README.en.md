@@ -122,10 +122,6 @@ Issues and PRs are welcome! See [Contributing Guide](https://service.fastapiadmi
 | ------------ | ------- |
 | ![Group QR](frontend/web/public/group.jpg) | ![WeChat Pay](frontend/web/public/wechatPay.jpg) |
 
-> If you find this project useful, please give it a ⭐️ Star!
-
-[![Stargazers over time](https://starchart.cc/fastapiadmin/FastapiAdmin.svg?variant=adaptive)](https://starchart.cc/fastapiadmin/FastapiAdmin)
-
 ## 👥 Contributors
 
 <a href="https://github.com/fastapiadmin/FastapiAdmin/graphs/contributors">
@@ -133,6 +129,8 @@ Issues and PRs are welcome! See [Contributing Guide](https://service.fastapiadmi
 </a>
 
 ## 🙏 Acknowledgments
+
+> If you find this project useful, please give it a ⭐️ Star!
 
 - Backend: [FastAPI](https://fastapi.tiangolo.com/) · [Pydantic](https://docs.pydantic.dev/) · [SQLAlchemy](https://www.sqlalchemy.org/) · [APScheduler](https://github.com/agronholm/apscheduler)
 - Frontend: [Vue3](https://vuejs.org/) · [TypeScript](https://www.typescriptlang.org/) · [Vite](https://vitejs.dev/) · [Element Plus](https://element-plus.org/)

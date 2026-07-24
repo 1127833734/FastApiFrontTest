@@ -110,7 +110,7 @@
                   size="small"
                   link
                   type="primary"
-                  @click="handleOpenDialog('detail', item.id!)"
+                  @click="handleOpenTicketDetail(item.id!)"
                 >
                   详情
                 </ElButton>
@@ -719,6 +719,14 @@ const {
     await fetchData();
   },
 });
+
+async function handleOpenTicketDetail(id: number) {
+  dialogVisible.title = "工单详情";
+  dialogVisible.type = "detail";
+  const response = await TicketAPI.detailTicket(id);
+  Object.assign(detailFormData.value, response.data.data ?? {});
+  dialogVisible.visible = true;
+}
 
 /** 对话框确认：创建走 crudHandleSubmit（含表单校验），处理直接调 API */
 async function handleDialogConfirm() {

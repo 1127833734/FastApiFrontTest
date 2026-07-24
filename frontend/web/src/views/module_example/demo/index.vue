@@ -152,6 +152,8 @@
 
 <script setup lang="ts">
 import type { TableOperationAction } from "@/utils/table";
+import { renderTableOperationCell, stripPaginationParams } from "@utils";
+import { ResultEnum } from "@/enums/api/result.enum";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
