@@ -191,13 +191,3 @@ defineExpose({
   resetDragVerify: () => dragVerifyRef.value?.reset?.(),
 });
 </script>
-
-<style scoped lang="scss">
-@use "../composables/fa-login";
-
-.el-select.custom-height {
-  :deep(.el-select__wrapper) {
-    height: 40px;
-  }
-}
-</style>

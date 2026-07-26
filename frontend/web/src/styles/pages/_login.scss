@@ -241,6 +241,11 @@ html.dark .login-page-footer--floating-layout {
   }
 }
 
+// 登录页下拉选择框桌面端高度
+.el-select.custom-height .el-select__wrapper {
+  height: 40px;
+}
+
 .login-page-panel {
   .btn {
     border-radius: 8px;
@@ -447,4 +452,50 @@ html.dark {
       border-color: var(--el-color-primary);
     }
   }
+}
+
+// ── 第三方登录区 ──
+.login-third-on-dark {
+  margin-top: 1rem;
+
+  .divider-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--el-border-color-lighter), transparent);
+  }
+
+  .divider-text {
+    padding: 0 12px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+  }
+}
+
+html.dark .login-third-on-dark {
+  .divider-line {
+    background: linear-gradient(to right, transparent, rgb(255 255 255 / 15%), transparent);
+  }
+
+  .divider-text {
+    color: rgb(255 255 255 / 38%);
+  }
+}
+
+.oauth-social-btn:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.oauth-social-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-7);
+}
+
+html.dark .oauth-social-btn:hover {
+  background-color: rgb(255 255 255 / 10%);
 }

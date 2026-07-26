@@ -8,12 +8,12 @@
     @close="handleClose"
     @opened="handleDrawerOpened"
   >
-    <ElContainer class="workflow-create-content">
+    <ElContainer class="workflow-create-content flex flex-col h-full">
       <ElSplitter direction="horizontal" :style="'height: 100%'">
         <ElSplitterPanel size="250px" :min="200" :max="400">
           <ElScrollbar :style="'height: 100%'">
-            <div class="panel-section">
-              <div class="section-title">基础信息</div>
+            <div class="p-3">
+              <div class="mb-3 text-sm font-bold">基础信息</div>
               <FaForm
                 ref="formRef"
                 v-model="formData"
@@ -32,14 +32,14 @@
 
             <ElDivider :style="'margin: 4px 0'" />
 
-            <div class="panel-section">
-              <div class="section-title">节点</div>
+            <div class="p-3">
+              <div class="mb-3 text-sm font-bold">节点</div>
               <ElInput
                 v-model="searchKeyword"
                 placeholder="搜索节点名称"
                 clearable
                 size="small"
-                class="search-box"
+                class="mb-3"
               >
                 <template #prefix>
                   <ElIcon><Search /></ElIcon>
@@ -67,8 +67,12 @@
         </ElSplitterPanel>
 
         <ElSplitterPanel>
-          <div class="canvas-main">
-            <div v-if="canvasReady" class="canvas-container" @click="handleCanvasClick">
+          <div class="canvas-main relative flex flex-col h-full p-0">
+            <div
+              v-if="canvasReady"
+              class="canvas-container flex-1 w-full h-full min-h-100 overflow-hidden"
+              @click="handleCanvasClick"
+            >
               <VueFlow
                 v-model:nodes="nodes"
                 v-model:edges="edges"
@@ -85,7 +89,10 @@
               >
                 <Controls />
                 <Background pattern-color="#aaa" :gap="16" />
-                <Panel position="top-right" class="workflow-toolbar">
+                <Panel
+                  position="top-right"
+                  class="workflow-toolbar flex gap-1 p-2 rounded-md shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
                   <ElButton
                     class="vue-flow__controls-button"
                     title="格式化画布"
@@ -175,7 +182,7 @@
     </ElContainer>
 
     <template #footer>
-      <div class="drawer-footer">
+      <div class="drawer-footer flex gap-3 justify-end">
         <ElButton @click="handleClose">取消</ElButton>
         <ElButton type="primary" @click="handleFinish">保存</ElButton>
       </div>
@@ -919,57 +926,11 @@ function deleteEdge(edgeId: string, getEdges: () => Edge[], setEdges: (edges: Ed
   }
 }
 
-.workflow-create-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
 :deep(.el-splitter) {
   flex: 1;
 }
 
 :deep(.el-splitter-panel) {
-  overflow: hidden;
-}
-
-.basic-info-section {
-  padding: 12px;
-
-  .section-title {
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: bold;
-  }
-}
-
-.panel-section {
-  padding: 12px;
-
-  .section-title {
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: bold;
-  }
-}
-
-.search-box {
-  margin-bottom: 12px;
-}
-
-.canvas-main {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 0;
-}
-
-.canvas-container {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
   overflow: hidden;
 }
 
@@ -997,20 +958,6 @@ function deleteEdge(edgeId: string, getEdges: () => Edge[], setEdges: (edges: Ed
 
 :deep(.el-dropdown) {
   display: flex;
-}
-
-.workflow-toolbar {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-}
-
-.drawer-footer {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
 }
 
 .workflow-base-art-form :deep(.el-row > .el-col:last-child) {

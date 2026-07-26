@@ -131,7 +131,7 @@
           v-model:limit="queryParams.page_size"
           @pagination="handlePagination"
         />
-        <div class="feedback">
+        <div class="flex justify-end mt-1.5">
           <ElButton type="primary" size="small" @click="handleConfirm">
             {{ confirmText }}
           </ElButton>
@@ -358,17 +358,6 @@ const popoverContentRef = ref();
 </script>
 
 <style scoped lang="scss">
-.reference :deep(.el-input__wrapper),
-.reference :deep(.el-input__inner) {
-  cursor: pointer;
-}
-
-.feedback {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 6px;
-}
-
 .radio :deep(.el-table__header th.el-table__cell:nth-child(1) .el-checkbox) {
   visibility: hidden;
 }

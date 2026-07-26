@@ -75,7 +75,8 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <ElScrollbar max-height="70vh" :view-style="{ overflowX: 'hidden' }">
@@ -179,8 +180,6 @@ const searchForm = ref<MemorySearchForm>({
 const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
-
-const { hasAuth } = useAuth();
 
 const memorySearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -421,19 +420,28 @@ async function handleAdd() {
 async function handleOpenMemoryDetail(id: string) {
   dialogVisible.title = "详情";
   dialogVisible.type = "detail";
-  const response = await AiChatAPI.getSessionDetail(id);
-  detailFormData.value = response.data.data ?? {};
-  dialogVisible.visible = true;
+  try {
+    const response = await AiChatAPI.getSessionDetail(id);
+    detailFormData.value = response.data.data ?? {};
+    dialogVisible.visible = true;
+  } catch {
+    /* 已由全局拦截器提示 */
+  }
 }
 
 async function handleOpenDialog(type: "create" | "detail", id?: string) {
   await resetForm();
   dialogVisible.type = type;
   if (id) {
-    const response = await AiChatAPI.getSessionDetail(id);
-    if (type === "detail") {
-      dialogVisible.title = "详情";
-      detailFormData.value = response.data.data ?? {};
+    try {
+      const response = await AiChatAPI.getSessionDetail(id);
+      if (type === "detail") {
+        dialogVisible.title = "详情";
+        detailFormData.value = response.data.data ?? {};
+      }
+    } catch {
+      /* 已由全局拦截器提示 */
+      return;
     }
   } else {
     dialogVisible.title = "新增会话";
@@ -465,7 +473,7 @@ function buildMemoryRowActions(row: ChatSession): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatMemoryOperationCell(row: ChatSession) {
@@ -501,23 +509,23 @@ async function handleSaveTitle(row: ChatSession) {
     row.title = newTitle;
     editingRowId.value = null;
   } catch (error: unknown) {
-    console.error(error);
-    ElMessage.error("更新失败");
+    if (import.meta.env.DEV) console.error(error);
   }
 }
 
 async function handleSubmit() {
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    try {
-      await AiChatAPI.createSession({ title: formData.value.title });
-      dialogVisible.visible = false;
-      await resetForm();
-      await refreshCreate();
-    } catch (error: unknown) {
-      console.error(error);
-    }
-  });
+  const form = dataFormRef.value;
+  if (!form) return;
+  const valid = await (form.validate as () => Promise<boolean>)().catch(() => false);
+  if (!valid) return;
+  try {
+    await AiChatAPI.createSession({ title: formData.value.title });
+    dialogVisible.visible = false;
+    await resetForm();
+    await refreshCreate();
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
+  }
 }
 </script>
 

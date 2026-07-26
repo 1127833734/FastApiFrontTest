@@ -96,40 +96,44 @@
                 </ElSelect>
               </template>
               <template #args>
-                <div class="dynamic-params">
-                  <div v-for="(_item, index) in argsList" :key="index" class="param-item">
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="(_item, index) in argsList"
+                    :key="index"
+                    class="flex gap-2 items-center [&_.el-input]:flex-1"
+                  >
                     <ElInput v-model="argsList[index]" placeholder="参数值" />
                     <ElButton
                       type="danger"
-                      icon="Delete"
+                      :icon="Delete"
                       circle
                       @click="argsList.splice(index, 1)"
                     />
                   </div>
-                  <ElButton type="primary" icon="Plus" @click="argsList.push('')">
+                  <ElButton type="primary" :icon="Plus" @click="argsList.push('')">
                     添加位置参数
                   </ElButton>
                 </div>
               </template>
               <template #kwargs>
-                <div class="dynamic-params">
+                <div class="flex flex-col gap-2">
                   <div
                     v-for="(item, index) in kwargsList"
                     :key="item.key || index"
-                    class="param-item"
+                    class="flex gap-2 items-center [&_.el-input]:flex-1"
                   >
                     <ElInput v-model="item.key" placeholder="键" />
                     <ElInput v-model="item.value" placeholder="值" />
                     <ElButton
                       type="danger"
-                      icon="Delete"
+                      :icon="Delete"
                       circle
                       @click="kwargsList.splice(index, 1)"
                     />
                   </div>
                   <ElButton
                     type="primary"
-                    icon="Plus"
+                    :icon="Plus"
                     @click="kwargsList.push({ key: '', value: '' })"
                   >
                     添加关键词参数
@@ -155,10 +159,10 @@
         </ElSplitterPanel>
 
         <ElSplitterPanel>
-          <div class="code-editor-container">
-            <div class="code-editor-header">
-              <span class="code-editor-title">处理器</span>
-              <span class="code-editor-tip">定义 handler(*args, **kwargs) 函数</span>
+          <div class="flex flex-col h-full pl-4">
+            <div class="flex items-center justify-between py-2.5">
+              <span class="text-sm font-semibold">处理器</span>
+              <span class="text-xs">定义 handler(*args, **kwargs) 函数</span>
             </div>
             <Codemirror
               ref="codeEditorRef"
@@ -210,23 +214,19 @@
         </template>
         <template #trigger_args>
           <template v-if="executeFormData.trigger === 'cron'">
-            <ElPopover
-              :visible="openCron"
-              width="700px"
-              trigger="click"
-              :persistent="false"
-              placement="auto-end"
-              popper-class="node-cron-popover-fix"
-            >
-              <template #reference>
-                <ElInput
-                  v-model="executeFormData.trigger_args"
-                  placeholder="请输入 * * * * * ? *"
-                  @click="openCron = true"
-                />
+            <ElInput
+              v-model="executeFormData.trigger_args"
+              placeholder="请输入 * * * * * ? *"
+              readonly
+              @click="openCron = true"
+            />
+            <FaDialog v-model="openCron" title="Cron 表达式" width="min(700px, calc(100vw - 48px))" append-to-body>
+              <FaCron v-model="cronTempValue" />
+              <template #footer>
+                <ElButton @click="openCron = false">取消</ElButton>
+                <ElButton type="primary" @click="confirmCron">确定</ElButton>
               </template>
-              <vue3CronPlus i18n="cn" @change="handlechangeCron" @close="openCron = false" />
-            </ElPopover>
+            </FaDialog>
           </template>
           <template v-else-if="executeFormData.trigger === 'interval'">
             <ElPopover
@@ -288,10 +288,9 @@ import FaTable from "@/components/tables/fa-table/index.vue";
 import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import type { TableOperationAction } from "@utils";
 import { renderTableOperationCell } from "@utils";
-import { computed, nextTick, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { vue3CronPlus } from "vue3-cron-plus";
-import "vue3-cron-plus/dist/index.css";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { Delete, Plus } from "@element-plus/icons-vue";
+import FaCron from "@/components/others/fa-cron/index.vue";
 import Codemirror, { CmComponentRef } from "codemirror-editor-vue3";
 import type { EditorConfiguration } from "codemirror";
 import "codemirror/mode/python/python.js";
@@ -299,7 +298,6 @@ import "codemirror/theme/dracula.css";
 import type { ColumnOption } from "@/types/component";
 
 const dictStore = useDictStore();
-const { hasAuth } = useAuth();
 
 type NodeSearchForm = {
   name?: string;
@@ -410,7 +408,7 @@ function buildNodeRowActions(row: NodeTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatNodeOperationCell(row: NodeTable) {
@@ -507,7 +505,7 @@ const {
 async function handleSearchBarSearch(params: NodeSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildNodeReplaceParams(params));
-  getData();
+  await getData();
 }
 
 async function onResetSearch() {
@@ -536,6 +534,11 @@ const executeFormRenderKey = ref(0);
 const submitLoading = ref(false);
 const createLoading = ref(false);
 const openCron = ref(false);
+const cronTempValue = ref("");
+const confirmCron = () => {
+  executeFormData.value.trigger_args = cronTempValue.value;
+  openCron.value = false;
+};
 const openInterval = ref(false);
 const codeEditorRef = ref<CmComponentRef>();
 
@@ -714,14 +717,14 @@ const nodeDialogFormItems = computed<FormItem[]>(() => [
   {
     label: "存储器",
     key: "jobstore",
-    type: "input",
+    type: "select",
     span: 24,
     placeholder: "",
   },
   {
     label: "执行器",
     key: "executor",
-    type: "input",
+    type: "select",
     span: 24,
     placeholder: "",
   },
@@ -742,7 +745,7 @@ const nodeDialogFormItems = computed<FormItem[]>(() => [
   {
     label: "合并运行",
     key: "coalesce",
-    type: "input",
+    type: "radiogroup",
     span: 24,
     placeholder: "",
   },
@@ -789,7 +792,7 @@ async function resetForm() {
 
 async function handleCloseDialog() {
   dialogVisible.visible = false;
-  resetForm();
+  await resetForm();
 }
 
 async function handleAdd() {
@@ -857,7 +860,7 @@ async function handleSubmit() {
           await NodeAPI.createNode(submitData);
         }
         dialogVisible.visible = false;
-        resetForm();
+        await resetForm();
         if (id) {
           await refreshUpdate();
         } else {
@@ -871,12 +874,6 @@ async function handleSubmit() {
     }
   });
 }
-
-const handlechangeCron = (cronStr: string) => {
-  if (typeof cronStr == "string") {
-    executeFormData.value.trigger_args = cronStr;
-  }
-};
 
 const handleIntervalConfirm = (value: string) => {
   executeFormData.value.trigger_args = value;
@@ -926,73 +923,23 @@ async function handleExecuteNode() {
     handleCloseExecuteDialog();
 
     await refreshUpdate();
-  } catch (error: unknown) {
-    const errMsg = (error as { response?: { data?: { msg?: string } } })?.response?.data?.msg;
-    ElMessage.error({
-      message: errMsg || "调试失败",
-      type: "error",
-      duration: 3000,
-    });
-    if (import.meta.env.DEV) console.error(error);
+  } catch {
+    /* 已由全局拦截器提示 */
   } finally {
     submitLoading.value = false;
   }
 }
+
+watch(openCron, (val) => {
+  if (val) cronTempValue.value = executeFormData.value.trigger_args || "";
+});
 
 onMounted(async () => {
   await dictStore.getDict(["sys_job_store", "sys_job_executor"]);
 });
 </script>
 
-<!-- popover 挂载到 body，需单独写；修复 vue3-cron-plus 全局 .el-tag--info { margin-left: -60px } 误伤多选下拉里 tag -->
 <style scoped lang="scss">
-.code-editor-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding-left: 16px;
-}
-
-.code-editor-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-
-.code-editor-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.code-editor-tip {
-  font-size: 12px;
-}
-
-.dynamic-params {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.param-item {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.execution-log-drawer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
 .node-splitter-art-form :deep(.el-row > .el-col:last-child),
 .execute-debug-art-form :deep(.el-row > .el-col:last-child) {
   display: none;
@@ -1006,32 +953,5 @@ onMounted(async () => {
 .node-splitter-art-form :deep(section) {
   padding-right: 10px;
   padding-left: 10px;
-}
-
-.node-cron-popover-fix {
-  .vue3-cron-plus-container .el-select .el-tag {
-    margin-left: 0 !important;
-  }
-
-  /* 具体秒数等多选行：避免文案与选择器挤在同一行错位 */
-  .vue3-cron-plus-container .tabBody .el-radio.long {
-    align-items: flex-start;
-    height: auto;
-    white-space: normal;
-
-    .el-radio__label {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 8px;
-      align-items: center;
-      line-height: 1.5;
-    }
-
-    .el-select {
-      flex: 1 1 200px;
-      min-width: 180px;
-      max-width: 100%;
-    }
-  }
 }
 </style>

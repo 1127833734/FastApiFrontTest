@@ -692,7 +692,3 @@ async function submitForget() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-@use "./components/composables/fa-login";
-</style>

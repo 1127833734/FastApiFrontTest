@@ -71,18 +71,16 @@
           :column="4"
           :data="detailFormData"
           :items="roleDetailItems"
-          max-height="75vh"
+          max-height="70vh"
         >
           <template #data_scope="{ row }">
             <FaStatusTag v-if="row?.data_scope === 1" type="primary" label="仅本人数据权限" />
-            <FaStatusTag v-else-if="row?.data_scope === 2" type="info" label="本部门数据权限" />
             <FaStatusTag
-              v-else-if="row?.data_scope === 3"
+              v-else-if="row?.data_scope === 2"
               type="warning"
               label="本部门及以下数据权限"
             />
-            <FaStatusTag v-else-if="row?.data_scope === 4" type="success" label="全部数据权限" />
-            <FaStatusTag v-else type="danger" label="自定义数据权限" />
+            <FaStatusTag v-else type="success" label="全部数据权限" />
           </template>
           <template #depts="{ row }">
             <template
@@ -108,7 +106,7 @@
         <FaForm
           :key="roleFormRenderKey"
           scrollbar
-          max-height="75vh"
+          max-height="70vh"
           ref="dataFormRef"
           v-model="formData"
           :items="roleDialogFormItems"
@@ -155,7 +153,14 @@ import { h } from "vue";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 
-import { renderTableOperationCell, resolveStatusColumns, stripPaginationParams, cleanEmptyArrayParams, type TableOperationAction } from "@utils";
+import {
+  renderTableOperationCell,
+  resolveStatusColumns,
+  stripPaginationParams,
+  cleanEmptyArrayParams,
+  toCrudCols,
+  type TableOperationAction,
+} from "@utils";
 import RoleAPI, {
   type RoleForm,
   type RoleTable,
@@ -170,7 +175,6 @@ import FaForm from "@/components/forms/fa-form/index.vue";
 import StatusTag from "@/components/others/fa-status-tag/index.vue";
 import { ElMessage } from "element-plus";
 import FaPermissonDrawer from "./components/FaPermissonDrawer.vue";
-import type { ColumnOption } from "@/types/component";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 
@@ -178,8 +182,6 @@ defineOptions({
   name: "Role",
   inheritAttrs: false,
 });
-
-const { hasAuth } = useAuth();
 
 type RoleSearchForm = {
   name?: string;
@@ -289,7 +291,7 @@ function buildRoleRowActions(
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatRoleOperationCell(row: RoleTable, ctx: Parameters<typeof buildRoleRowActions>[1]) {
@@ -308,10 +310,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const roleSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -328,7 +330,7 @@ const roleSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -381,7 +383,7 @@ const roleDetailItems: import("@/components/others/fa-descriptions/index.vue").D
       label: "状态",
       prop: "status",
       tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
+        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
       },
     },
     { label: "创建时间", prop: "created_time" },
@@ -461,17 +463,9 @@ async function handleAdd() {
   }
 }
 
-async function handleOpenRoleDetail(id: number) {
-  dialogVisible.title = "角色详情";
-  dialogVisible.type = "detail";
-  const response = await RoleAPI.detailRole(id);
-  Object.assign(detailFormData.value, response.data.data ?? {});
-  dialogVisible.visible = true;
-}
-
 const opCtx = {
   onPerm: handleOpenAssignPermDialog,
-  onDetail: (id: number) => void handleOpenRoleDetail(id),
+  onDetail: (id: number) => void handleOpenDialog("detail", id),
   onEdit: (id: number) => void handleOpenDialog("update", id),
   onDelete: deleteRoleRow,
 };
@@ -509,9 +503,8 @@ const roleDialogFormItems = computed<FormItem[]>(() => [
   {
     label: "状态",
     key: "status",
-    type: "input",
+    type: "radiogroup",
     span: 24,
-    placeholder: "",
   },
   {
     label: "描述",
@@ -562,10 +555,8 @@ const {
         minWidth: 160,
         status: {
           1: { type: "primary", text: "仅本人数据权限" },
-          2: { type: "info", text: "本部门数据权限" },
-          3: { type: "warning", text: "本部门及以下数据权限" },
-          4: { type: "success", text: "全部数据权限" },
-          5: { type: "danger", text: "自定义数据权限" },
+          2: { type: "warning", text: "本部门及以下数据权限" },
+          3: { type: "success", text: "全部数据权限" },
         },
       },
       {
@@ -599,17 +590,7 @@ const {
   },
 });
 
-const roleCrudCols = computed(() =>
-  columns!.value.map((c: ColumnOption<RoleTable>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
+const roleCrudCols = toCrudCols(columns);
 
 const exportQueryParams = computed(() => {
   const sp = stripPaginationParams(searchParams as Record<string, unknown>);
@@ -632,16 +613,16 @@ const { exportVisible, openExport } = useImportExport();
 async function handleSearchBarSearch(params: RoleSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildRoleReplaceParams(params));
-  getData();
+  await getData();
 }
 
-function onResetSearch() {
+async function onResetSearch() {
   searchForm.value = {
     name: undefined,
     status: undefined,
     created_time: undefined,
   };
-  void resetSearchParams();
+  await resetSearchParams();
 }
 
 async function handleBatchDelete() {
@@ -665,15 +646,16 @@ async function handleBatchDelete() {
   }
 }
 
-async function handleMoreClick(status: number) {
+async function handleMoreClick(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (!ids.length) {
     ElMessage.warning("请先选择要操作的数据");
     return;
   }
   try {
-    await confirmToggleStatus(status);
+    await confirmToggleStatus(value);
     moreLoading.value = true;
+    const status = value === "enable" ? 0 : 1;
     await RoleAPI.batchRole({ ids, status });
     await refreshData();
     const userStore = useUserStore();

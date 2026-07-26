@@ -73,7 +73,8 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <!-- 详情 -->
       <template v-if="dialogVisible.type === 'detail'">
@@ -367,16 +368,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
-const { hasAuth } = useAuth();
 const userStore = useUserStore();
-
-// 预计算操作权限，避免每行反复调用 hasAuth
-const menuPerms = computed(() => ({
-  create: hasAuth("module_system:menu:create"),
-  detail: hasAuth("module_system:menu:detail"),
-  update: hasAuth("module_system:menu:update"),
-  delete: hasAuth("module_system:menu:delete"),
-}));
 
 type MenuSearchForm = {
   name?: string;
@@ -402,51 +394,45 @@ function buildMenuRowActions(
     onDelete: (id: number, name: string) => void;
   }
 ): TableOperationAction[] {
-  const { create, detail, update: editPerm, delete: delPerm } = menuPerms.value;
   const actions: TableOperationAction[] = [];
-  if (
-    ctx.onAdd &&
-    create &&
-    (row.type === MenuTypeEnum.CATALOG || row.type === MenuTypeEnum.MENU)
-  ) {
+  if (ctx.onAdd && (row.type === MenuTypeEnum.CATALOG || row.type === MenuTypeEnum.MENU)) {
     actions.push({
       key: "add",
       label: "新增",
       artType: "add",
+      perm: "module_system:menu:create",
       run: () => ctx.onAdd!(row),
     });
   }
-  if (detail) {
-    actions.push({
-      key: "detail",
-      label: "详情",
-      artType: "view",
-      run: () => ctx.onDetail(row.id!),
-    });
-  }
-  if (editPerm) {
-    actions.push({
-      key: "edit",
-      label: "编辑",
-      artType: "edit",
-      run: () => ctx.onEdit(row.id!),
-    });
-  }
-  if (delPerm) {
-    actions.push({
-      key: "delete",
-      label: "删除",
-      artType: "delete",
-      run: () => ctx.onDelete(row.id!, row.title ?? row.name ?? ""),
-    });
-  }
+  actions.push({
+    key: "detail",
+    label: "详情",
+    artType: "view",
+    perm: "module_system:menu:detail",
+    run: () => ctx.onDetail(row.id!),
+  });
+  actions.push({
+    key: "edit",
+    label: "编辑",
+    artType: "edit",
+    perm: "module_system:menu:update",
+    run: () => ctx.onEdit(row.id!),
+  });
+  actions.push({
+    key: "delete",
+    label: "删除",
+    artType: "delete",
+    perm: "module_system:menu:delete",
+    run: () => ctx.onDelete(row.id!, row.title ?? row.name ?? ""),
+  });
   return actions;
 }
 
 function formatMenuOperationCell(row: MenuTable, ctx: Parameters<typeof buildMenuRowActions>[1]) {
   const actions = buildMenuRowActions(row, ctx);
   return renderTableOperationCell(actions, {
-    wrapperClass: "inline-flex flex-wrap items-center justify-end gap-1 menu-table-actions",
+    wrapperClass:
+      "inline-flex flex-wrap items-center justify-end gap-1 menu-table-actions align-middle",
   });
 }
 const menuClientTab = ref<"pc" | "app">("pc");
@@ -459,10 +445,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const menuSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -479,7 +465,7 @@ const menuSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -592,7 +578,7 @@ const menuDetailItems: import("@/components/others/fa-descriptions/index.vue").D
 const menuDialogFormItems = computed<FormItem[]>(() => {
   const t = formData.value.type as MenuTypeEnum;
   return [
-    { key: "type", label: "菜单类型", type: "input" },
+    { key: "type", label: "菜单类型", type: "radiogroup" },
     {
       key: "parent_id",
       label: "父级菜单",
@@ -636,7 +622,12 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
     },
     { key: "scope", label: "终端", type: "select", props: { options: MenuClientEnum } },
     { key: "order", label: "排序", type: "number", props: { controlsPosition: "right", min: 1 } },
-    { key: "is_iframe", label: "嵌入iframe", type: "input", hidden: t !== MenuTypeEnum.EXTLINK },
+    {
+      key: "is_iframe",
+      label: "嵌入iframe",
+      type: "radiogroup",
+      hidden: t !== MenuTypeEnum.EXTLINK,
+    },
     {
       key: "status",
       label: "状态",
@@ -648,22 +639,32 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
         ],
       },
     },
-    { key: "hidden", label: "是否隐藏", type: "input", hidden: t === MenuTypeEnum.BUTTON },
+    { key: "hidden", label: "是否隐藏", type: "radiogroup", hidden: t === MenuTypeEnum.BUTTON },
     {
       key: "always_show",
       label: "始终显示",
-      type: "input",
+      type: "radiogroup",
       hidden: t !== MenuTypeEnum.CATALOG && t !== MenuTypeEnum.MENU,
     },
     {
       key: "keep_alive",
       label: "缓存页面",
-      type: "input",
+      type: "radiogroup",
       hidden: t !== MenuTypeEnum.MENU,
     },
-    { key: "affix", label: "常驻标签栏", type: "input", hidden: t === MenuTypeEnum.BUTTON },
-    { key: "is_hide_tab", label: "隐藏标签页", type: "input", hidden: t === MenuTypeEnum.BUTTON },
-    { key: "show_badge", label: "显示红点角标", type: "input", hidden: t === MenuTypeEnum.BUTTON },
+    { key: "affix", label: "常驻标签栏", type: "radiogroup", hidden: t === MenuTypeEnum.BUTTON },
+    {
+      key: "is_hide_tab",
+      label: "隐藏标签页",
+      type: "radiogroup",
+      hidden: t === MenuTypeEnum.BUTTON,
+    },
+    {
+      key: "show_badge",
+      label: "显示红点角标",
+      type: "radiogroup",
+      hidden: t === MenuTypeEnum.BUTTON,
+    },
     {
       key: "show_text_badge",
       label: "文字角标内容",
@@ -787,9 +788,9 @@ async function loadMenuData() {
   }
 }
 
-function handleMenuClientTabChange(name: string | number) {
+async function handleMenuClientTabChange(name: string | number) {
   menuClientTab.value = name === "app" ? "app" : "pc";
-  void loadMenuData();
+  await loadMenuData();
 }
 
 async function handleSearchBarSearch(params: MenuSearchForm) {
@@ -798,13 +799,13 @@ async function handleSearchBarSearch(params: MenuSearchForm) {
   await loadMenuData();
 }
 
-function onResetSearch() {
+async function onResetSearch() {
   searchForm.value = {
     name: undefined,
     status: undefined,
     created_time: undefined,
   };
-  void loadMenuData();
+  await loadMenuData();
 }
 
 function onTableSelectionChange(rows: MenuTable[]) {
@@ -1233,25 +1234,26 @@ async function handleSubmit() {
       formData.value.type = allowed[0] as MenuForm["type"];
     }
   }
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    submitLoading.value = true;
-    try {
-      if (id) {
-        await MenuAPI.updateMenu(id, { id, ...formData.value });
-      } else {
-        await MenuAPI.createMenu(formData.value);
-      }
-      dialogVisible.visible = false;
-      await resetForm();
-      await loadMenuData();
-      await userStore.refreshPermissions();
-    } catch (error: unknown) {
-      if (import.meta.env.DEV) console.error(error);
-    } finally {
-      submitLoading.value = false;
+  const form = dataFormRef.value;
+  if (!form) return;
+  const valid = await (form.validate as () => Promise<boolean>)().catch(() => false);
+  if (!valid) return;
+  submitLoading.value = true;
+  try {
+    if (id) {
+      await MenuAPI.updateMenu(id, { id, ...formData.value });
+    } else {
+      await MenuAPI.createMenu(formData.value);
     }
-  });
+    dialogVisible.visible = false;
+    await resetForm();
+    await loadMenuData();
+    await userStore.refreshPermissions();
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
+  } finally {
+    submitLoading.value = false;
+  }
 }
 
 async function handleBatchDelete() {
@@ -1274,19 +1276,20 @@ async function handleBatchDelete() {
   }
 }
 
-async function handleMoreClick(status: number) {
+async function handleMoreClick(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (!ids.length) {
     ElMessage.warning("请先选择要操作的数据");
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认${status === 0 ? "启用" : "停用"}该项数据?`, "警告", {
+    await ElMessageBox.confirm(`确认${value === "enable" ? "启用" : "停用"}该项数据?`, "警告", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
     });
     moreLoading.value = true;
+    const status = value === "enable" ? 0 : 1;
     await MenuAPI.batchMenu({ ids, status });
     await loadMenuData();
   } catch {
@@ -1300,9 +1303,3 @@ onMounted(() => {
   void loadMenuData();
 });
 </script>
-
-<style scoped lang="scss">
-:deep(.menu-table-actions .inline-flex) {
-  vertical-align: middle;
-}
-</style>

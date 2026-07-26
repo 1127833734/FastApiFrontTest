@@ -61,7 +61,7 @@
         >
           <template #left>
             <ElButton
-              v-if="hasAuth('module_system:dict_data:create')"
+              v-hasPerm="['module_system:dict_data:create']"
               type="primary"
               @click="handleAdd"
             >
@@ -90,7 +90,8 @@
         :form-mode="dialogVisible.type"
         :confirm-loading="submitLoading"
         @cancel="handleCloseDialog"
-        @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+        @close="handleCloseDialog"
+        @confirm="handleSubmit()"
       >
         <template v-if="dialogVisible.type === 'detail'">
           <FaDescriptions
@@ -220,7 +221,6 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import FaForm from "@/components/forms/fa-form/index.vue";
-import { ElMessage } from "element-plus";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
 defineOptions({ name: "DictDataPanel", inheritAttrs: false });
@@ -260,7 +260,6 @@ const TAG_TYPE_STYLE_MAP: Record<string, { background: string; color: string; bo
 };
 
 const dictStore = useDictStore();
-const { hasAuth } = useAuth();
 
 function getTagPreviewStyle(value?: string) {
   const preset = value ? TAG_TYPE_STYLE_MAP[value] : undefined;
@@ -308,10 +307,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const dictDataSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -328,7 +327,7 @@ const dictDataSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 9,
@@ -455,7 +454,6 @@ const rules = reactive({
 });
 
 const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
-const submitLoading = ref(false);
 const dictDataFormRenderKey = ref(0);
 
 const dictDataDialogFormItems = computed<FormItem[]>(() => [
@@ -463,7 +461,6 @@ const dictDataDialogFormItems = computed<FormItem[]>(() => [
     label: "数据类型",
     key: "dict_type",
     type: "input",
-    span: 24,
     props: {
       placeholder: "请输入数据类型",
       maxlength: 50,
@@ -474,42 +471,36 @@ const dictDataDialogFormItems = computed<FormItem[]>(() => [
     label: "数据标签",
     key: "dict_label",
     type: "input",
-    span: 24,
     props: { placeholder: "请输入数据标签", maxlength: 255 },
   },
   {
     label: "数据值",
     key: "dict_value",
     type: "input",
-    span: 24,
     props: { placeholder: "请输入数据值", maxlength: 255 },
   },
   {
     label: "样式属性",
     key: "css_class",
     type: "input",
-    span: 24,
     placeholder: "",
   },
   {
     label: "列表类样式",
     key: "list_class",
     type: "input",
-    span: 24,
     placeholder: "",
   },
   {
     label: "是否默认",
     key: "is_default",
-    type: "input",
-    span: 24,
+    type: "radiogroup",
     placeholder: "",
   },
   {
     label: "排序",
     key: "dict_sort",
     type: "number",
-    span: 24,
     props: {
       controlsPosition: "right",
       min: 1,
@@ -519,15 +510,13 @@ const dictDataDialogFormItems = computed<FormItem[]>(() => [
   {
     label: "状态",
     key: "status",
-    type: "input",
-    span: 24,
+    type: "switch",
     placeholder: "",
   },
   {
     label: "描述",
     key: "description",
     type: "input",
-    span: 24,
     props: {
       type: "textarea",
       rows: 4,
@@ -538,19 +527,47 @@ const dictDataDialogFormItems = computed<FormItem[]>(() => [
   },
 ]);
 
-const initialFormData: DictDataForm = {
-  id: undefined,
-  dict_sort: 1,
-  dict_label: "",
-  dict_value: "",
-  dict_type: "",
-  css_class: "",
-  list_class: undefined,
-  is_default: false,
-  status: 0,
-  description: "",
-  dict_type_id: props.dictTypeId,
-};
+function createInitialFormData(): DictDataForm {
+  return {
+    id: undefined,
+    dict_sort: 1,
+    dict_label: "",
+    dict_value: "",
+    dict_type: "",
+    css_class: "",
+    list_class: undefined,
+    is_default: false,
+    status: 0,
+    description: "",
+    dict_type_id: props.dictTypeId,
+  };
+}
+
+const initialFormData = createInitialFormData();
+
+const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } =
+  useCrudForm<DictDataForm>({
+    formData,
+    initialFormData,
+    dialogVisible,
+    dataFormRef,
+    formRenderKey: dictDataFormRenderKey,
+    detailApi: DictAPI.detailDictData,
+    createApi: DictAPI.createDictData,
+    updateApi: DictAPI.updateDictData,
+    titles: { create: "新增字典数据", update: "修改字典数据", detail: "字典数据详情" },
+    detailFormData,
+    onCreateSuccess: async () => {
+      await refreshCreate();
+      dictStore.clearDictData();
+      if (props.dictType) await dictStore.getDict([props.dictType]);
+    },
+    onUpdateSuccess: async () => {
+      await refreshUpdate();
+      dictStore.clearDictData();
+      if (props.dictType) await dictStore.getDict([props.dictType]);
+    },
+  });
 
 onMounted(() => {
   if (props.dictTypeId) getData();
@@ -564,7 +581,7 @@ async function handleSearchBarSearch(params: DictDataSearchForm) {
     dict_type: props.dictType,
     dict_type_id: props.dictTypeId,
   } as Record<string, unknown>);
-  getData();
+  await getData();
 }
 
 function onResetSearch() {
@@ -576,87 +593,11 @@ function onResetSearch() {
   void resetSearchParams();
 }
 
-async function resetForm() {
-  dataFormRef.value?.resetFields();
-  dataFormRef.value?.clearValidate();
-  Object.assign(formData.value, {
-    ...initialFormData,
-    dict_type_id: props.dictTypeId,
-    dict_type: props.dictType,
-  });
-}
-
-async function handleCloseDialog() {
-  dialogVisible.visible = false;
-  await resetForm();
-}
-
 async function handleAdd() {
-  await handleOpenDialog("create");
-}
-
-async function handleOpenDialog(type: "create" | "update" | "detail", id?: number) {
-  dialogVisible.type = type;
-  if (id) {
-    // 先打开弹窗再加载数据，避免点击后无响应
-    if (type === "detail") {
-      dialogVisible.title = "字典数据详情";
-    } else if (type === "update") {
-      dialogVisible.title = "修改字典数据";
-      Object.assign(formData.value, initialFormData);
-    }
-    dictDataFormRenderKey.value += 1;
-    dialogVisible.visible = true;
-
-    const response = await DictAPI.detailDictData(id);
-    if (type === "detail") {
-      detailFormData.value = response.data.data ?? {};
-    } else if (type === "update") {
-      Object.assign(formData.value, response.data.data);
-    }
-  } else {
-    dialogVisible.title = "新增字典数据";
-    Object.assign(formData.value, initialFormData);
-    formData.value.dict_type = props.dictType;
-    formData.value.dict_type_id = props.dictTypeId;
-    formData.value.status = 0;
-    formData.value.id = undefined;
-    dictDataFormRenderKey.value += 1;
-    dialogVisible.visible = true;
-  }
-}
-
-async function handleSubmit() {
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    const id = formData.value.id;
-    try {
-      if (id) {
-        await DictAPI.updateDictData(id, { id, ...formData.value });
-        await refreshUpdate();
-      } else {
-        await DictAPI.createDictData(formData.value);
-        await refreshCreate();
-      }
-      dialogVisible.visible = false;
-      await resetForm();
-      dictStore.clearDictData();
-      if (formData.value.dict_type) {
-        await dictStore.getDict([formData.value.dict_type]);
-      }
-    } catch (error: unknown) {
-      if (import.meta.env.DEV) console.error(error);
-    }
+  await handleOpenDialog("create", undefined, {
+    dict_type: props.dictType,
+    dict_type_id: props.dictTypeId,
   });
-}
-
-async function handleOpenDictDataDetail(id?: number) {
-  if (id == null) return;
-  dialogVisible.title = "字典数据详情";
-  dialogVisible.type = "detail";
-  const response = await DictAPI.detailDictData(id);
-  Object.assign(detailFormData.value, response.data.data ?? {});
-  dialogVisible.visible = true;
 }
 
 function buildDictDataRowActions(row: DictDataTable): TableOperationAction[] {
@@ -666,7 +607,7 @@ function buildDictDataRowActions(row: DictDataTable): TableOperationAction[] {
       label: "详情",
       artType: "view",
       perm: "module_system:dict_data:detail",
-      run: () => void handleOpenDictDataDetail(row.id),
+      run: () => void handleOpenDialog("detail", row.id),
     },
     {
       key: "edit",
@@ -687,7 +628,7 @@ function buildDictDataRowActions(row: DictDataTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatDictDataOperationCell(row: DictDataTable) {
@@ -704,7 +645,7 @@ async function deleteDictDataRow(id: number, name: string) {
     if (props.dictType) await dictStore.getDict([props.dictType]);
     await refreshRemove();
   } catch {
-    ElMessage.error("删除失败");
+    // 用户取消
   }
 }
 

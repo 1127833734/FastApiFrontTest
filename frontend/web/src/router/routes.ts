@@ -108,7 +108,11 @@ export const dashboardLayoutChildren: AppRouteRecordRaw[] = [
     path: "analysis",
     name: "DashboardAnalysis",
     component: () => import("@views/dashboard/analysis/index.vue"),
-    meta: { title: "menus.dashboard.analysis", icon: "ri:align-item-bottom-line", keepAlive: false },
+    meta: {
+      title: "menus.dashboard.analysis",
+      icon: "ri:align-item-bottom-line",
+      keepAlive: false,
+    },
   },
   {
     path: "screen",
@@ -211,10 +215,30 @@ export const staticRoutes: AppRouteRecordRaw[] = [
     component: () => import("@views/module_system/auth/login/index.vue"),
   },
   // 异常页
-  { path: "/401", name: "401", meta: { hidden: true, title: "401" }, component: () => import("@views/exception/401/index.vue") },
-  { path: "/403", name: "403", component: () => import("@views/exception/403/index.vue"), meta: { hidden: true, title: "403" } },
-  { path: "/404", name: "404", meta: { hidden: true, title: "404" }, component: () => import("@views/exception/404/index.vue") },
-  { path: "/500", name: "500", meta: { hidden: true, title: "500" }, component: () => import("@views/exception/500/index.vue") },
+  {
+    path: "/401",
+    name: "401",
+    meta: { hidden: true, title: "401" },
+    component: () => import("@views/exception/401/index.vue"),
+  },
+  {
+    path: "/403",
+    name: "403",
+    component: () => import("@views/exception/403/index.vue"),
+    meta: { hidden: true, title: "403" },
+  },
+  {
+    path: "/404",
+    name: "404",
+    meta: { hidden: true, title: "404" },
+    component: () => import("@views/exception/404/index.vue"),
+  },
+  {
+    path: "/500",
+    name: "500",
+    meta: { hidden: true, title: "500" },
+    component: () => import("@views/exception/500/index.vue"),
+  },
   // 根 Layout：存放壳层路由（home/dashboard/fastlink）
   {
     path: "/",
@@ -243,11 +267,60 @@ export const staticRoutes: AppRouteRecordRaw[] = [
         component: NestedRouterParent,
         meta: { hidden: true },
         children: [
-          { path: "profile", name: "FastlinkProfile", meta: { title: $t("menus.system.userCenter"), icon: "ri:user-line", hidden: true }, component: () => import("@views/fastlink/current/profile.vue") },
-          { path: "changelog", name: "FastlinkChangeLog", meta: { title: $t("menus.changelog.title"), icon: "ri:draft-line", hidden: true, keepAlive: true, isHideTab: true }, component: () => import("@views/fastlink/changelog/index.vue") },
-          { path: "pricing", name: "FastlinkPricing", meta: { title: $t("menus.dashboard.pricing"), icon: "ri:money-cny-box-line", hidden: true, keepAlive: true, isHideTab: true }, component: () => import("@views/fastlink/pricing/index.vue") },
-          { path: "tutorial", name: "FastlinkTutorial", meta: { title: $t("menus.dashboard.tutorial"), icon: "ri:book-2-line", hidden: true, keepAlive: true, isHideTab: true }, component: () => import("@views/fastlink/tutorial/index.vue") },
-          { path: "fachat", name: "FastlinkFachat", meta: { title: $t("menus.fachat.title"), icon: "ri:message-3-line", hidden: true, keepAlive: true, isHideTab: true }, component: () => import("@views/fastlink/fachat/index.vue") },
+          {
+            path: "profile",
+            name: "FastlinkProfile",
+            meta: { title: $t("menus.system.userCenter"), icon: "ri:user-line", hidden: true },
+            component: () => import("@views/fastlink/current/profile.vue"),
+          },
+          {
+            path: "changelog",
+            name: "FastlinkChangeLog",
+            meta: {
+              title: $t("menus.changelog.title"),
+              icon: "ri:draft-line",
+              hidden: true,
+              keepAlive: true,
+              isHideTab: true,
+            },
+            component: () => import("@views/fastlink/changelog/index.vue"),
+          },
+          {
+            path: "pricing",
+            name: "FastlinkPricing",
+            meta: {
+              title: $t("menus.dashboard.pricing"),
+              icon: "ri:money-cny-box-line",
+              hidden: true,
+              keepAlive: true,
+              isHideTab: true,
+            },
+            component: () => import("@views/fastlink/pricing/index.vue"),
+          },
+          {
+            path: "tutorial",
+            name: "FastlinkTutorial",
+            meta: {
+              title: $t("menus.dashboard.tutorial"),
+              icon: "ri:book-2-line",
+              hidden: true,
+              keepAlive: true,
+              isHideTab: true,
+            },
+            component: () => import("@views/fastlink/tutorial/index.vue"),
+          },
+          {
+            path: "fachat",
+            name: "FastlinkFachat",
+            meta: {
+              title: $t("menus.fachat.title"),
+              icon: "ri:message-3-line",
+              hidden: true,
+              keepAlive: true,
+              isHideTab: true,
+            },
+            component: () => import("@views/fastlink/fachat/index.vue"),
+          },
         ],
       },
     ],
@@ -259,9 +332,19 @@ export const staticRoutes: AppRouteRecordRaw[] = [
     name: "Outside",
     meta: { title: "menus.outside.title" },
     children: [
-      { path: "/outside/iframe/:path", name: "Iframe", component: IframeView, meta: { title: "iframe" } },
+      {
+        path: "/outside/iframe/:path",
+        name: "Iframe",
+        component: IframeView,
+        meta: { title: "iframe" },
+      },
     ],
   },
   // 兜底 404（必须放最后）
-  { path: "/:pathMatch(.*)*", name: "CatchAll404", component: () => import("@views/exception/404/index.vue"), meta: { hidden: true, title: "404" } },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "CatchAll404",
+    component: () => import("@views/exception/404/index.vue"),
+    meta: { hidden: true, title: "404" },
+  },
 ];

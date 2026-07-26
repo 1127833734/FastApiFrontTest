@@ -1,6 +1,6 @@
 <template>
   <div
-    class="param-field-item flex items-start gap-4 p-4 rounded-lg border bg-(--el-fill-color-blank)"
+    class="flex items-start gap-4 p-4 rounded-lg border bg-(--el-fill-color-blank) transition-shadow duration-200 hover:shadow-[0_2px_8px_rgb(0_0_0/6%)]"
     :class="modified ? 'border-(--el-color-primary)!' : 'border-(--el-border-color-light)'"
   >
     <div
@@ -37,15 +37,3 @@ interface Emits {
 
 defineEmits<Emits>();
 </script>
-
-<style scoped lang="scss">
-.param-field-item {
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-
-  &:hover {
-    box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
-  }
-}
-</style>

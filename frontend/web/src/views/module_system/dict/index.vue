@@ -70,7 +70,8 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
@@ -102,12 +103,6 @@
           :show-submit="false"
           class="crud-dialog-art-form"
         >
-          <template #status>
-            <ElRadioGroup v-model="formData.status">
-              <ElRadio :value="0">启用</ElRadio>
-              <ElRadio :value="1">停用</ElRadio>
-            </ElRadioGroup>
-          </template>
         </FaForm>
       </template>
     </FaDialog>
@@ -140,7 +135,6 @@ type DictTypeSearchForm = {
 };
 
 const dictStore = useDictStore();
-const { hasAuth } = useAuth();
 
 const searchForm = ref<DictTypeSearchForm>({
   dict_name: undefined,
@@ -213,13 +207,17 @@ const rules = reactive({
 const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
 const dictFormRenderKey = ref(0);
 
-const initialFormData: DictForm = {
-  id: undefined,
-  dict_name: "",
-  dict_type: "",
-  status: 0,
-  description: undefined,
-};
+function createInitialFormData(): DictForm {
+  return {
+    id: undefined,
+    dict_name: "",
+    dict_type: "",
+    status: 0,
+    description: undefined,
+  };
+}
+
+const initialFormData = createInitialFormData();
 
 // ─── CRUD 表单 ───
 const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } = useCrudForm<DictForm>({
@@ -261,28 +259,29 @@ const dictDialogFormItems = computed<FormItem[]>(() => [
     label: "字典名称",
     key: "dict_name",
     type: "input",
-    span: 24,
     props: { placeholder: "请输入字典名称", maxlength: 50 },
   },
   {
     label: "字典类型",
     key: "dict_type",
     type: "input",
-    span: 24,
     props: { placeholder: "请输入字典类型", maxlength: 50 },
   },
   {
     label: "状态",
     key: "status",
-    type: "input",
-    span: 24,
-    placeholder: "",
+    type: "radiogroup",
+    props: {
+      options: [
+        { label: "启用", value: 0 },
+        { label: "停用", value: 1 },
+      ],
+    },
   },
   {
     label: "描述",
     key: "description",
     type: "input",
-    span: 24,
     props: {
       type: "textarea",
       rows: 4,
@@ -364,8 +363,6 @@ function dictTypeRowClassName({ row }: { row: DictTable }) {
 }
 
 function handleDictTypeRowClick(row: DictTable) {
-  // 没有字典数据权限则不允许查看数据
-  if (!hasAuth("module_system:dict_data:query")) return;
   selectedDictRowId.value = row.id ?? null;
   currentDictType.value = row.dict_type || "";
   currentDictLabel.value = row.dict_name || "";
@@ -378,7 +375,7 @@ async function handleSearchBarSearch(params: DictTypeSearchForm) {
     dict_name: params.dict_name,
     dict_type: params.dict_type,
   } as Record<string, unknown>);
-  getData();
+  await getData();
 }
 
 function onResetSearch() {
@@ -426,7 +423,7 @@ function buildDictRowActions(row: DictTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatDictOperationCell(row: DictTable) {

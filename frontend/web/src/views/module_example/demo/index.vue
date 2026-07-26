@@ -65,7 +65,8 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
@@ -108,13 +109,13 @@
                 <ElInput v-model="item.value" placeholder="值" />
                 <ElButton
                   type="primary"
-                  icon="Plus"
+                  :icon="Plus"
                   circle
                   @click="metadataList.push({ key: '', value: '' })"
                 />
                 <ElButton
                   type="danger"
-                  icon="Delete"
+                  :icon="Delete"
                   circle
                   @click="metadataList.splice(index, 1)"
                 />
@@ -122,7 +123,7 @@
               <ElButton
                 v-if="metadataList.length === 0"
                 type="primary"
-                icon="Plus"
+                :icon="Plus"
                 @click="metadataList.push({ key: '', value: '' })"
               >
                 添加元数据
@@ -151,8 +152,10 @@
 </template>
 
 <script setup lang="ts">
+import { Plus, Delete } from "@element-plus/icons-vue";
 import type { TableOperationAction } from "@/utils/table";
-import { renderTableOperationCell, stripPaginationParams } from "@utils";
+import { renderTableOperationCell, stripPaginationParams, toCrudCols } from "@utils";
+import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { ResultEnum } from "@/enums/api/result.enum";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import type { AuditSearchFormParams } from "@/components/forms/fa-search-bar/auditSearchFormItems";
@@ -171,8 +174,6 @@ defineOptions({
   name: "Demo",
   inheritAttrs: false,
 });
-
-const { hasAuth } = useAuth();
 
 // 常量定义
 const STATUS_OPTIONS = [
@@ -325,17 +326,7 @@ const {
 });
 
 /** 供 CrudImportModal / CrudExportModal 的列配置（与 CrudContent.cols 结构一致） */
-const demoCrudCols = computed(() =>
-  (columns?.value ?? []).map((c: ColumnOption<DemoTable>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
+const demoCrudCols = toCrudCols(columns);
 
 const exportQueryParams = computed(() => {
   return stripPaginationParams(searchParams as Record<string, unknown>);
@@ -476,14 +467,73 @@ const rules = reactive({
   status: [{ required: true, message: "请选择状态", trigger: "blur" }],
 });
 
-const dataFormRef = ref<{
-  resetFields: () => void;
-  clearValidate: () => void;
-  validate: (cb: (valid: boolean) => void) => void;
-} | null>(null);
-const submitLoading = ref(false);
+const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
 const demoFormRenderKey = ref(0);
 const metadataList = ref<{ key: string; value: string }[]>([]);
+
+const crud = useCrudForm<DemoForm>({
+  formData,
+  initialFormData: createInitialFormData(),
+  dialogVisible,
+  dataFormRef,
+  formRenderKey: demoFormRenderKey,
+  detailApi: DemoAPI.getDemoDetail,
+  createApi: DemoAPI.createDemo,
+  updateApi: DemoAPI.updateDemo,
+  titles: { create: "新增", update: "修改", detail: "详情" },
+  detailFormData,
+  onCreateSuccess: async () => {
+    await refreshCreate();
+  },
+  onUpdateSuccess: async () => {
+    await refreshUpdate();
+  },
+});
+
+const { submitLoading } = crud;
+
+/** json_val → metadataList（打开修改弹窗时回填） */
+function syncJsonValToMetadataList(val: unknown) {
+  if (val && typeof val === "object") {
+    metadataList.value = Object.entries(val).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+  } else {
+    metadataList.value = [];
+  }
+}
+
+/** metadataList → json_val（提交前转换） */
+function buildJsonValFromMetadataList(): Record<string, string> | undefined {
+  const entries = metadataList.value.filter((item) => item.key.trim());
+  if (entries.length === 0) return undefined;
+  const obj: Record<string, string> = {};
+  entries.forEach((item) => {
+    obj[item.key.trim()] = item.value;
+  });
+  return obj;
+}
+
+async function handleOpenDialog(type: "create" | "update" | "detail", id?: number) {
+  if (type === "create") {
+    metadataList.value = [];
+  }
+  await crud.handleOpenDialog(type, id);
+  if (type === "update") {
+    syncJsonValToMetadataList(formData.value.json_val);
+  }
+}
+
+async function handleCloseDialog() {
+  metadataList.value = [];
+  await crud.handleCloseDialog();
+}
+
+async function handleSubmit() {
+  formData.value.json_val = buildJsonValFromMetadataList();
+  await crud.handleSubmit();
+}
 
 const { importVisible, exportVisible, openImport, openExport } = useImportExport();
 
@@ -503,7 +553,7 @@ const handleSearch = async (params: DemoSearchFormParams) => {
         ? params.updated_time
         : undefined,
   } as Record<string, unknown>);
-  getData();
+  await getData();
 };
 
 const onResetSearch = async () => {
@@ -525,7 +575,7 @@ function buildDemoRowActions(row: DemoTable): TableOperationAction[] {
       label: "详情",
       artType: "view",
       perm: "module_example:demo:detail",
-      run: () => void openDetailDialog(row),
+      run: () => void handleOpenDialog("detail", row.id),
     },
     {
       key: "edit",
@@ -533,7 +583,7 @@ function buildDemoRowActions(row: DemoTable): TableOperationAction[] {
       artType: "edit",
       icon: "ri:edit-2-line",
       perm: "module_example:demo:update",
-      run: () => void openEditDialog("edit", row),
+      run: () => void handleOpenDialog("update", row.id),
     },
     {
       key: "delete",
@@ -544,7 +594,7 @@ function buildDemoRowActions(row: DemoTable): TableOperationAction[] {
       run: () => deleteDemoRow(row),
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatDemoOperationCell(row: DemoTable) {
@@ -553,93 +603,13 @@ function formatDemoOperationCell(row: DemoTable) {
   });
 }
 
-async function openDetailDialog(row: DemoTable) {
-  if (!row.id) return;
-  const response = await DemoAPI.getDemoDetail(row.id);
-  dialogVisible.type = "detail";
-  dialogVisible.title = "详情";
-  detailFormData.value = response.data.data ?? { ...row };
-  dialogVisible.visible = true;
-}
-
 async function handleAdd() {
   createLoading.value = true;
   try {
-    await openEditDialog("add");
+    await handleOpenDialog("create");
   } finally {
     createLoading.value = false;
   }
-}
-
-async function openEditDialog(type: "add" | "edit", row?: DemoTable) {
-  dialogVisible.type = type === "add" ? "create" : "update";
-  if (type === "add") {
-    dialogVisible.title = "新增";
-    Object.assign(formData.value, createInitialFormData());
-    formData.value.id = undefined;
-    metadataList.value = [];
-    demoFormRenderKey.value += 1;
-  } else if (row?.id) {
-    dialogVisible.title = "修改";
-    demoFormRenderKey.value += 1;
-    const response = await DemoAPI.getDemoDetail(row.id);
-    Object.assign(formData.value, response.data.data);
-    if (formData.value.json_val && typeof formData.value.json_val === "object") {
-      metadataList.value = Object.entries(formData.value.json_val).map(([key, value]) => ({
-        key,
-        value: String(value),
-      }));
-    } else {
-      metadataList.value = [];
-    }
-  }
-  dialogVisible.visible = true;
-}
-
-async function resetForm() {
-  if (dataFormRef.value) {
-    dataFormRef.value.resetFields();
-    dataFormRef.value.clearValidate();
-  }
-  Object.assign(formData.value, createInitialFormData());
-  metadataList.value = [];
-}
-
-async function handleCloseDialog() {
-  dialogVisible.visible = false;
-  await resetForm();
-}
-
-async function handleSubmit() {
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    const submitData = { ...formData.value };
-    if (metadataList.value.length > 0) {
-      const metadataObj: Record<string, string> = {};
-      metadataList.value.forEach((item) => {
-        if (item.key.trim()) {
-          metadataObj[item.key.trim()] = item.value;
-        }
-      });
-      submitData.json_val = Object.keys(metadataObj).length > 0 ? metadataObj : undefined;
-    } else {
-      submitData.json_val = undefined;
-    }
-    const id = formData.value.id;
-    try {
-      if (id) {
-        await DemoAPI.updateDemo(id, { id, ...submitData });
-        await refreshUpdate();
-      } else {
-        await DemoAPI.createDemo(submitData);
-        await refreshCreate();
-      }
-      dialogVisible.visible = false;
-      await resetForm();
-    } catch (error: unknown) {
-      if (import.meta.env.DEV) console.error(error);
-    }
-  });
 }
 
 const deleteDemoRow = async (row: DemoTable) => {
@@ -670,7 +640,7 @@ async function handleBatchDelete() {
   }
 }
 
-async function runBatchStatus(status: number) {
+async function runBatchStatus(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (ids.length === 0) {
     ElMessage.warning("请先在列表中勾选数据");
@@ -678,9 +648,10 @@ async function runBatchStatus(status: number) {
   }
   try {
     await confirmAction(
-      `确认对选中的 ${ids.length} 条数据${status === 0 ? "启用" : "停用"}？`,
+      `确认对选中的 ${ids.length} 条数据${value === "enable" ? "启用" : "停用"}？`,
       "批量设置"
     );
+    const status = value === "enable" ? 0 : 1;
     await DemoAPI.batchDemo({ ids, status });
     // 成功 / 失败提示由 axios 拦截器统一处理
     faTableRef.value?.elTableRef?.clearSelection();

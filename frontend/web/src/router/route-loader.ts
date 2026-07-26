@@ -11,7 +11,13 @@
 import type { Router } from "vue-router";
 import type { AppRouteRecord } from "@/types/router";
 import { h } from "vue";
-import { IframeRouteManager, NestedRouterParent, ROOT_LAYOUT_ROUTE_NAME, ROUTE_COMPONENT_LAYOUT, ROUTE_COMPONENT_NESTED_PARENT } from "./routes";
+import {
+  IframeRouteManager,
+  NestedRouterParent,
+  ROOT_LAYOUT_ROUTE_NAME,
+  ROUTE_COMPONENT_LAYOUT,
+  ROUTE_COMPONENT_NESTED_PARENT,
+} from "./routes";
 
 // ──────── ComponentLoader ────────
 
@@ -39,7 +45,9 @@ export class ComponentLoader {
       if (mod) return (mod as any).default || mod;
     }
     // 兼容末尾多余的 /index
-    const fallbackPath = normalizedPath.endsWith("/index") ? normalizedPath.slice(0, -6) : `${normalizedPath}/index`;
+    const fallbackPath = normalizedPath.endsWith("/index")
+      ? normalizedPath.slice(0, -6)
+      : `${normalizedPath}/index`;
     const mod = pageComponents[`/src/views/${fallbackPath}.vue`];
     return mod ? (mod as any).default || mod : this.createErrorComponent(path);
   }
@@ -52,10 +60,11 @@ export class ComponentLoader {
 
   /** IframeView 组件 */
   loadIframe(): any {
-    return () => import("./routes").then((m) => {
-      const IframeView = (m as any).default || (m as any).IframeView;
-      return IframeView;
-    });
+    return () =>
+      import("./routes").then((m) => {
+        const IframeView = (m as any).default || (m as any).IframeView;
+        return IframeView;
+      });
   }
 
   /** NestedRouterParent 占位组件 */
@@ -105,12 +114,19 @@ function warnInvalidRouteConfig(routes: AppRouteRecord[], parentPath = ""): void
         nameSet.add(n);
       }
       // 检查叶子节点缺少 component
-      if (!route.component && !route.meta?.link && !route.meta?.isIframe && !route.children?.length) {
+      if (
+        !route.component &&
+        !route.meta?.link &&
+        !route.meta?.isIframe &&
+        !route.children?.length
+      ) {
         console.warn(`[路由配置] 缺少 component: "${route.path}"`);
       }
       // 检查子菜单错误使用了 Layout
       if (pPath !== "" && route.component === ROUTE_COMPONENT_LAYOUT) {
-        console.error(`[路由配置] 菜单 "${route.meta?.title || route.path}" 为 ${pPath} 子菜单，不能使用 ${ROUTE_COMPONENT_LAYOUT}`);
+        console.error(
+          `[路由配置] 菜单 "${route.meta?.title || route.path}" 为 ${pPath} 子菜单，不能使用 ${ROUTE_COMPONENT_LAYOUT}`
+        );
       }
       if (route.children?.length) check(route.children, fullPath);
     });
@@ -191,11 +207,21 @@ export class RouteTransformer {
         meta: { title: route.meta?.title, icon: route.meta?.icon },
         redirect: route.path.startsWith("/") ? route.path : `/${route.path}`,
         children: [
-          { path: route.path.replace(/^\//, ""), name: route.name, component: this.loader.loadIframe(), meta: route.meta },
+          {
+            path: route.path.replace(/^\//, ""),
+            name: route.name,
+            component: this.loader.loadIframe(),
+            meta: route.meta,
+          },
         ],
       };
     }
-    return { path: route.path.replace(/^\//, ""), name: route.name, component: this.loader.loadIframe(), meta: route.meta };
+    return {
+      path: route.path.replace(/^\//, ""),
+      name: route.name,
+      component: this.loader.loadIframe(),
+      meta: route.meta,
+    };
   }
 
   /** 一级叶子 → 包 Layout，其下挂实际组件 */
@@ -244,7 +270,11 @@ export class RouteTransformer {
       path: this.routerPath(route.path, depth),
       name: route.name,
       redirect: children.length > 0 ? { name: children[0]?.name } : undefined,
-      component: route.component && ![ROUTE_COMPONENT_NESTED_PARENT, ROUTE_COMPONENT_LAYOUT].includes(String(route.component)) ? this.loader.load(String(route.component)) : NestedRouterParent,
+      component:
+        route.component &&
+        ![ROUTE_COMPONENT_NESTED_PARENT, ROUTE_COMPONENT_LAYOUT].includes(String(route.component))
+          ? this.loader.load(String(route.component))
+          : NestedRouterParent,
       meta: route.meta,
       children,
     };
@@ -252,13 +282,22 @@ export class RouteTransformer {
 
   /** 叶子路由（直接绑定组件） */
   private buildLeafRoute(route: AppRouteRecord, depth: number): Record<string, any> | null {
-    if ((!route.component || route.component === ROUTE_COMPONENT_NESTED_PARENT || route.component === ROUTE_COMPONENT_LAYOUT) && route.meta?.link) {
+    if (
+      (!route.component ||
+        route.component === ROUTE_COMPONENT_NESTED_PARENT ||
+        route.component === ROUTE_COMPONENT_LAYOUT) &&
+      route.meta?.link
+    ) {
       return null;
     }
     return {
       path: this.routerPath(route.path, depth),
       name: route.name,
-      component: route.component && ![ROUTE_COMPONENT_NESTED_PARENT, ROUTE_COMPONENT_LAYOUT].includes(String(route.component)) ? this.loader.load(String(route.component)) : undefined,
+      component:
+        route.component &&
+        ![ROUTE_COMPONENT_NESTED_PARENT, ROUTE_COMPONENT_LAYOUT].includes(String(route.component))
+          ? this.loader.load(String(route.component))
+          : undefined,
       meta: route.meta,
     };
   }

@@ -155,7 +155,3 @@ defineExpose({
   validateField: (prop: string | string[]) => formRef.value?.validateField?.(prop),
 });
 </script>
-
-<style scoped lang="scss">
-@use "../composables/fa-login";
-</style>

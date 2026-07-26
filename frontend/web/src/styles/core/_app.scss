@@ -92,7 +92,7 @@
 
   .el-card__body {
     display: flex;
-    flex: 1 1 0;
+    // flex: 1 1 0;
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
@@ -101,6 +101,31 @@
     #fa-table-header {
       flex-shrink: 0;
     }
+  }
+}
+
+// 使 ElTabs 在 flex 容器中撑满高度（配合 fa-full-height 使用）
+// 用法：<ElTabs class="fa-tabs-fill">
+.fa-tabs-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  > .el-tabs__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  > .el-tabs__content > .el-tab-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 

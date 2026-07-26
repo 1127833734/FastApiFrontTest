@@ -182,9 +182,10 @@ export default ({ mode }: { mode: string }) => {
         dts: "src/types/auto-imports.d.ts",
         resolvers: [
           ElementPlusResolver(), // 自动导入 Element Plus 组件
-          IconsResolver({})], // 自动导入 Element Plus 图标
+          IconsResolver({}),
+        ], // 自动导入 Element Plus 图标
         eslintrc: {
-          enabled: false, // 禁用 ESLint 配置
+          enabled: true,
           filepath: "./.eslintrc-auto-import.json",
           globalsPropValue: true,
         },
@@ -244,7 +245,6 @@ export default ({ mode }: { mode: string }) => {
         "@vueuse/core",
         "vue-json-pretty",
         "vue-web-terminal",
-        "vue3-cron-plus",
         "vue-draggable-plus",
         "element-plus",
         "@element-plus/icons-vue",
@@ -259,6 +259,7 @@ export default ({ mode }: { mode: string }) => {
         "element-plus/es/components/breadcrumb-item/style/index",
         "element-plus/es/components/breadcrumb/style/index",
         "element-plus/es/components/button/style/index",
+        "element-plus/es/components/calendar/style/index",
         "element-plus/es/components/card/style/index",
         "element-plus/es/components/cascader/style/index",
         "element-plus/es/components/checkbox-group/style/index",
@@ -343,7 +344,7 @@ export default ({ mode }: { mode: string }) => {
         "nprogress",
         "qs",
         "xgplayer",
-        '@iconify/iconify',
+        "@iconify/iconify",
         "@iconify/vue",
         "qrcode.vue",
         "xlsx",
@@ -364,8 +365,6 @@ export default ({ mode }: { mode: string }) => {
         // 定义全局 SCSS 变量
         scss: {
           additionalData: `
-            // Element Plus 主题色（@use with 直接改 common/var 模块默认值）。
-            @use "@styles/element-plus/theme.scss" as *;
             // 业务工具 mixin 注入（供 src 内 SCSS 文件直接使用，无需手动引入）。
             @use "@styles/core/mixin.scss" as *;
           `,

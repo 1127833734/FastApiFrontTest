@@ -647,7 +647,9 @@
       "hideSearch": "Hide search area",
       "showSearch": "Show search area",
       "enableRowDrag": "Enable row drag sort (current page)",
-      "disableRowDrag": "Disable row drag sort"
+      "disableRowDrag": "Disable row drag sort",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen"
     }
   },
   "navbar": {

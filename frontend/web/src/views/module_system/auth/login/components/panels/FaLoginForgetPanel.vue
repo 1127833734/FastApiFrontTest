@@ -120,7 +120,3 @@ defineExpose({
   clearValidate: () => formRef.value?.clearValidate?.(),
 });
 </script>
-
-<style scoped lang="scss">
-@use "../composables/fa-login";
-</style>

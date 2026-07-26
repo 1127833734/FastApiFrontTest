@@ -50,7 +50,8 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
@@ -58,7 +59,7 @@
           :data="detailFormData"
           :items="versionDetailItems"
           label-width="120px"
-          max-height="75vh"
+          max-height="70vh"
         >
           <template #status="{ row }">
             <ElTag :type="statusTagType(String(row?.status ?? 0))" effect="plain">
@@ -80,7 +81,7 @@
         <FaForm
           :key="versionFormRenderKey"
           scrollbar
-          max-height="75vh"
+          max-height="70vh"
           ref="dataFormRef"
           v-model="formData"
           :items="versionDialogFormItems"
@@ -136,7 +137,11 @@
 </template>
 
 <script setup lang="ts">
-import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@/utils/table";
+import {
+  renderTableOperationCell,
+  resolveStatusColumns,
+  type TableOperationAction,
+} from "@/utils/table";
 import VersionAPI, { type VersionForm, type VersionTable } from "@/api/module_system/version";
 import { Plus } from "@element-plus/icons-vue";
 import { reactive } from "vue";
@@ -268,12 +273,14 @@ function buildVersionRowActions(row: VersionTable): TableOperationAction[] {
       key: "detail",
       label: "详情",
       artType: "view",
+      perm: "module_system:version:detail",
       run: () => void openDetailDialog(row),
     },
     {
       key: "edit",
       label: "编辑",
       artType: "edit",
+      perm: "module_system:version:update",
       run: () => void openEditDialog("edit", row),
     },
     {
@@ -281,13 +288,15 @@ function buildVersionRowActions(row: VersionTable): TableOperationAction[] {
       label: "变更状态",
       artType: "more",
       icon: "ri:swap-line",
+      perm: "module_system:version:update",
       run: () => void handleChangeStatus(row),
     },
     {
       key: "delete",
       label: "删除",
       artType: "delete",
-      run: () => deleteVersionRow(row),
+      perm: "module_system:version:delete",
+      run: () => void deleteVersionRow(row),
     },
   ];
 }
@@ -367,13 +376,10 @@ const formData = ref<VersionForm>(createInitialFormData());
 const rules = reactive({
   version: [{ required: true, message: "请输入版本号", trigger: "blur" }],
   title: [{ required: true, message: "请输入标题", trigger: "blur" }],
+  date: [{ required: true, message: "请选择发布日期", trigger: "change" }],
 });
 
-const dataFormRef = ref<{
-  resetFields: () => void;
-  clearValidate: () => void;
-  validate: (cb: (valid: boolean) => void) => void;
-} | null>(null);
+const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
 
 const submitLoading = ref(false);
 const versionFormRenderKey = ref(0);
@@ -387,7 +393,7 @@ const handleSearch = async (params: VersionSearchFormParams) => {
   replaceSearchParams({
     status: params.status ?? undefined,
   } as Record<string, unknown>);
-  getData();
+  await getData();
 };
 
 const onResetSearch = async () => {
@@ -447,25 +453,26 @@ async function handleCloseDialog() {
 }
 
 async function handleSubmit() {
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    // 同步富文本编辑器内容到表单
-    formData.value.content = versionEditorHtml.value;
-    const id = formData.value.id;
-    try {
-      if (id) {
-        await VersionAPI.updateVersion(id, formData.value);
-        await refreshUpdate();
-      } else {
-        await VersionAPI.createVersion(formData.value);
-        await refreshCreate();
-      }
-      dialogVisible.visible = false;
-      await resetForm();
-    } catch (error: unknown) {
-      if (import.meta.env.DEV) console.error(error);
+  const form = dataFormRef.value;
+  if (!form) return;
+  const valid = await (form.validate as () => Promise<boolean>)().catch(() => false);
+  if (!valid) return;
+  // 同步富文本编辑器内容到表单
+  formData.value.content = versionEditorHtml.value;
+  const id = formData.value.id;
+  try {
+    if (id) {
+      await VersionAPI.updateVersion(id, formData.value);
+      await refreshUpdate();
+    } else {
+      await VersionAPI.createVersion(formData.value);
+      await refreshCreate();
     }
-  });
+    dialogVisible.visible = false;
+    await resetForm();
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
+  }
 }
 
 // ─── 删除事件 ───
@@ -510,25 +517,3 @@ const confirmChangeStatus = async () => {
   }
 };
 </script>
-
-<style scoped lang="scss">
-.fa-full-height {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.detail-list {
-  padding-left: 16px;
-  margin: 0;
-
-  li {
-    margin-bottom: 4px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-</style>

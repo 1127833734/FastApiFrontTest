@@ -226,8 +226,6 @@ import type { ColumnOption } from "@/types/component";
 import FaDialog from "@/components/modal/fa-dialog/index.vue";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
-const { hasAuth } = useAuth();
-
 type ResourceSearchForm = {
   name?: string;
 };
@@ -403,31 +401,30 @@ const {
 
 function buildResourceRowActions(row: ResourceItem): TableOperationAction[] {
   const actions: TableOperationAction[] = [];
-  if (!row.is_dir && hasAuth("module_monitor:resource:download")) {
+  if (!row.is_dir) {
     actions.push({
       key: "download",
       label: "下载",
       artType: "view",
       icon: "ri:download-line",
+      perm: "module_monitor:resource:download",
       run: () => void handleDownload(row),
     });
   }
-  if (hasAuth("module_monitor:resource:rename")) {
-    actions.push({
-      key: "rename",
-      label: "重命名",
-      artType: "edit",
-      run: () => void handleRenameOpen(row),
-    });
-  }
-  if (hasAuth("module_monitor:resource:delete")) {
-    actions.push({
-      key: "delete",
-      label: "删除",
-      artType: "delete",
-      run: () => void handleDelete(row),
-    });
-  }
+  actions.push({
+    key: "rename",
+    label: "重命名",
+    artType: "edit",
+    perm: "module_monitor:resource:rename",
+    run: () => void handleRenameOpen(row),
+  });
+  actions.push({
+    key: "delete",
+    label: "删除",
+    artType: "delete",
+    perm: "module_monitor:resource:delete",
+    run: () => void handleDelete(row),
+  });
   return actions;
 }
 

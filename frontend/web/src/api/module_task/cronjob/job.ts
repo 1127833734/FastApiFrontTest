@@ -59,13 +59,6 @@ const JobAPI = {
     });
   },
 
-  syncJobsToDb() {
-    return request<ApiResponse<number>>({
-      url: `${API_PATH}/scheduler/sync`,
-      method: "post",
-    });
-  },
-
   pauseJob(jobId: string) {
     return request<ApiResponse>({
       url: `${API_PATH}/task/pause/${jobId}`,

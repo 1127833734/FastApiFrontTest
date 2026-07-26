@@ -647,7 +647,9 @@
       "hideSearch": "隐藏搜索区域",
       "showSearch": "显示搜索区域",
       "enableRowDrag": "开启行拖拽排序（当前页）",
-      "disableRowDrag": "关闭行拖拽排序"
+      "disableRowDrag": "关闭行拖拽排序",
+      "fullscreen": "全屏",
+      "exitFullscreen": "退出全屏"
     }
   },
   "navbar": {

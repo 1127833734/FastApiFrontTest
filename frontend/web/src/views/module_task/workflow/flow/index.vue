@@ -77,8 +77,6 @@ import { computed, ref } from "vue";
 import type { ColumnOption } from "@/types/component";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 
-const { hasAuth } = useAuth();
-
 type WorkflowSearchForm = {
   name?: string;
   code?: string;
@@ -216,7 +214,7 @@ function buildWorkflowRowActions(row: WorkflowTable): TableOperationAction[] {
       run: () => deleteWorkflowRow(row.id, String(row?.name ?? row?.id ?? "")),
     }
   );
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatWorkflowOperationCell(row: WorkflowTable) {
@@ -303,7 +301,7 @@ const {
 async function handleSearchBarSearch(params: WorkflowSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildWorkflowReplaceParams(params));
-  getData();
+  await getData();
 }
 
 async function onResetSearch() {
@@ -337,8 +335,8 @@ function handleEdit(record: WorkflowTable) {
   createVisible.value = true;
 }
 
-function onDrawerRefresh() {
-  void refreshUpdate();
+async function onDrawerRefresh() {
+  await refreshUpdate();
 }
 
 async function handlePublish(record: WorkflowTable) {
@@ -371,19 +369,13 @@ async function handleExecute(action: string, record: WorkflowTable) {
       ElMessage.error("工作流ID不存在");
       return;
     }
-    const res = await WorkflowDefinitionAPI.executeWorkflow({
+    await WorkflowDefinitionAPI.executeWorkflow({
       workflow_id: record.id,
       variables: {},
     });
-    if (res.data?.data) {
-      const result = res.data.data;
-      ElMessage.success(`工作流执行${result.status === 0 ? "成功" : "失败"}`);
-    }
     await refreshUpdate();
   } catch {
-    ElMessage.error("执行失败");
+    /* 已由全局拦截器提示 */
   }
 }
 </script>
-
-<style scoped lang="scss"></style>

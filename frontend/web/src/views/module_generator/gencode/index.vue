@@ -190,7 +190,6 @@ const listRefresh = {
 };
 
 const route = useRoute();
-const { hasAuth } = useAuth();
 
 provide(GENCODE_BASIC_FORM_KEY, basicInfo);
 provide(GENCODE_CM_KEY, cmRef);
@@ -522,7 +521,6 @@ async function handleGenTable(targetGenType: string, row?: GenTableSchema): Prom
       link.download = "code.zip";
       link.click();
       URL.revokeObjectURL(url);
-      ElMessage.success("已开始下载 code.zip");
     }
   } catch (error: unknown) {
     if (import.meta.env.DEV) console.error("生成代码失败:", error);
@@ -581,7 +579,6 @@ async function handleSynchDb(row: GenTableSchema): Promise<void> {
     });
 
     await GencodeAPI.syncDb(tableName);
-    ElMessage.success("表结构已同步到代码生成配置");
     await listRefresh.refreshData();
   } catch (error) {
     if (error !== "cancel") console.error("同步表结构失败:", error);
@@ -676,7 +673,6 @@ async function handlePreviewTable(row?: GenTableSchema): Promise<void> {
     dictOptions.value = dict_response.data.data.items;
   } catch (e) {
     console.error("菜单或字典加载失败:", e);
-    ElMessage.warning("菜单或字典选项加载失败，部分下拉可能为空");
   }
 }
 
@@ -740,7 +736,7 @@ function buildGencodeRowActions(row: GenTableSchema): TableOperationAction[] {
       run: () => void handleSynchDb(row),
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatGencodeOperationCell(row: GenTableSchema) {

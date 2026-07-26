@@ -77,12 +77,16 @@
               class="crud-dialog-art-form node-splitter-art-form"
             >
               <template #args>
-                <div class="dynamic-params">
-                  <div v-for="(_item, index) in argsList" :key="index" class="param-item">
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="(_item, index) in argsList"
+                    :key="index"
+                    class="flex gap-2 items-center [&_.el-input]:flex-1"
+                  >
                     <ElInput v-model="argsList[index]" placeholder="参数值" />
                     <ElButton
                       type="danger"
-                      icon="Delete"
+                      :icon="Delete"
                       circle
                       @click="argsList.splice(index, 1)"
                     />
@@ -93,24 +97,24 @@
                 </div>
               </template>
               <template #kwargs>
-                <div class="dynamic-params">
+                <div class="flex flex-col gap-2">
                   <div
                     v-for="(item, index) in kwargsList"
                     :key="item.key || index"
-                    class="param-item"
+                    class="flex gap-2 items-center [&_.el-input]:flex-1"
                   >
                     <ElInput v-model="item.key" placeholder="键" />
                     <ElInput v-model="item.value" placeholder="值" />
                     <ElButton
                       type="danger"
-                      icon="Delete"
+                      :icon="Delete"
                       circle
                       @click="kwargsList.splice(index, 1)"
                     />
                   </div>
                   <ElButton
                     type="primary"
-                    icon="Plus"
+                    :icon="Plus"
                     @click="kwargsList.push({ key: '', value: '' })"
                   >
                     添加关键词参数
@@ -122,10 +126,14 @@
         </ElSplitterPanel>
 
         <ElSplitterPanel>
-          <div class="code-editor-container">
-            <div class="code-editor-header">
-              <span class="code-editor-title">handler 代码</span>
-              <span class="code-editor-tip">须定义 handler(*args, **kwargs) 函数</span>
+          <div class="flex flex-col h-full">
+            <div
+              class="flex shrink-0 items-center justify-between px-3 py-2 bg-(--el-fill-color-light) border-b border-(--el-border-color-lighter)"
+            >
+              <span class="text-sm font-semibold">handler 代码</span>
+              <span class="text-xs text-(--el-text-color-secondary)"
+                >须定义 handler(*args, **kwargs) 函数</span
+              >
             </div>
             <Codemirror
               ref="codeEditorRef"
@@ -176,8 +184,7 @@ import type { EditorConfiguration } from "codemirror";
 import "codemirror/mode/python/python.js";
 import "codemirror/theme/dracula.css";
 import type { ColumnOption } from "@/types/component";
-
-const { hasAuth } = useAuth();
+import { Delete, Plus } from "@element-plus/icons-vue";
 
 type NodeTypeSearchForm = {
   name?: string;
@@ -334,7 +341,7 @@ function buildNodeTypeRowActions(row: WorkflowNodeTypeTable): TableOperationActi
       run: () => void deleteNodeTypeRow(row),
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatNodeTypeOperationCell(row: WorkflowNodeTypeTable) {
@@ -429,7 +436,7 @@ const {
 async function handleSearchBarSearch(params: NodeTypeSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildNodeTypeReplaceParams(params));
-  getData();
+  await getData();
 }
 
 async function onResetSearch() {
@@ -608,7 +615,7 @@ async function openDialog(id?: number) {
           : [];
       }
     } catch {
-      ElMessage.error("加载详情失败");
+      /* 已由全局拦截器提示 */
       return;
     }
   }
@@ -655,47 +662,3 @@ async function submitForm() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-.code-editor-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.code-editor-header {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: var(--el-fill-color-light);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.code-editor-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.code-editor-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.dynamic-params {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.param-item {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-
-  .el-input {
-    flex: 1;
-  }
-}
-</style>

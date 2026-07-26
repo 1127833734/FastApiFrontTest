@@ -1,6 +1,6 @@
 <!-- 单图上传组件 -->
 <template>
-  <div class="single-image-upload">
+  <div class="flex flex-col items-start">
     <FaDialog
       v-model="cropVisible"
       :title="cropDialogTitle"
@@ -47,7 +47,7 @@
         >
           <ElImage
             :key="internalFileList[0]!.url"
-            class="single-upload__image"
+            class="cursor-pointer rounded-md"
             :src="internalFileList[0]!.url"
             fit="cover"
             :preview-src-list="props.enablePreview ? [internalFileList[0]!.url] : []"
@@ -69,7 +69,7 @@
         </template>
       </template>
     </ElUpload>
-    <div v-if="props.showTip" class="el-upload__tip">
+    <div v-if="props.showTip" class="mt-1.75 text-xs text-(--el-text-color-regular)">
       {{ props.tipText || `支持 ${props.accept} 格式，文件大小不超过 ${props.maxFileSize}MB` }}
     </div>
   </div>
@@ -375,37 +375,19 @@ const onError = (error: any) => {
 </script>
 
 <style scoped lang="scss">
-.single-image-upload {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
+.single-upload__delete-btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: none;
+  font-size: 16px;
+  color: var(--el-color-warning);
+  cursor: pointer;
+  background: var(--el-bg-color-overlay);
+  border-radius: 100%;
 
-.single-upload {
-  &__image {
-    cursor: pointer;
-    border-radius: 6px;
-  }
-
-  &__delete-btn {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    display: none;
-    font-size: 16px;
-    color: var(--el-color-warning);
-    cursor: pointer;
-    background: var(--el-bg-color-overlay);
-    border-radius: 100%;
-
-    &:hover {
-      color: var(--el-color-danger);
-    }
-  }
-
-  &__add-btn {
-    font-size: 28px;
-    color: var(--el-text-color-placeholder);
+  &:hover {
+    color: var(--el-color-danger);
   }
 }
 
@@ -419,11 +401,5 @@ const onError = (error: any) => {
       display: block;
     }
   }
-}
-
-.el-upload__tip {
-  margin-top: 7px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
 }
 </style>

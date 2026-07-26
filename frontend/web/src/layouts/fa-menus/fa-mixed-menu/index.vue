@@ -231,11 +231,13 @@ onMounted(initScrollState);
   justify-content: center;
   width: 28px;
   height: 28px;
-  cursor: pointer;
-  color: var(--fa-gray-600);
   font-size: 1.125rem;
+  color: var(--fa-gray-600);
+  cursor: pointer;
   border-radius: 0.25rem;
-  transition: color 0.3s, background 0.3s;
+  transition:
+    color 0.3s,
+    background 0.3s;
 }
 
 .button-arrow:first-child {

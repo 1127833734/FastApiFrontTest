@@ -394,11 +394,10 @@ async function saveField(field: ParamField) {
     } as any);
     field.modified = false;
     field.displayValue = field.localValue;
-    ElMessage.success(`${field.label} 已保存`);
     configStore.isConfigLoaded = false;
     await configStore.getConfig();
   } catch {
-    ElMessage.error(`${field.label} 保存失败`);
+    // 已由全局拦截器提示
   }
 }
 
@@ -420,13 +419,12 @@ async function saveGroup(fields: ParamField[]) {
       field.displayValue = field.localValue;
       successCount++;
     } catch {
-      ElMessage.error(`${field.label} 保存失败`);
+      // 已由全局拦截器提示
     }
   }
   if (successCount > 0) {
     configStore.isConfigLoaded = false;
     await configStore.getConfig();
-    ElMessage.success(`已保存 ${successCount} 项`);
   }
 }
 
@@ -439,3 +437,31 @@ onMounted(async () => {
   rebuildFields();
 });
 </script>
+
+<style scoped>
+:deep(.el-card) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+:deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.el-tabs) {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.el-tabs__content) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+</style>

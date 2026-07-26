@@ -149,7 +149,9 @@ async function handleLoginStatus(to: RouteLocationNormalized): Promise<boolean> 
  * 4. 校验目标路径权限
  * 5. 返回 redirect 路径或 undefined
  */
-async function handleDynamicRoutes(to: RouteLocationNormalized): Promise<undefined | string | { path: string; replace: boolean }> {
+async function handleDynamicRoutes(
+  to: RouteLocationNormalized
+): Promise<undefined | string | { path: string; replace: boolean }> {
   if (pendingLoading) return;
   pendingLoading = true;
 
@@ -279,7 +281,12 @@ export class RoutePermissionValidator {
       if (!route.path) continue;
       const routePath = route.path.startsWith("/") ? route.path : `/${route.path}`;
       // 精确匹配 / 前缀匹配 / 动态路由匹配
-      if (routePath === targetPath || this.isDynamicRouteMatch(targetPath, routePath) || targetPath.startsWith(`${routePath}/`)) return true;
+      if (
+        routePath === targetPath ||
+        this.isDynamicRouteMatch(targetPath, routePath) ||
+        targetPath.startsWith(`${routePath}/`)
+      )
+        return true;
       if (route.children?.length && this.matchRoute(targetPath, route.children)) return true;
     }
     return false;
@@ -306,7 +313,9 @@ export class RoutePermissionValidator {
     homePath: string = "/"
   ): { path: string; hasPermission: boolean } {
     const hasPermission = this.hasPermission(targetPath, menuList);
-    return hasPermission ? { path: targetPath, hasPermission: true } : { path: homePath, hasPermission: false };
+    return hasPermission
+      ? { path: targetPath, hasPermission: true }
+      : { path: homePath, hasPermission: false };
   }
 }
 

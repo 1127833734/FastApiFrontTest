@@ -1,5 +1,6 @@
 <template>
   <ElDialog
+    ref="elDialogRef"
     v-model="visible"
     :width="width"
     :draggable="draggable"
@@ -7,7 +8,7 @@
     :show-close="false"
     :class="dialogClass"
     :modal-class="modalClass"
-    align-center
+    :align-center="alignCenter"
     destroy-on-close
     v-bind="dialogAttrs"
     @close="emit('close')"
@@ -37,8 +38,8 @@
     </template>
     <template v-else-if="formMode" #footer>
       <div class="fa-dialog-footer" :style="'padding-right: var(--el-dialog-padding-primary)'">
-        <!-- detail 模式仅显示关闭按钮 -->
-        <ElButton v-if="formMode === 'detail'" type="primary" @click="emit('confirm')">
+        <!-- detail 模式仅显示关闭按钮，emit close 以区分语义 -->
+        <ElButton v-if="formMode === 'detail'" type="primary" @click="emit('close')">
           {{ confirmText || "关闭" }}
         </ElButton>
         <template v-else>
@@ -65,6 +66,7 @@
 
 <script setup lang="ts">
 import type { DialogProps } from "element-plus";
+import { ElDialog } from "element-plus";
 import { computed, ref, useAttrs, watch, onMounted, onUnmounted } from "vue";
 import FaIconButton from "@/components/others/fa-icon-button/index.vue";
 
@@ -90,6 +92,12 @@ interface Props {
   cancelText?: string;
   /** 是否显示"提交并继续添加"按钮（仅 create 模式有效） */
   showSubmitAndContinue?: boolean;
+  /** 点击遮罩层是否关闭弹窗 */
+  closeOnClickModal?: boolean;
+  /** 按 Escape 键是否关闭弹窗 */
+  closeOnPressEscape?: boolean;
+  /** 是否居中显示弹窗 */
+  alignCenter?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -97,6 +105,9 @@ const props = withDefaults(defineProps<Props>(), {
   confirmText: "确定",
   cancelText: "取消",
   showSubmitAndContinue: false,
+  closeOnClickModal: true,
+  closeOnPressEscape: true,
+  alignCenter: true,
 });
 
 interface Emits {
@@ -149,51 +160,20 @@ const visible = computed({
 const dialogAttrs = computed(() => {
   const a = { ...attrs } as Record<string, unknown>;
   delete a.class;
-  return a as Partial<Omit<DialogProps, "modelValue">>;
+  // 已通过 Props 显式声明的属性，避免与 v-bind 冲突
+  delete a.alignCenter;
+  delete a["align-center"];
+  delete a.closeOnClickModal;
+  delete a["close-on-click-modal"];
+  delete a.closeOnPressEscape;
+  delete a["close-on-press-escape"];
+  return a as Partial<Omit<DialogProps, "modelValue" | "alignCenter">>;
+});
+
+/** ElDialog 实例引用，调用方可通过 ref 访问其方法（如 open、close 等） */
+const elDialogRef = ref<InstanceType<typeof ElDialog>>();
+
+defineExpose({
+  elDialogRef,
 });
 </script>
-
-<style scoped lang="scss">
-.core-overlay-dialog__header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding-right: 4px;
-}
-
-.fa-dialog-footer {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-
-  :deep(.el-button) {
-    transition: all 0.2s ease;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-      transform: translateY(-2px);
-    }
-  }
-}
-
-.core-overlay-dialog__actions {
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: 4px;
-  align-items: center;
-  margin-left: auto;
-
-  :deep(.core-overlay-icon-btn) {
-    min-width: 32px;
-    padding: 6px;
-    border-radius: var(--el-border-radius-base);
-
-    &:hover {
-      color: var(--theme-color);
-    }
-  }
-}
-</style>

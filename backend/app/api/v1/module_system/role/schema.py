@@ -25,8 +25,8 @@ class RoleCreateSchema(BaseModel):
     data_scope: int | None = Field(
         default=1,
         ge=1,
-        le=5,
-        description="数据权限范围(1:仅本人 2:本部门 3:本部门及以下 4:全部 5:自定义)",
+        le=3,
+        description="数据权限范围(1:仅本人 2:本部门及以下 3:全部)",
     )
     status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
@@ -62,8 +62,8 @@ class RolePermissionSettingSchema(BaseModel):
     data_scope: int = Field(
         default=1,
         ge=1,
-        le=5,
-        description="数据权限范围(1:仅本人 2:本部门 3:本部门及以下 4:全部 5:自定义)",
+        le=3,
+        description="数据权限范围(1:仅本人 2:本部门及以下 3:全部)",
     )
     role_ids: list[int] = Field(default_factory=list, description="角色ID列表")
     menu_ids: list[int] = Field(default_factory=list, description="菜单ID列表")

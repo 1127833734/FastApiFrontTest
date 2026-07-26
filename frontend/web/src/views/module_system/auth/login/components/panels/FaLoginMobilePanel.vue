@@ -146,7 +146,3 @@ onBeforeUnmount(() => {
   clearSmsTimer();
 });
 </script>
-
-<style scoped lang="scss">
-@use "../composables/fa-login";
-</style>

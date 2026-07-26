@@ -58,6 +58,7 @@
 <script setup lang="ts">
 import { ref, onMounted, markRaw, type Component } from "vue";
 import { Connection } from "@element-plus/icons-vue";
+import { checkPerm } from "@/utils/checkPerm";
 import DashboardAPI from "@/api/module_monitor/dashboard";
 import type { DashboardStats } from "@/api/module_monitor/dashboard";
 
@@ -126,6 +127,9 @@ const dataList = ref<CardDataItem[]>([
 ]);
 
 async function loadStats() {
+  // 无权限则跳过 API 调用，避免 403 错误
+  if (!checkPerm("module_monitor:dashboard:query")) return;
+
   try {
     const { data: res } = await DashboardAPI.getStats();
     const stats = res?.data as DashboardStats | undefined;

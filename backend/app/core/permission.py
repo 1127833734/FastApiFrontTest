@@ -13,10 +13,8 @@ class Permission:
 
     # 数据权限常量定义，提高代码可读性
     DATA_SCOPE_SELF = 1  # 仅本人数据
-    DATA_SCOPE_DEPT = 2  # 本部门数据
-    DATA_SCOPE_DEPT_AND_CHILD = 3  # 本部门及以下数据
-    DATA_SCOPE_ALL = 4  # 全部数据
-    DATA_SCOPE_CUSTOM = 5  # 自定义数据
+    DATA_SCOPE_DEPT_AND_CHILD = 2  # 本部门及以下数据
+    DATA_SCOPE_ALL = 3  # 全部数据
 
     def __init__(self, model: Any, auth: AuthSchema, db: AsyncSession) -> None:
         self.model = model
@@ -37,15 +35,13 @@ class Permission:
         return await self._filter_by_data_scope()
 
     async def _filter_by_data_scope(self) -> ColumnElement | None:
-        from sqlalchemy.orm import selectinload
-
         from app.api.v1.module_system.role.model import RoleModel
         from app.api.v1.module_system.user.model import UserModel
 
         if not hasattr(self.model, "created_id"):
             return None
 
-        stmt = select(RoleModel).options(selectinload(RoleModel.depts)).join(
+        stmt = select(RoleModel).join(
             RoleModel.users
         ).where(UserModel.id == self.auth.user.id)
         result = await self.db.execute(stmt)
@@ -57,18 +53,12 @@ class Permission:
                 return created_id_attr == self.auth.user.id
             return None
 
-        data_scopes = set()
-        custom_dept_ids = set()
-
-        for role in roles:
-            data_scopes.add(role.data_scope)
-            if role.data_scope == self.DATA_SCOPE_CUSTOM and role.depts:
-                custom_dept_ids.update(dept.id for dept in role.depts)
+        data_scopes = {role.data_scope for role in roles}
 
         if self.DATA_SCOPE_ALL in data_scopes:
             return None
 
-        accessible_dept_ids = await self._get_accessible_dept_ids(data_scopes, custom_dept_ids)
+        accessible_dept_ids = await self._get_accessible_dept_ids(data_scopes)
 
         if accessible_dept_ids:
             if self.model.__name__ == "UserModel" and hasattr(self.model, "dept_id"):
@@ -100,15 +90,9 @@ class Permission:
             return created_id_attr == self.auth.user.id
         return None
 
-    async def _get_accessible_dept_ids(self, data_scopes: set, custom_dept_ids: set) -> set[int]:
+    async def _get_accessible_dept_ids(self, data_scopes: set) -> set[int]:
         accessible_dept_ids = set()
         user_dept_id = getattr(self.auth.user, "dept_id", None)
-
-        if self.DATA_SCOPE_CUSTOM in data_scopes:
-            accessible_dept_ids.update(custom_dept_ids)
-
-        if self.DATA_SCOPE_DEPT in data_scopes and user_dept_id is not None:
-            accessible_dept_ids.add(user_dept_id)
 
         if self.DATA_SCOPE_DEPT_AND_CHILD in data_scopes and user_dept_id is not None:
             try:
