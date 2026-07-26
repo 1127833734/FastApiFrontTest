@@ -220,7 +220,12 @@
               readonly
               @click="openCron = true"
             />
-            <FaDialog v-model="openCron" title="Cron 表达式" width="min(700px, calc(100vw - 48px))" append-to-body>
+            <FaDialog
+              v-model="openCron"
+              title="Cron 表达式"
+              width="min(700px, calc(100vw - 48px))"
+              append-to-body
+            >
               <FaCron v-model="cronTempValue" />
               <template #footer>
                 <ElButton @click="openCron = false">取消</ElButton>
@@ -302,18 +307,32 @@ const dictStore = useDictStore();
 type NodeSearchForm = {
   name?: string;
   code?: string;
+  created_id?: number;
+  updated_id?: number;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildNodeReplaceParams(u: NodeSearchForm): Record<string, unknown> {
   return {
     name: u.name,
     code: u.code,
+    created_id: u.created_id,
+    updated_id: u.updated_id,
+    created_time:
+      Array.isArray(u.created_time) && u.created_time.length === 2 ? u.created_time : undefined,
+    updated_time:
+      Array.isArray(u.updated_time) && u.updated_time.length === 2 ? u.updated_time : undefined,
   };
 }
 
 const searchForm = ref<NodeSearchForm>({
   name: undefined,
   code: undefined,
+  created_id: undefined,
+  updated_id: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -512,6 +531,10 @@ async function onResetSearch() {
   searchForm.value = {
     name: undefined,
     code: undefined,
+    created_id: undefined,
+    updated_id: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetSearchParams();
 }

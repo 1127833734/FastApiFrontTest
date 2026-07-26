@@ -13,8 +13,10 @@ import { useUserStore, useMenuStore, useWorktabStore } from "@/store";
 import { IframeRouteManager, ROUTE_PATH_LOGIN_ALT } from "./routes";
 import { router, HOME_PAGE_PATH } from "./index";
 import { setPageTitle, setWorktab } from "@utils/navigation";
+import { MenuProcessor } from "./MenuProcessor";
 import { NProgress } from "@utils/ui";
 import { Auth } from "@utils/auth";
+import { refreshState } from "./refresh";
 
 /** 全局 loading 状态（用于路由切换时显示加载遮罩） */
 const globalLoading = ref(false);
@@ -38,36 +40,12 @@ function isAnonymousPublicPath(path: string): boolean {
 function isLoginRoute(to: RouteLocationNormalized): boolean {
   return to.path === "/login" || to.path === ROUTE_PATH_LOGIN_ALT;
 }
-// ──────── 守卫状态 ────────
-
-let pendingLoading = false;
-let routeInitFailed = false;
-
-/** 获取是否正在加载动态路由 */
-export function getPendingLoading(): boolean {
-  return pendingLoading;
-}
-/** 重置加载状态 */
-export function resetPendingLoading(): void {
-  pendingLoading = false;
-}
-/** 获取路由初始化是否失败 */
-export function getRouteInitFailed(): boolean {
-  return routeInitFailed;
-}
-/** 重置路由初始化失败状态 */
-export function resetRouteInitState(): void {
-  routeInitFailed = false;
-}
-
 // ──────── 前置守卫 ────────
 
 /**
  * 前置守卫：导航前检查登录状态、动态路由加载、权限校验
  */
 export function setupBeforeEachGuard(router: Router): void {
-  let dynamicRoutesRegistered = false;
-
   router.beforeEach(async (to) => {
     // 初始化守卫状态
     if (globalLoading.value) globalLoading.value = false;
@@ -86,19 +64,19 @@ export function setupBeforeEachGuard(router: Router): void {
     }
 
     // 路由初始化失败 → 跳转 500
-    if (routeInitFailed && !isAnonymousPublicPath(to.path)) {
+    if (refreshState.routeInitFailed && !isAnonymousPublicPath(to.path)) {
       return "/500";
     }
 
     // 已登录、动态路由未注册 → 加载
-    if (!dynamicRoutesRegistered && !isAnonymousPublicPath(to.path)) {
+    if (!refreshState.dynamicRoutesRegistered && !isAnonymousPublicPath(to.path)) {
       // 正在加载中 → 跳转首页，避免进入后路由未注册导致 404
-      if (pendingLoading) {
+      if (refreshState.pendingLoading) {
         return { path: HOME_PAGE_PATH, replace: true };
       }
       const redirect = await handleDynamicRoutes(to);
       if (redirect) return redirect;
-      dynamicRoutesRegistered = true;
+      refreshState.dynamicRoutesRegistered = true;
 
       // 注册动态路由后，若原导航被 catch-all 404 捕获（F5 刷新场景），重定向触发重新解析
       if (to.matched.some((r) => r.name === "CatchAll404")) {
@@ -152,8 +130,8 @@ async function handleLoginStatus(to: RouteLocationNormalized): Promise<boolean> 
 async function handleDynamicRoutes(
   to: RouteLocationNormalized
 ): Promise<undefined | string | { path: string; replace: boolean }> {
-  if (pendingLoading) return;
-  pendingLoading = true;
+  if (refreshState.pendingLoading) return;
+  refreshState.pendingLoading = true;
 
   try {
     // 异常恢复：菜单空了但路由还在，做反注册
@@ -166,7 +144,6 @@ async function handleDynamicRoutes(
     }
 
     // 获取菜单
-    const { MenuProcessor } = await import("./MenuProcessor");
     const menuProcessor = new MenuProcessor();
     const menuList = await menuProcessor.getMenuList();
 
@@ -206,10 +183,10 @@ async function handleDynamicRoutes(
     return undefined;
   } catch (error) {
     console.error("[路由守卫] 路由初始化失败:", error);
-    routeInitFailed = true;
+    refreshState.routeInitFailed = true;
     return "/500";
   } finally {
-    pendingLoading = false;
+    refreshState.pendingLoading = false;
   }
 }
 
@@ -317,42 +294,6 @@ export class RoutePermissionValidator {
       ? { path: targetPath, hasPermission: true }
       : { path: homePath, hasPermission: false };
   }
-}
-
-// ──────── 动态路由卸载 ────────
-
-/** 卸载动态路由 + 清理 iframe 路由（退出登录时调用） */
-export async function resetDynamicRoutesSync(): Promise<void> {
-  const menuStore = useMenuStore();
-  const removeRouteFns = menuStore.removeRouteFns;
-  removeRouteFns.forEach((fn: () => void) => fn());
-  menuStore.menuList.length = 0;
-  menuStore.removeRouteFns.length = 0;
-  IframeRouteManager.getInstance().clear();
-}
-
-/** 重新拉菜单 + 重新注册（管理员手动刷新菜单时调用） */
-export async function refreshMenuAndRoutes(): Promise<void> {
-  await resetDynamicRoutesSync();
-  const { MenuProcessor } = await import("./MenuProcessor");
-  const { RouteRegistry } = await import("./route-loader");
-  const menuProcessor = new MenuProcessor();
-  const menuList = await menuProcessor.getMenuList();
-  // 更新侧栏菜单并注册动态路由
-  useMenuStore().setMenuList(menuList);
-  const routeRegistry = new RouteRegistry(router);
-  routeRegistry.register(menuList);
-  useMenuStore().addRemoveRouteFns(routeRegistry.getRemoveRouteFns());
-  // 菜单变更后清理无效的持久化标签
-  useWorktabStore().validateWorktabs(router);
-}
-
-/** 延迟重置（token 过期降级时使用 3000ms 等待过渡动画） */
-export async function resetRouterState(delay: number = 0): Promise<void> {
-  if (delay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-  await resetDynamicRoutesSync();
 }
 
 // ──────── 后置守卫 ────────

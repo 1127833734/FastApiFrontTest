@@ -35,7 +35,7 @@
                   :model-value="modelValue?.created_id == null ? undefined : modelValue.created_id"
                   @update:model-value="
                     (v: number | undefined) => {
-                      modelValue.value['created_id'] = v;
+                      modelValue['created_id'] = v;
                     }
                   "
                   @confirm-click="emitImmediateSearch"
@@ -50,7 +50,7 @@
                   :model-value="modelValue?.updated_id == null ? undefined : modelValue.updated_id"
                   @update:model-value="
                     (v: number | undefined) => {
-                      modelValue.value['updated_id'] = v;
+                      modelValue['updated_id'] = v;
                     }
                   "
                   @confirm-click="emitImmediateSearch"

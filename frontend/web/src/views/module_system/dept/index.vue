@@ -415,8 +415,20 @@ const { columnChecks, columns } = useTableColumns<DeptTable>(
     },
     { prop: "order", label: "排序", width: 88, showOverflowTooltip: true },
     { prop: "description", label: "描述", minWidth: 100, showOverflowTooltip: true },
-    { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-    { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+    {
+      prop: "created_time",
+      label: "创建时间",
+      width: 168,
+      sortable: true,
+      showOverflowTooltip: true,
+    },
+    {
+      prop: "updated_time",
+      label: "更新时间",
+      width: 168,
+      sortable: true,
+      showOverflowTooltip: true,
+    },
     {
       prop: "operation",
       label: "操作",

@@ -62,7 +62,12 @@
               <FaSvgIcon :icon="typeIcon(item.ticket_type!)" />
             </span>
             <span class="flex-1 truncate text-sm font-semibold">{{ item.title }}</span>
-            <ElTag size="small" :type="statusTagType(String(item.status))" effect="dark" class="shrink-0">
+            <ElTag
+              size="small"
+              :type="statusTagType(String(item.status))"
+              effect="dark"
+              class="shrink-0"
+            >
               {{ statusLabel(item.status ?? 0) }}
             </ElTag>
           </div>
@@ -70,12 +75,21 @@
 
         <template #default="{ item }">
           <div class="flex flex-col">
-            <div class="flex items-center gap-1.5 text-xs" style="color: var(--el-text-color-secondary)">
+            <div
+              class="flex items-center gap-1.5 text-xs"
+              style="color: var(--el-text-color-secondary)"
+            >
               <FaSvgIcon icon="ri:user-3-line" class="shrink-0" />
-              <span>{{ item.created_by?.name ?? "—" }} · {{ item.created_time?.slice(0, 10) ?? "" }}</span>
+              <span
+                >{{ item.created_by?.name ?? "—" }} ·
+                {{ item.created_time?.slice(0, 10) ?? "" }}</span
+              >
             </div>
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-xs" style="color: var(--el-text-color-secondary)">
+              <div
+                class="flex items-center gap-1.5 text-xs"
+                style="color: var(--el-text-color-secondary)"
+              >
                 <FaSvgIcon icon="ri:user-add-line" class="shrink-0" />
                 <span>{{ item.assigned_by?.name ?? "未分配" }}</span>
               </div>
@@ -88,7 +102,9 @@
 
         <template #footer="{ item }">
           <div class="flex items-center gap-1">
-            <ElButton size="small" link type="primary" @click="handleOpenDialog('detail', item.id!)">详情</ElButton>
+            <ElButton size="small" link type="primary" @click="handleOpenDialog('detail', item.id!)"
+              >详情</ElButton
+            >
             <ElButton
               v-if="item.status! < 3"
               v-hasPerm="['module_system:ticket:update']"
@@ -96,7 +112,8 @@
               link
               type="primary"
               @click="handleOpenDialog('update', item.id!)"
-            >处理</ElButton>
+              >处理</ElButton
+            >
             <ElDropdown v-if="showCardMore(item)" trigger="click">
               <ElButton size="small" link type="primary" class="px-1 py-0.5 text-base">
                 <ElIcon><MoreFilled /></ElIcon>
@@ -394,6 +411,7 @@ type TicketSearchForm = {
   ticket_type?: string;
   status?: number;
   created_id?: number;
+  updated_id?: number;
   assigned_id?: number;
 };
 
@@ -402,6 +420,7 @@ const searchForm = ref<TicketSearchForm>({
   ticket_type: "",
   status: undefined,
   created_id: undefined,
+  updated_id: undefined,
   assigned_id: undefined,
 });
 const showSearchBar = ref(true);
@@ -513,6 +532,7 @@ async function handleSearchBarSearch(params: Record<string, unknown>) {
     ticket_type: (params.ticket_type as string) ?? "",
     status: params.status !== undefined ? Number(params.status) : undefined,
     created_id: params.created_id as number | undefined,
+    updated_id: params.updated_id as number | undefined,
     assigned_id: params.assigned_id as number | undefined,
   };
   pageNo.value = 1;
@@ -525,6 +545,7 @@ async function onResetSearch() {
     ticket_type: "",
     status: undefined,
     created_id: undefined,
+    updated_id: undefined,
     assigned_id: undefined,
   };
   pageNo.value = 1;

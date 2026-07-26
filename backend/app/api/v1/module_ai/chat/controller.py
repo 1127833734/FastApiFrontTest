@@ -2,7 +2,7 @@ import asyncio
 import json
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, Path, Security, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
 
@@ -44,7 +44,7 @@ async def get_session_detail_controller(
 async def get_session_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_ai:chat:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[ChatSessionQueryParam, Depends()],
+    search: Annotated[ChatSessionQueryParam, Query()],
 ) -> JSONResponse:
     service = ChatService(auth)
     result_dict = await service.page(

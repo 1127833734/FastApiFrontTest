@@ -124,6 +124,7 @@ import { resolveIconForFaSvgIcon } from "@utils";
 import { nextTick, onBeforeUnmount, onMounted, watch, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { MagicStick, Position, Tools } from "@element-plus/icons-vue";
 import { useSettingsStore } from "@stores";
 import { AiChatAPI, ChatSession, ChatSessionDetail } from "@/api/module_ai/chat";
 

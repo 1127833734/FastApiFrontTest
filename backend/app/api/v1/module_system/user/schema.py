@@ -71,9 +71,6 @@ class UserForgetPasswordSchema(BaseModel):
 
     username: str = Field(..., min_length=3, max_length=32, description="用户名")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
-    mobile: str | None = Field(default=None, max_length=11, description="手机号")
-    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
-    captcha: str | None = Field(default=None, description="图形验证码")
 
     @field_validator("username")
     @classmethod
@@ -96,12 +93,6 @@ class UserForgetPasswordSchema(BaseModel):
         if len(value) > 128:
             raise ValueError("密码长度不能超过 128 位")
         return value
-
-    @field_validator("mobile")
-    @classmethod
-    def validate_mobile(cls, value: str | None):
-        """校验手机号格式"""
-        return mobile_validator(value)
 
 
 class UserChangePasswordSchema(BaseModel):
@@ -189,8 +180,6 @@ class UserRegisterSchema(BaseModel):
     password: str = Field(..., min_length=6, max_length=128, description="密码")
     email: EmailStr | None = Field(default=None, description="邮箱")
     name: str | None = Field(default=None, max_length=32, description="名称")
-    captcha_key: str | None = Field(default=None, description="图形验证码 key（必填，防暴力枚举）")
-    captcha: str | None = Field(default=None, description="图形验证码")
 
     @field_validator("username")
     @classmethod

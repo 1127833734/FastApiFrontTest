@@ -369,7 +369,7 @@
       "user": "普通用户"
     },
     "placeholder": {
-      "username": "请输入用户名",
+      "username": "请输入账号",
       "password": "请输入密码",
       "email": "请输入邮箱",
       "slider": "请拖动滑块完成验证"
@@ -473,7 +473,7 @@
       "username": "请输入账号",
       "password": "请输入密码",
       "confirmPassword": "请再次输入密码",
-      "email": "请输入邮箱"
+      "name": "请输入昵称"
     },
     "rule": {
       "confirmPasswordRequired": "请再次输入密码",

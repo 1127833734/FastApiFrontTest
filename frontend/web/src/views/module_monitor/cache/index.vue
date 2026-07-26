@@ -372,7 +372,10 @@ async function handleCacheValue(cacheKey: string) {
     const data = response.data.data;
     cacheForm.value = {
       ...data,
-      cache_value: typeof data.cache_value === "string" ? data.cache_value : JSON.stringify(data.cache_value, null, 2),
+      cache_value:
+        typeof data.cache_value === "string"
+          ? data.cache_value
+          : JSON.stringify(data.cache_value, null, 2),
     };
   } catch (error: unknown) {
     if (import.meta.env.DEV) console.error("获取缓存内容失败:", error);

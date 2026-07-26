@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Security
+from fastapi import APIRouter, Body, Depends, Query, Security
 from fastapi.responses import JSONResponse
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ OnlineRouter = APIRouter(route_class=OperationLogRoute, prefix="/online", tags=[
 async def get_online_list_controller(
     redis: Annotated[Redis, Depends(redis_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[OnlineQueryParam, Depends()],
+    search: Annotated[OnlineQueryParam, Query()],
 ) -> JSONResponse:
     result_dict_list = await OnlineService.get_online_list(redis=redis, search=search)
     result_dict = await PaginationService.paginate(

@@ -324,12 +324,14 @@ const {
         prop: "created_time",
         label: "创建时间",
         width: 168,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
         prop: "updated_time",
         label: "更新时间",
         width: 168,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {

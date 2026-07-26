@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ DeptRouter = APIRouter(route_class=OperationLogRoute, prefix="/dept", tags=["部
 async def get_dept_tree_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dept:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[DeptQueryParam, Depends()],
+    search: Annotated[DeptQueryParam, Query()],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
     result_dict_tree = await DeptService(auth, db).tree(search=search, order_by=order_by)

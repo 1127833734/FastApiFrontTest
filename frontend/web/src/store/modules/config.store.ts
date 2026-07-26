@@ -75,19 +75,22 @@ export const useConfigStore = defineStore(
           console.warn("[configStore] getInitConfig: 响应 data 非数组", response?.data);
           return;
         }
-        list.forEach((item: ConfigTable) => {
-          if (item.config_value !== undefined && item.config_key) {
-            configData.value[item.config_key] = item;
-          }
-        });
-
-        isConfigLoaded.value = true;
-        _lastFetchedAt = Date.now();
+        applyConfigList(list);
       } catch (error) {
         console.warn("[configStore] 获取配置失败:", error);
       } finally {
         configLoading.value = false;
       }
+    }
+
+    function applyConfigList(list: ConfigTable[]) {
+      list.forEach((item: ConfigTable) => {
+        if (item.config_value !== undefined && item.config_key) {
+          configData.value[item.config_key] = item;
+        }
+      });
+      isConfigLoaded.value = true;
+      _lastFetchedAt = Date.now();
     }
 
     return {

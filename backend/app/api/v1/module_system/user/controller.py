@@ -3,15 +3,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, File, Path, Query, Security, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.module_system.auth.service import CaptchaService
 from app.common.response import ResponseSchema, StreamResponse, SuccessResponse
-from app.config.setting import settings
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
-from app.core.dependencies import AuthPermission, db_getter, get_current_user, redis_getter
-from app.core.exceptions import CustomException
+from app.core.dependencies import AuthPermission, db_getter, get_current_user
 from app.core.logger import logger
 from app.core.router_class import OperationLogRoute
 from app.utils.common_util import bytes2file_response
@@ -78,18 +74,8 @@ async def reset_password_controller(
 @UserRouter.post("/password/forget", summary="忘记密码", response_model=ResponseSchema[UserOutSchema])
 async def forget_password_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
-    redis: Annotated[Redis, Depends(redis_getter)],
     data: Annotated[UserForgetPasswordSchema, Body(description="忘记密码参数")],
 ) -> JSONResponse:
-    # 安全加固：忘记密码必须先校验图形验证码（防暴力枚举用户名/手机号接管账户）
-    if settings.CAPTCHA_ENABLE:
-        if not data.captcha_key or not data.captcha:
-            raise CustomException(msg="验证码不能为空")
-        await CaptchaService.check_captcha(
-            redis=redis,
-            key=data.captcha_key,
-        )
-
     auth = AuthSchema()
     user_forget_password_result = await UserService(auth, db).forget_password(data=data)
     logger.info(f"{data.username} 重置密码成功")
@@ -99,18 +85,8 @@ async def forget_password_controller(
 @UserRouter.post("/register", summary="用户注册", response_model=ResponseSchema[UserOutSchema])
 async def register_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
-    redis: Annotated[Redis, Depends(redis_getter)],
     data: Annotated[UserRegisterSchema, Body(description="用户注册参数")],
 ) -> JSONResponse:
-    # 安全加固：注册必须先校验图形验证码（防暴力注册）
-    if settings.CAPTCHA_ENABLE:
-        if not data.captcha_key or not data.captcha:
-            raise CustomException(msg="验证码不能为空")
-        await CaptchaService.check_captcha(
-            redis=redis,
-            key=data.captcha_key,
-        )
-
     auth = AuthSchema()
     register_result = await UserService(auth, db).register(data=data)
     logger.info(f"新用户注册成功: {data.username}")
@@ -122,7 +98,7 @@ async def get_user_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:user:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[UserQueryParam, Depends()],
+    search: Annotated[UserQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await UserService(auth, db).page(
         page_no=page.page_no,

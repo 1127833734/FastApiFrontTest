@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security
+from fastapi import APIRouter, Body, Depends, Path, Query, Security
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,7 +109,7 @@ async def remove_job_controller(
 async def get_job_log_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:cronjob:job:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[JobQueryParam, Depends()],
+    search: Annotated[JobQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await JobService(auth, db).get_job_log_page(

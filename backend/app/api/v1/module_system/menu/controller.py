@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ MenuRouter = APIRouter(route_class=OperationLogRoute, prefix="/menu", tags=["菜
 async def get_menu_tree_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:menu:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    search: Annotated[MenuQueryParam, Depends()],
+    search: Annotated[MenuQueryParam, Query()],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]
     result_dict_tree = await MenuService(auth, db).tree(search=search, order_by=order_by)

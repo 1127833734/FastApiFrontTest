@@ -1,7 +1,7 @@
 import type { App } from "vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { HOME_ROUTE_NAME, ROOT_LAYOUT_ROUTE_NAME, staticRoutes } from "./routes";
-import { setupAfterEachGuard } from "./guards";
+import { setupAfterEachGuard, setupBeforeEachGuard } from "./guards";
 import "@utils/ui";
 
 /**
@@ -21,7 +21,6 @@ export const router = createRouter({
 
 /** 注册守卫 + 挂载 router 到 Vue app（在 main.ts 调用） */
 export async function initRouter(app: App<Element>): Promise<void> {
-  const { setupBeforeEachGuard } = await import("./guards");
   setupBeforeEachGuard(router);
   setupAfterEachGuard(router);
   app.use(router);
@@ -32,8 +31,6 @@ export const HOME_PAGE_PATH = "/home";
 
 export { HOME_ROUTE_NAME, ROOT_LAYOUT_ROUTE_NAME };
 
-/** 动态路由注册相关类（从 `@/router` 按需导入） */
-export { RouteRegistry, ComponentLoader, RouteTransformer } from "./route-loader";
 /** iframe 路由管理器 */
 export { IframeRouteManager } from "./routes";
 /** 菜单处理（获取、过滤、壳层补全） */

@@ -78,6 +78,14 @@ export default ({ mode }: { mode: string }) => {
           }
         : {},
       rollupOptions: {
+        onwarn(warning, warn) {
+          // @vueuse/core 14.x 的 /* #__PURE__ */ 注释位置 Rollup 无法解析，
+          // Rollup 会自动移除这些注释（见构建日志 "The comment will be removed to avoid issues"）
+          if (warning.message?.includes("@vueuse/core") && warning.message?.includes("#__PURE__")) {
+            return;
+          }
+          warn(warning);
+        },
         output: {
           manualChunks(id) {
             if (!id.includes("node_modules")) return;

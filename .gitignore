@@ -59,12 +59,11 @@ docker/.env
 backend/env/.env.dev
 backend/env/.env.prod
 backend/env/.env.test
-frontend/.env.dev
-frontend/.env.prod
+frontend/.env.development
+frontend/.env.production
 frontend/web/.env
-frontend/web/.env.dev
-frontend/web/.env.prod
-frontend/web/.env.test
+frontend/web/.env.development
+frontend/web/.env.production
 
 frontend/node_modules
 frontend/dist

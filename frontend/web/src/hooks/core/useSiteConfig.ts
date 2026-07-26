@@ -34,10 +34,10 @@ export function useSiteConfig() {
     if (favicon?.config_value) updateFavicon(favicon.config_value);
   };
 
-  /** 初始化：强制拉取配置并同步标题/favicon */
+  /** 初始化：优先使用缓存配置同步标题/favicon，无缓存时从接口获取 */
   const initSiteConfig = async () => {
     try {
-      await configStore.getConfig(true);
+      await configStore.getConfig();
       applyConfig();
     } catch (error) {
       console.error("[SiteConfig] 获取配置失败:", error);

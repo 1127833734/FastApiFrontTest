@@ -92,7 +92,7 @@
           label-suffix=":"
           :label-width="100"
           label-position="right"
-          :span="24"
+          :span="12"
           :gutter="16"
           :show-reset="false"
           :show-submit="false"
@@ -299,8 +299,20 @@ const {
       { prop: "datetime_val", label: "日期时间", minWidth: 168, showOverflowTooltip: true },
       { prop: "text_val", label: "长文本", minWidth: 120, showOverflowTooltip: true },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
+      {
+        prop: "updated_time",
+        label: "更新时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "created_by",
         label: "创建人",

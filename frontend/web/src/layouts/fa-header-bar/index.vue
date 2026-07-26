@@ -278,6 +278,7 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 onMounted(() => {
   initLanguage();
   document.addEventListener("click", bodyCloseNotice);
+  noticeStore.getNotice();
 });
 
 onUnmounted(() => {

@@ -13,6 +13,22 @@ import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { defineComponent, h, onMounted, ref } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import { $t } from "@/locales";
+import LayoutComponent from "@/layouts/index.vue";
+import DashboardWorkplace from "@views/dashboard/workplace/index.vue";
+import DashboardAnalysis from "@views/dashboard/analysis/index.vue";
+import DashboardScreen from "@views/dashboard/screen/index.vue";
+import RedirectView from "@views/redirect/index.vue";
+import LoginView from "@views/module_system/auth/login/index.vue";
+import Exception401 from "@views/exception/401/index.vue";
+import Exception403 from "@views/exception/403/index.vue";
+import Exception404 from "@views/exception/404/index.vue";
+import Exception500 from "@views/exception/500/index.vue";
+import DashboardHome from "@views/dashboard/home/index.vue";
+import FastlinkProfile from "@views/fastlink/current/profile.vue";
+import FastlinkChangelog from "@views/fastlink/changelog/index.vue";
+import FastlinkPricing from "@views/fastlink/pricing/index.vue";
+import FastlinkTutorial from "@views/fastlink/tutorial/index.vue";
+import FastlinkFachat from "@views/fastlink/fachat/index.vue";
 
 // ──────── IframeRouteManager ────────
 
@@ -101,13 +117,13 @@ export const dashboardLayoutChildren: AppRouteRecordRaw[] = [
   {
     path: "workplace",
     name: "DashboardWorkplace",
-    component: () => import("@views/dashboard/workplace/index.vue"),
+    component: DashboardWorkplace,
     meta: { title: "menus.dashboard.workplace", icon: "ri:bar-chart-box-line", keepAlive: true },
   },
   {
     path: "analysis",
     name: "DashboardAnalysis",
-    component: () => import("@views/dashboard/analysis/index.vue"),
+    component: DashboardAnalysis,
     meta: {
       title: "menus.dashboard.analysis",
       icon: "ri:align-item-bottom-line",
@@ -117,7 +133,7 @@ export const dashboardLayoutChildren: AppRouteRecordRaw[] = [
   {
     path: "screen",
     name: "DashboardScreen",
-    component: () => import("@views/dashboard/screen/index.vue"),
+    component: DashboardScreen,
     meta: { title: "数据大屏", icon: "ri:tv-line", keepAlive: false, hidden: false },
   },
 ];
@@ -147,13 +163,10 @@ export const ROUTE_COMPONENT_NESTED_PARENT = "/nested/router-view-parent";
 /** 登录页的备用 path（守卫判断用） */
 export const ROUTE_PATH_LOGIN_ALT = "/auth/login";
 
-/** 主框架 Layout 懒加载 */
-export const Layout = () => import("@/layouts/index.vue");
-
 // ──────── IframeView 组件 ────────
 
 /** iframe 子路由的 Vue 组件 —— 从 IframeRouteManager 获取链接，加载时显示 loading */
-const IframeView = defineComponent({
+export const IframeView = defineComponent({
   name: "IframeView",
   setup() {
     const route = useRoute();
@@ -199,11 +212,11 @@ export const staticRoutes: AppRouteRecordRaw[] = [
   {
     path: "/redirect",
     meta: { hidden: true },
-    component: Layout,
+    component: LayoutComponent,
     children: [
       {
         path: "/redirect/:path(.*)",
-        component: () => import("@views/redirect/index.vue"),
+        component: RedirectView,
       },
     ],
   },
@@ -212,44 +225,44 @@ export const staticRoutes: AppRouteRecordRaw[] = [
     path: "/login",
     name: "Login",
     meta: { hidden: true, isHideTab: true, title: "menus.login.title" },
-    component: () => import("@views/module_system/auth/login/index.vue"),
+    component: LoginView,
   },
   // 异常页
   {
     path: "/401",
     name: "401",
     meta: { hidden: true, title: "401" },
-    component: () => import("@views/exception/401/index.vue"),
+    component: Exception401,
   },
   {
     path: "/403",
     name: "403",
-    component: () => import("@views/exception/403/index.vue"),
+    component: Exception403,
     meta: { hidden: true, title: "403" },
   },
   {
     path: "/404",
     name: "404",
     meta: { hidden: true, title: "404" },
-    component: () => import("@views/exception/404/index.vue"),
+    component: Exception404,
   },
   {
     path: "/500",
     name: "500",
     meta: { hidden: true, title: "500" },
-    component: () => import("@views/exception/500/index.vue"),
+    component: Exception500,
   },
   // 根 Layout：存放壳层路由（home/dashboard/fastlink）
   {
     path: "/",
     name: ROOT_LAYOUT_ROUTE_NAME,
     redirect: "/home",
-    component: Layout,
+    component: LayoutComponent,
     children: [
       {
         path: "home",
         name: HOME_ROUTE_NAME,
-        component: () => import("@views/dashboard/home/index.vue"),
+        component: DashboardHome,
         meta: HOME_MENU_META,
       },
       {
@@ -271,7 +284,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
             path: "profile",
             name: "FastlinkProfile",
             meta: { title: $t("menus.system.userCenter"), icon: "ri:user-line", hidden: true },
-            component: () => import("@views/fastlink/current/profile.vue"),
+            component: FastlinkProfile,
           },
           {
             path: "changelog",
@@ -283,7 +296,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               keepAlive: true,
               isHideTab: true,
             },
-            component: () => import("@views/fastlink/changelog/index.vue"),
+            component: FastlinkChangelog,
           },
           {
             path: "pricing",
@@ -295,7 +308,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               keepAlive: true,
               isHideTab: true,
             },
-            component: () => import("@views/fastlink/pricing/index.vue"),
+            component: FastlinkPricing,
           },
           {
             path: "tutorial",
@@ -307,7 +320,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               keepAlive: true,
               isHideTab: true,
             },
-            component: () => import("@views/fastlink/tutorial/index.vue"),
+            component: FastlinkTutorial,
           },
           {
             path: "fachat",
@@ -319,7 +332,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               keepAlive: true,
               isHideTab: true,
             },
-            component: () => import("@views/fastlink/fachat/index.vue"),
+            component: FastlinkFachat,
           },
         ],
       },
@@ -328,7 +341,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
   // iframe 外部链接
   {
     path: "/outside",
-    component: () => import("@/layouts/index.vue"),
+    component: LayoutComponent,
     name: "Outside",
     meta: { title: "menus.outside.title" },
     children: [
@@ -344,7 +357,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
   {
     path: "/:pathMatch(.*)*",
     name: "CatchAll404",
-    component: () => import("@views/exception/404/index.vue"),
+    component: Exception404,
     meta: { hidden: true, title: "404" },
   },
 ];
