@@ -5,10 +5,9 @@ from typing import Any
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import RedirectResponse, Response
 from starlette.types import ASGIApp
 
 from app.common.enums import RedisInitKeyConfig, SysParamKey
@@ -117,11 +116,14 @@ class CustomGZipMiddleware(GZipMiddleware):
         super().__init__(app, minimum_size=settings.GZIP_MIN_SIZE, compresslevel=settings.GZIP_COMPRESS_LEVEL)
 
 
-class CustomHTTPSRedirectMiddleware(HTTPSRedirectMiddleware):
-    """HTTP → HTTPS 重定向中间件"""
+class CustomHTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """HTTP → HTTPS 重定向中间件（信任前端代理的 X-Forwarded-Proto 头）"""
 
-    def __init__(self, app: ASGIApp) -> None:
-        super().__init__(app)
+    async def dispatch(self, request: Request, call_next):
+        if request.url.scheme != "https" and request.headers.get("X-Forwarded-Proto") != "https":
+            url = request.url.replace(scheme="https")
+            return RedirectResponse(url, status_code=301)
+        return await call_next(request)
 
 
 class CustomTrustedHostMiddleware(TrustedHostMiddleware):
