@@ -168,8 +168,8 @@ services:
       - ./nginx/web:/usr/share/nginx/html/web:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       # 按需启用（取消注释）：
-      # - ./nginx/app:/usr/share/nginx/html/app:ro
-      # - ./nginx/docs:/usr/share/nginx/html/docs:ro
+      - ./nginx/app:/usr/share/nginx/html/app:ro
+      - ./nginx/docs:/usr/share/nginx/html/docs:ro
     depends_on:
       backend:
         condition: service_started
