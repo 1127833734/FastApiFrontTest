@@ -29,36 +29,36 @@
       <!-- 卡片网格 -->
       <div v-else-if="!isEmpty" :style="{ padding: `0 ${gutter / 2}px` }">
         <ElRow :gutter="gutter">
-            <ElCol
-              v-for="(item, index) in items"
-              :key="item[keyField] ?? index"
-              :xs="xs"
-              :sm="sm"
-              :md="md"
-              :lg="lg"
-              :xl="xl"
-              class="mb-4"
-              >
-              <ElCard
-                  class="fa-card"
-                  :class="cardClass"
-                  shadow="hover"
-                  :header-class="headerClass"
-                  :body-class="bodyClass"
-                  :footer-class="footerClass"
-                  @click="(e: MouseEvent) => emit('itemClick', item, e)"
-              >
-                  <template v-if="$slots.header" #header>
-                  <slot name="header" :item="item" :index="index" />
-                  </template>
+          <ElCol
+            v-for="(item, index) in items"
+            :key="item[keyField] ?? index"
+            :xs="xs"
+            :sm="sm"
+            :md="md"
+            :lg="lg"
+            :xl="xl"
+            class="mb-4"
+          >
+            <ElCard
+              class="fa-card"
+              :class="cardClass"
+              shadow="hover"
+              :header-class="headerClass"
+              :body-class="bodyClass"
+              :footer-class="footerClass"
+              @click="(e: MouseEvent) => emit('itemClick', item, e)"
+            >
+              <template v-if="$slots.header" #header>
+                <slot name="header" :item="item" :index="index" />
+              </template>
 
-                  <slot :item="item" :index="index" />
+              <slot :item="item" :index="index" />
 
-                  <template v-if="$slots.footer" #footer>
-                  <slot name="footer" :item="item" :index="index" />
-                  </template>
-              </ElCard>
-            </ElCol>
+              <template v-if="$slots.footer" #footer>
+                <slot name="footer" :item="item" :index="index" />
+              </template>
+            </ElCard>
+          </ElCol>
         </ElRow>
       </div>
 
@@ -86,7 +86,15 @@
 
 <script setup lang="ts" generic="T extends Record<string, any>">
 import { computed } from "vue";
-import { ElCard, ElRow, ElCol, ElEmpty, ElSkeleton, ElSkeletonItem, ElScrollbar } from "element-plus";
+import {
+  ElCard,
+  ElRow,
+  ElCol,
+  ElEmpty,
+  ElSkeleton,
+  ElSkeletonItem,
+  ElScrollbar,
+} from "element-plus";
 import FaPagination from "@/components/others/fa-pagination/index.vue";
 
 defineOptions({ name: "FaCardGrid" });

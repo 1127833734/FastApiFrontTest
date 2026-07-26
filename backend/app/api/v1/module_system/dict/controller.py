@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +39,7 @@ async def get_type_detail_controller(
 async def get_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictTypeQueryParam, Depends()],
+    search: Annotated[DictTypeQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await DictTypeService(auth, db).page(
@@ -118,7 +118,7 @@ async def get_data_detail_controller(
 async def get_data_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:query"]))],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictDataQueryParam, Depends()],
+    search: Annotated[DictDataQueryParam, Query()],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     order_by = [{"order": "asc"}]

@@ -29,8 +29,8 @@ from .schema import (
     UserUpdateSchema,
 )
 
-# 用户管理列表/详情预加载：只需 dept（用于填充 dept_name）
-_USER_PRELOAD = ["dept"]
+# 用户管理列表/详情预加载
+_USER_PRELOAD = ["dept", "roles", "positions"]
 
 # 当前用户信息预加载：需完整嵌套关联
 _USER_CURRENT_PRELOAD = ["dept", "positions", "roles.menus", "roles.depts"]
@@ -48,6 +48,8 @@ class UserService:
         result = UserOutSchema.model_validate(user)
         if user.dept:
             result.dept_name = user.dept.name
+        result.role_ids = [r.id for r in user.roles]
+        result.position_ids = [p.id for p in user.positions]
         return result
 
     async def get_list(
@@ -60,6 +62,8 @@ class UserService:
         for user, item in zip(user_list, result, strict=True):
             if user.dept:
                 item.dept_name = user.dept.name
+            item.role_ids = [r.id for r in user.roles]
+            item.position_ids = [p.id for p in user.positions]
         return result
 
     async def page(
@@ -70,14 +74,23 @@ class UserService:
         order_by: list[dict[str, str]] | None = None,
     ) -> PageResultSchema[UserOutSchema]:
         offset = (page_no - 1) * page_size
-        return await UserCRUD(self.auth, self.db).page(
+        page_result = await UserCRUD(self.auth, self.db).page(
             offset=offset,
             limit=page_size,
             order_by=order_by or [{"id": "asc"}],
             search=search_to_dict(search),
-            out_schema=UserOutSchema,
             preload=_USER_PRELOAD,
         )
+        items: list[UserOutSchema] = []
+        for user in page_result.items:
+            item = UserOutSchema.model_validate(user)
+            if user.dept:
+                item.dept_name = user.dept.name
+            item.role_ids = [r.id for r in user.roles]
+            item.position_ids = [p.id for p in user.positions]
+            items.append(item)
+        page_result.items = items
+        return page_result  # type: ignore[return-value]
 
     async def create(self, data: UserCreateSchema) -> UserOutSchema:
         if data.is_superuser:
@@ -263,8 +276,6 @@ class UserService:
             raise CustomException(msg="用户已停用")
         if user.is_superuser:
             raise CustomException(msg="超级管理员密码不能重置")
-        if data.mobile and user.mobile != data.mobile:
-            raise CustomException(msg="手机号不匹配")
 
         new_password_hash = PwdUtil.hash_password(password=data.new_password)
         await UserCRUD(self.auth, self.db).change_password(id=user.id, password_hash=new_password_hash)
@@ -280,12 +291,14 @@ class UserService:
             username=data.username,
             password=PwdUtil.hash_password(password=data.password),
             name=data.name or data.username,
-            email=data.email,
             status=0,
         )
-        new_user = await UserCRUD(self.auth, self.db).create_obj_crud(data=create_data)
+        create_data_dict = create_data.model_dump(exclude_none=True, exclude={"role_ids", "position_ids"})
+        new_user = await UserCRUD(self.auth, self.db).create(data=create_data_dict)
         if not new_user:
             raise CustomException(msg="注册失败")
+        # 注册时 auth 无用户，created_id/updated_id 未设置，补充为自身ID
+        await UserCRUD(self.auth, self.db).set([new_user.id], created_id=new_user.id, updated_id=new_user.id)
         logger.info(f"新用户注册成功: {data.username}")
         return await self.detail(id=new_user.id)
 

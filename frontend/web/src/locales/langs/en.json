@@ -369,7 +369,7 @@
       "user": "User"
     },
     "placeholder": {
-      "username": "Please enter username",
+      "username": "Please enter account",
       "password": "Please enter password",
       "email": "Please enter email",
       "slider": "Please slide to verify"
@@ -473,7 +473,7 @@
       "username": "Please enter account",
       "password": "Please enter password",
       "confirmPassword": "Please enter password again",
-      "email": "Please enter email"
+      "name": "Please enter nickname"
     },
     "rule": {
       "confirmPasswordRequired": "Please enter your password again",

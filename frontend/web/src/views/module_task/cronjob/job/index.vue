@@ -528,18 +528,26 @@ onMounted(() => {
 type LogSearchForm = {
   status?: number;
   trigger_type?: string;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildLogReplaceParams(u: LogSearchForm): Record<string, unknown> {
   return {
     status: u.status,
     trigger_type: u.trigger_type,
+    created_time:
+      Array.isArray(u.created_time) && u.created_time.length === 2 ? u.created_time : undefined,
+    updated_time:
+      Array.isArray(u.updated_time) && u.updated_time.length === 2 ? u.updated_time : undefined,
   };
 }
 
 const logSearchForm = ref<LogSearchForm>({
   status: undefined,
   trigger_type: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const logSearchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
@@ -716,12 +724,14 @@ const {
         prop: "created_time",
         label: "创建时间",
         minWidth: 160,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
         prop: "updated_time",
         label: "更新时间",
         minWidth: 160,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
@@ -796,6 +806,8 @@ async function onLogResetSearch() {
   logSearchForm.value = {
     status: undefined,
     trigger_type: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetLogSearchParams();
   if (currentLogJobId.value) {

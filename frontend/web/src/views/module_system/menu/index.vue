@@ -374,6 +374,7 @@ type MenuSearchForm = {
   name?: string;
   status?: number;
   created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildMenuListQuery(p: MenuSearchForm): MenuPageQuery {
@@ -382,6 +383,8 @@ function buildMenuListQuery(p: MenuSearchForm): MenuPageQuery {
     status: p.status,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+    updated_time:
+      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
 }
 
@@ -440,6 +443,7 @@ const searchForm = ref<MenuSearchForm>({
   name: undefined,
   status: undefined,
   created_time: undefined,
+  updated_time: undefined,
 });
 const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
@@ -804,6 +808,7 @@ async function onResetSearch() {
     name: undefined,
     status: undefined,
     created_time: undefined,
+    updated_time: undefined,
   };
   await loadMenuData();
 }
@@ -1045,6 +1050,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       prop: "created_time",
       label: "创建时间",
       width: 168,
+      sortable: true,
       showOverflowTooltip: true,
       visible: false,
     },
@@ -1052,6 +1058,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       prop: "updated_time",
       label: "更新时间",
       width: 168,
+      sortable: true,
       showOverflowTooltip: true,
       visible: false,
     },

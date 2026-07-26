@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,7 +41,7 @@ async def get_workflow_node_type_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:workflow:nodes:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[WorkflowNodeTypeQueryParam, Depends()],
+    search: Annotated[WorkflowNodeTypeQueryParam, Query()],
 ) -> JSONResponse:
     service = WorkflowNodeTypeService(auth, db)
     result_dict = await service.get_page(

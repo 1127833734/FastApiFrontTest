@@ -147,8 +147,10 @@ const userStore = useUserStore();
 type PositionSearchForm = {
   name?: string;
   status?: number;
-  created_time?: string[];
   created_id?: number;
+  updated_id?: number;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function normalizePositionQuery(params: Record<string, unknown>): PositionPageQuery {
@@ -160,8 +162,11 @@ function buildPositionReplaceParams(p: PositionSearchForm): Record<string, unkno
     name: p.name,
     status: p.status,
     created_id: p.created_id,
+    updated_id: p.updated_id,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+    updated_time:
+      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
 }
 
@@ -222,8 +227,10 @@ function formatPositionOperationCell(
 const searchForm = ref<PositionSearchForm>({
   name: undefined,
   status: undefined,
-  created_time: undefined,
   created_id: undefined,
+  updated_id: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -308,8 +315,20 @@ const {
       },
       { prop: "order", label: "岗位排序", width: 100, showOverflowTooltip: true },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
+      {
+        prop: "updated_time",
+        label: "更新时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "created_id",
         label: "创建人",
@@ -488,8 +507,10 @@ async function onResetSearch() {
   searchForm.value = {
     name: undefined,
     status: undefined,
-    created_time: undefined,
     created_id: undefined,
+    updated_id: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetSearchParams();
 }

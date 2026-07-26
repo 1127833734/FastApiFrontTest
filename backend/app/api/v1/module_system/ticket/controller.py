@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ async def ticket_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:ticket:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[TicketQueryParam, Depends()],
+    search: Annotated[TicketQueryParam, Query()],
 ) -> JSONResponse:
     result = await TicketService(auth, db).page(
         page_no=page.page_no,

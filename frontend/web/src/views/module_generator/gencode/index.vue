@@ -705,6 +705,10 @@ async function handleDelete(row?: GenTableSchema): Promise<void> {
 type GencodeSearchForm = {
   table_name?: string;
   table_comment?: string;
+  created_id?: number;
+  updated_id?: number;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildGencodeRowActions(row: GenTableSchema): TableOperationAction[] {
@@ -748,6 +752,10 @@ function formatGencodeOperationCell(row: GenTableSchema) {
 const searchForm = ref<GencodeSearchForm>({
   table_name: undefined,
   table_comment: undefined,
+  created_id: undefined,
+  updated_id: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -819,12 +827,14 @@ const useTableResult = useTable({
         prop: "created_time",
         label: "创建时间",
         width: 168,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
         prop: "updated_time",
         label: "更新时间",
         width: 168,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
@@ -865,6 +875,16 @@ async function handleSearchBarSearch(params: GencodeSearchForm) {
   replaceSearchParams({
     table_name: params.table_name,
     table_comment: params.table_comment,
+    created_id: params.created_id,
+    updated_id: params.updated_id,
+    created_time:
+      Array.isArray(params.created_time) && params.created_time.length === 2
+        ? params.created_time
+        : undefined,
+    updated_time:
+      Array.isArray(params.updated_time) && params.updated_time.length === 2
+        ? params.updated_time
+        : undefined,
   });
   getData();
 }
@@ -873,6 +893,10 @@ async function onResetSearch() {
   searchForm.value = {
     table_name: undefined,
     table_comment: undefined,
+    created_id: undefined,
+    updated_id: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetSearchParams();
 }

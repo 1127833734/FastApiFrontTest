@@ -61,11 +61,7 @@
         label="数据库名称"
         :show-overflow-tooltip="true"
       ></ElTableColumn>
-      <ElTableColumn
-        prop="table_name"
-        label="表名称"
-        :show-overflow-tooltip="true"
-      ></ElTableColumn>
+      <ElTableColumn prop="table_name" label="表名称" :show-overflow-tooltip="true"></ElTableColumn>
       <ElTableColumn
         prop="table_comment"
         label="表描述"

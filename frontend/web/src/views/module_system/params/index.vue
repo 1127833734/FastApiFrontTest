@@ -440,15 +440,15 @@ onMounted(async () => {
 
 <style scoped>
 :deep(.el-card) {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-height: 0;
 }
 
 :deep(.el-card__body) {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
@@ -460,8 +460,8 @@ onMounted(async () => {
 }
 
 :deep(.el-tabs__content) {
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 </style>

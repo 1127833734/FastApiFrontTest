@@ -21,8 +21,11 @@
           class="box-border flex-c px-3.5 py-3.5 c-p last:border-b-0 hover:bg-g-200/60"
           @click="handleMarkAsRead(index)"
         >
-          <div class="size-9 leading-9 text-center rounded-lg flex-cc bg-theme/12 text-theme">
-            <FaSvgIcon class="text-lg bg-transparent!" icon="ri:notification-3-line" />
+          <div
+            class="size-9 leading-9 text-center rounded-lg flex-cc"
+            :class="item.type === 2 ? 'bg-warning/12 text-warning' : 'bg-theme/12 text-theme'"
+          >
+            <FaSvgIcon class="text-lg bg-transparent!" :icon="getNoticeIcon(item.type)" />
           </div>
           <div class="w-[calc(100%-45px)] ml-3.5">
             <h4 class="text-sm font-normal leading-5.5 text-g-900">{{ item.title }}</h4>
@@ -58,10 +61,13 @@ import NoticeAPI from "@/api/module_system/notice";
 
 defineOptions({ name: "FaNotification" });
 
+const router = useRouter();
+
 interface NoticeItem {
   title: string;
   time: string;
   read: boolean;
+  type: number;
 }
 
 interface Props {
@@ -81,6 +87,9 @@ const visible = ref(false);
 const noticeList = ref<NoticeItem[]>([]);
 const loading = ref(false);
 
+const getNoticeIcon = (type: number) =>
+  type === 2 ? "ri:megaphone-line" : "ri:notification-3-line";
+
 const fetchNotices = async () => {
   loading.value = true;
   try {
@@ -90,6 +99,7 @@ const fetchNotices = async () => {
       title: n.notice_title ?? "",
       time: n.created_time ?? "",
       read: false,
+      type: Number(n.notice_type) || 1,
     }));
   } catch {
     noticeList.value = [];
@@ -104,8 +114,7 @@ watch(visible, (v) => {
 });
 
 const handleViewAll = () => {
-  const router = useRouter();
-  router.push("/module_system/notice");
+  router.push("/system/notice");
   emit("update:value", false);
 };
 

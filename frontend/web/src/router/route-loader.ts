@@ -13,6 +13,7 @@ import type { AppRouteRecord } from "@/types/router";
 import { h } from "vue";
 import {
   IframeRouteManager,
+  IframeView,
   NestedRouterParent,
   ROOT_LAYOUT_ROUTE_NAME,
   ROUTE_COMPONENT_LAYOUT,
@@ -21,8 +22,8 @@ import {
 
 // ──────── ComponentLoader ────────
 
-/** 页面组件映射表（eager 加载：src/views 下所有 .vue 文件） */
-const pageComponents = import.meta.glob("/src/views/**/*.vue", { eager: true });
+/** 页面组件映射表（eager 加载：src/views 及 layouts 下所有 .vue 文件） */
+const pageComponents = import.meta.glob("/src/{views,layouts}/**/*.vue", { eager: true });
 
 /**
  * 组件加载器
@@ -54,17 +55,12 @@ export class ComponentLoader {
 
   /** Layout 框架组件 */
   loadLayout(): any {
-    const mod = pageComponents["/src/layouts/index.vue"];
-    return mod ? (mod as any).default : null;
+    return (pageComponents["/src/layouts/index.vue"] as any)?.default;
   }
 
   /** IframeView 组件 */
   loadIframe(): any {
-    return () =>
-      import("./routes").then((m) => {
-        const IframeView = (m as any).default || (m as any).IframeView;
-        return IframeView;
-      });
+    return IframeView;
   }
 
   /** NestedRouterParent 占位组件 */
@@ -203,7 +199,7 @@ export class RouteTransformer {
       return {
         path: `/${firstSegment}`,
         name: route.name || firstSegment,
-        component: this.loader.loadLayout() || (() => import("@/layouts/index.vue")),
+        component: this.loader.loadLayout(),
         meta: { title: route.meta?.title, icon: route.meta?.icon },
         redirect: route.path.startsWith("/") ? route.path : `/${route.path}`,
         children: [
@@ -231,7 +227,7 @@ export class RouteTransformer {
     return {
       path: `/${firstSegment}`,
       name: route.name || firstSegment,
-      component: this.loader.loadLayout() || (() => import("@/layouts/index.vue")),
+      component: this.loader.loadLayout(),
       meta: { title: route.meta?.title, icon: route.meta?.icon },
       redirect: fullMenuPath,
       children: [

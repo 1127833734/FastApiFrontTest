@@ -187,6 +187,12 @@ import { getDashboardMock } from "@/mock/dashboard";
 
 import bannerIcon4 from "@imgs/3d/icon4.webp";
 import cover2 from "@imgs/cover/img2.webp";
+import Banner from "./modules/banner.vue";
+import NewUser from "./modules/new-user.vue";
+import TodoList from "./modules/todo-list.vue";
+import CardList from "./modules/card-list.vue";
+import AboutProject from "./modules/about-project.vue";
+import QuickLinks from "./modules/quick-links.vue";
 
 const mock = getDashboardMock();
 const loading = ref(false);
@@ -220,13 +226,6 @@ const FaImageCard = defineAsyncComponent(
 const FaTimelineListCard = defineAsyncComponent(
   () => import("@/components/cards/fa-timeline-list-card/index.vue")
 );
-const Banner = defineAsyncComponent(() => import("./modules/banner.vue"));
-const NewUser = defineAsyncComponent(() => import("./modules/new-user.vue"));
-const TodoList = defineAsyncComponent(() => import("./modules/todo-list.vue"));
-const CardList = defineAsyncComponent(() => import("./modules/card-list.vue"));
-const AboutProject = defineAsyncComponent(() => import("./modules/about-project.vue"));
-const QuickLinks = defineAsyncComponent(() => import("./modules/quick-links.vue"));
-
 function handleBannerDemoConfirm() {
   // TODO: 接入真实操作
 }

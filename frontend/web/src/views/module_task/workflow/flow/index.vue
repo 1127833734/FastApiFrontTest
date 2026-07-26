@@ -81,6 +81,10 @@ type WorkflowSearchForm = {
   name?: string;
   code?: string;
   status?: number;
+  created_id?: number;
+  updated_id?: number;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildWorkflowReplaceParams(u: WorkflowSearchForm): Record<string, unknown> {
@@ -88,6 +92,12 @@ function buildWorkflowReplaceParams(u: WorkflowSearchForm): Record<string, unkno
     name: u.name,
     code: u.code,
     status: u.status,
+    created_id: u.created_id,
+    updated_id: u.updated_id,
+    created_time:
+      Array.isArray(u.created_time) && u.created_time.length === 2 ? u.created_time : undefined,
+    updated_time:
+      Array.isArray(u.updated_time) && u.updated_time.length === 2 ? u.updated_time : undefined,
   };
 }
 
@@ -95,6 +105,10 @@ const searchForm = ref<WorkflowSearchForm>({
   name: undefined,
   code: undefined,
   status: undefined,
+  created_id: undefined,
+  updated_id: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -284,6 +298,7 @@ const {
         prop: "created_time",
         label: "创建时间",
         minWidth: 180,
+        sortable: true,
         showOverflowTooltip: true,
       },
       {
@@ -309,6 +324,10 @@ async function onResetSearch() {
     name: undefined,
     code: undefined,
     status: undefined,
+    created_id: undefined,
+    updated_id: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetSearchParams();
 }

@@ -142,20 +142,14 @@ export default UserAPI;
 export interface ForgetPasswordForm {
   username: string;
   new_password: string;
-  mobile?: string;
   confirmPassword: string;
-  captcha_key?: string;
-  captcha?: string;
 }
 
 export interface RegisterForm {
   username: string;
   password: string;
   confirmPassword: string;
-  email?: string;
   name?: string;
-  captcha_key?: string;
-  captcha?: string;
 }
 
 export interface UserPageQuery extends PageQuery, UserByQueryParams {

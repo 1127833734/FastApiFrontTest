@@ -294,12 +294,6 @@ function getDashboardMenuTreeForMerge(): AppRouteRecord {
   };
 }
 
-const mergeShellHomeMenu: AppRouteRecord = {
-  path: "/home",
-  name: "Home",
-  meta: { ...HOME_MENU_META, shellRoute: true },
-};
-
 function normalizeMenuPath(path?: string): string {
   if (!path || !path.trim()) return "";
   const p = path.trim();
@@ -345,6 +339,12 @@ export function mergeShellRoutesIntoMenu(menuList: AppRouteRecord[]): AppRouteRe
       if (n) names.add(n);
       if (item.children?.length) collectPathsAndNames(item.children, paths, names);
     }
+  };
+
+  const mergeShellHomeMenu: AppRouteRecord = {
+    path: "/home",
+    name: "Home",
+    meta: { ...HOME_MENU_META, shellRoute: true },
   };
 
   tryPush(mergeShellHomeMenu);

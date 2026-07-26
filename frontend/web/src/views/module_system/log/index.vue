@@ -225,12 +225,14 @@ type OpSearchForm = {
   request_path?: string;
   request_ip?: string;
   created_time?: string[];
+  updated_time?: string[];
 };
 
 const opSearchForm = ref<OpSearchForm>({
   request_path: undefined,
   request_ip: undefined,
   created_time: undefined,
+  updated_time: undefined,
 });
 const opShowSearchBar = ref(true);
 const opSearchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
@@ -261,6 +263,8 @@ function buildOpReplaceParams(p: OpSearchForm): Record<string, unknown> {
     request_ip: p.request_ip,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+    updated_time:
+      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
 }
 
@@ -323,7 +327,13 @@ const {
       },
       { prop: "process_time", label: "处理时间", minWidth: 120 },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "operation",
         label: "操作",
@@ -385,6 +395,7 @@ function onOpResetSearch() {
     request_path: undefined,
     request_ip: undefined,
     created_time: undefined,
+    updated_time: undefined,
   };
   void opResetSearchParams();
 }
@@ -464,12 +475,18 @@ async function handleOpBatchDelete() {
 
 // ==================== 登录日志 ====================
 
-type LoginSearchForm = { username?: string; status?: number; created_time?: string[] };
+type LoginSearchForm = {
+  username?: string;
+  status?: number;
+  created_time?: string[];
+  updated_time?: string[];
+};
 
 const loginSearchForm = ref<LoginSearchForm>({
   username: undefined,
   status: undefined,
   created_time: undefined,
+  updated_time: undefined,
 });
 const loginShowSearchBar = ref(true);
 const loginSearchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
@@ -522,6 +539,8 @@ function buildLoginReplaceParams(p: LoginSearchForm): Record<string, unknown> {
         : undefined,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+    updated_time:
+      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
 }
 
@@ -586,7 +605,13 @@ const {
       { prop: "request_os", label: "操作系统", minWidth: 120 },
       { prop: "request_browser", label: "浏览器", minWidth: 180, showOverflowTooltip: true },
       { prop: "msg", label: "提示消息", minWidth: 200, showOverflowTooltip: true },
-      { prop: "created_time", label: "登录时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "登录时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "operation",
         label: "操作",
@@ -621,7 +646,12 @@ async function handleLoginSearch(params: LoginSearchForm) {
 }
 
 function onLoginResetSearch() {
-  loginSearchForm.value = { username: undefined, status: undefined, created_time: undefined };
+  loginSearchForm.value = {
+    username: undefined,
+    status: undefined,
+    created_time: undefined,
+    updated_time: undefined,
+  };
   void loginResetSearchParams();
 }
 

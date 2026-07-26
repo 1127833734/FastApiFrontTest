@@ -109,21 +109,13 @@
             <FaStatusTag v-else-if="row?.gender === '1'" type="warning" label="女" />
             <FaStatusTag v-else type="info" label="未知" />
           </template>
-          <!-- 角色 → 数组 join 渲染 -->
+          <!-- 角色 → 根据 IDs 从选项解析名称 -->
           <template #roles="{ row }">
-            {{
-              (row as unknown as UserInfo)?.roles
-                ? (row as unknown as UserInfo).roles!.map((item) => item.name).join("、")
-                : ""
-            }}
+            {{ resolveLabels((row as UserInfo).role_ids, roleOptions) }}
           </template>
-          <!-- 岗位 → 数组 join 渲染 -->
+          <!-- 岗位 → 根据 IDs 从选项解析名称 -->
           <template #positions="{ row }">
-            {{
-              (row as unknown as UserInfo)?.positions
-                ? (row as unknown as UserInfo).positions!.map((item) => item.name).join("、")
-                : ""
-            }}
+            {{ resolveLabels((row as UserInfo).position_ids, positionOptions) }}
           </template>
         </FaDescriptions>
       </template>
@@ -249,7 +241,9 @@ type UserSearchForm = {
   name?: string;
   status?: number;
   created_id?: number;
+  updated_id?: number;
   created_time?: string[];
+  updated_time?: string[];
 };
 
 function buildUserReplaceParams(u: UserSearchForm): Record<string, unknown> {
@@ -258,8 +252,11 @@ function buildUserReplaceParams(u: UserSearchForm): Record<string, unknown> {
     name: u.name,
     status: u.status,
     created_id: u.created_id,
+    updated_id: u.updated_id,
     created_time:
       Array.isArray(u.created_time) && u.created_time.length === 2 ? u.created_time : undefined,
+    updated_time:
+      Array.isArray(u.updated_time) && u.updated_time.length === 2 ? u.updated_time : undefined,
   };
 }
 
@@ -354,6 +351,23 @@ const positionOptions = ref<Array<{ value: number; label: string; disabled?: boo
 const { importVisible, exportVisible, openImport, openExport } = useImportExport();
 const detailFormData = ref<UserInfo>({});
 
+interface OptionItem {
+  value: number;
+  label: string;
+  disabled?: boolean;
+}
+
+function resolveLabels(
+  ids: (number | undefined)[] | undefined,
+  options: OptionItem[] | undefined
+): string {
+  if (!ids || !Array.isArray(ids) || !options) return "";
+  return ids
+    .filter((id): id is number => id !== undefined && id !== null)
+    .map((id) => options.find((o) => o.value === id)?.label ?? String(id))
+    .join("、");
+}
+
 // 用户详情描述项配置 —— 数据驱动 + 关键字段用具名插槽覆盖
 const userDetailItems: DescriptionsItem[] = [
   { label: "编号", prop: "id" },
@@ -361,7 +375,7 @@ const userDetailItems: DescriptionsItem[] = [
   { label: "账号", prop: "username" },
   { label: "用户名", prop: "name" },
   { label: "性别", prop: "gender", slot: "gender" }, // 三种状态 Tag
-  { label: "部门", prop: "dept.name" }, // 嵌套属性 a.b.c
+  { label: "部门", prop: "dept_name" },
   { label: "角色", prop: "roles", slot: "roles" }, // 数组 join 渲染
   { label: "岗位", prop: "positions", slot: "positions" }, // 数组 join 渲染
   { label: "邮箱", prop: "email" },
@@ -463,7 +477,9 @@ const searchForm = ref<UserSearchForm>({
   name: undefined,
   status: undefined,
   created_id: undefined,
+  updated_id: undefined,
   created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -611,7 +627,7 @@ const {
         prop: "dept",
         label: "部门",
         minWidth: 100,
-        formatter: (row: UserInfo) => row.dept?.name ?? "—",
+        formatter: (row: UserInfo) => row.dept_name ?? "—",
       },
       {
         prop: "gender",
@@ -622,8 +638,20 @@ const {
           "1": { type: "warning", text: "女" },
         },
       },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
+      {
+        prop: "updated_time",
+        label: "更新时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "operation",
         label: "操作",
@@ -771,7 +799,9 @@ async function onResetSearch() {
     name: undefined,
     status: undefined,
     created_id: undefined,
+    updated_id: undefined,
     created_time: undefined,
+    updated_time: undefined,
   };
   deptFilterId.value = undefined;
   await resetSearchParams();
@@ -828,10 +858,8 @@ async function handleOpenDialog(type: "create" | "update" | "detail", id?: numbe
     } else if (type === "update") {
       dialogVisible.title = "修改用户";
       Object.assign(formData.value, response.data.data);
-      formData.value.role_ids = (response.data.data.roles || []).map((item) => item.id as number);
-      formData.value.position_ids = (response.data.data.positions || []).map(
-        (item) => item.id as number
-      );
+      formData.value.role_ids = (response.data.data.role_ids ?? []) as number[];
+      formData.value.position_ids = (response.data.data.position_ids ?? []) as number[];
     }
   } else {
     dialogVisible.title = "新增用户";

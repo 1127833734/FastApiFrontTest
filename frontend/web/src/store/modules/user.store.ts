@@ -15,13 +15,7 @@ import { ElNotification } from "element-plus";
 import { store, useDictStore } from "@stores";
 import type { UserInfo } from "@/api/module_system/user";
 import { ResultEnum } from "@/enums/api/result.enum";
-
-/** 延迟加载 guards 工具函数，避免 user.store 与 guards 的循环依赖 */
-let _routerUtilsPromise: Promise<typeof import("@/router/guards")> | null = null;
-const getRouterUtils = () => {
-  if (!_routerUtilsPromise) _routerUtilsPromise = import("@/router/guards");
-  return _routerUtilsPromise;
-};
+import { resetRouteInitState, resetRouterState } from "@/router/refresh";
 
 /** {@link useUserStore} 的 `logout` 可选参数 */
 export interface LogoutOptions {
@@ -258,7 +252,7 @@ export const useUserStore = defineStore(
       }
 
       // 清除上次会话里「动态路由初始化失败」标记，避免重新登录后侧栏/菜单不注册
-      (await getRouterUtils()).resetRouteInitState();
+      resetRouteInitState();
       Auth.setTokens(accessToken, refreshToken, rememberMe.value);
       setToken(accessToken, refreshToken);
 
@@ -299,7 +293,7 @@ export const useUserStore = defineStore(
       resetAllState();
       sessionStorage.removeItem("iframeRoutes");
       useMenuStore().setHomePath("");
-      (await getRouterUtils()).resetRouterState(500);
+      resetRouterState(500);
 
       if (shouldNavigate) {
         const currentRoute = router.currentRoute.value;

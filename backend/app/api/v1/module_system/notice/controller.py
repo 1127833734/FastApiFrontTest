@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,7 @@ async def get_notice_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:notice:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[NoticeQueryParam, Depends()],
+    search: Annotated[NoticeQueryParam, Query()],
 ) -> JSONResponse:
     result_dict = await NoticeService(auth, db).page(
         page_no=page.page_no,
@@ -88,4 +88,4 @@ async def get_notice_list_available_controller(
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict = await NoticeService(auth, db).available_page()
-    return SuccessResponse(data=result_dict, msg="查询已启用公告列表成功")
+    return SuccessResponse(data=result_dict.items, msg="查询已启用公告列表成功")

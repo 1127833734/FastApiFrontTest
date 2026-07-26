@@ -158,8 +158,10 @@ type NoticeSearchForm = {
   notice_title?: string;
   notice_type?: string;
   status?: number;
-  created_time?: string[];
   created_id?: number;
+  updated_id?: number;
+  created_time?: string[];
+  updated_time?: string[];
 };
 
 function noticeTypeLabel(val?: string) {
@@ -173,8 +175,10 @@ const searchForm = ref<NoticeSearchForm>({
   notice_title: undefined,
   notice_type: undefined,
   status: undefined,
-  created_time: undefined,
   created_id: undefined,
+  updated_id: undefined,
+  created_time: undefined,
+  updated_time: undefined,
 });
 
 const showSearchBar = ref(true);
@@ -306,7 +310,7 @@ const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } =
       await refreshUpdate();
     },
     onSubmitSuccess: async () => {
-      await noticeStore.getNotice();
+      await noticeStore.getNotice(true);
     },
   });
 
@@ -410,8 +414,20 @@ const {
         },
       },
       { prop: "description", label: "描述", minWidth: 140, showOverflowTooltip: true },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
+      {
+        prop: "updated_time",
+        label: "更新时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "created_id",
         label: "创建人",
@@ -442,8 +458,11 @@ function buildNoticeReplaceParams(p: NoticeSearchForm): Record<string, unknown> 
     notice_type: p.notice_type,
     status: p.status,
     created_id: p.created_id,
+    updated_id: p.updated_id,
     created_time:
       Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+    updated_time:
+      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
 }
 
@@ -469,8 +488,10 @@ async function onResetSearch() {
     notice_title: undefined,
     notice_type: undefined,
     status: undefined,
-    created_time: undefined,
     created_id: undefined,
+    updated_id: undefined,
+    created_time: undefined,
+    updated_time: undefined,
   };
   await resetSearchParams();
 }
@@ -479,7 +500,7 @@ async function deleteNoticeRow(id: number, name: string) {
   try {
     await confirmDelete(`确定删除「${name}」吗？`);
     await NoticeAPI.deleteNotice([id]);
-    await noticeStore.getNotice();
+    await noticeStore.getNotice(true);
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
@@ -540,7 +561,7 @@ async function handleBatchDelete() {
     );
     batchDeleting.value = true;
     await NoticeAPI.deleteNotice(ids);
-    await noticeStore.getNotice();
+    await noticeStore.getNotice(true);
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
@@ -562,7 +583,7 @@ async function handleMoreClick(value: "enable" | "disable") {
     const status = value === "enable" ? 0 : 1;
     await NoticeAPI.batchNotice({ ids, status });
     await refreshData();
-    await noticeStore.getNotice();
+    await noticeStore.getNotice(true);
   } catch {
     // 用户取消或操作失败
   } finally {

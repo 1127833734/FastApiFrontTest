@@ -251,8 +251,20 @@ const {
       },
       { prop: "date", label: "发布日期", width: 120, showOverflowTooltip: true },
       { prop: "sort", label: "排序", width: 80 },
-      { prop: "created_time", label: "创建时间", width: 168, showOverflowTooltip: true },
-      { prop: "updated_time", label: "更新时间", width: 168, showOverflowTooltip: true },
+      {
+        prop: "created_time",
+        label: "创建时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
+      {
+        prop: "updated_time",
+        label: "更新时间",
+        width: 168,
+        sortable: true,
+        showOverflowTooltip: true,
+      },
       {
         prop: "operation",
         label: "操作",

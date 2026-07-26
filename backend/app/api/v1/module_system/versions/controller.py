@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Security, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +26,7 @@ async def get_version_list_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:version:query"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[VersionQueryParam, Depends()],
+    search: Annotated[VersionQueryParam, Query()],
 ) -> JSONResponse:
     service = VersionService(auth, db)
     result = await service.page(page_no=page.page_no, page_size=page.page_size, search=search)

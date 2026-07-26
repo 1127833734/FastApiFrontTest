@@ -90,7 +90,6 @@
                       :register-rules="registerRules"
                       :form-key="formKey"
                       :register-loading="registerLoading"
-                      :show-email="true"
                       :user-agreement-href="userAgreementHref"
                       @submit="submitRegister"
                       @to-login="setAuthPanel('login')"
@@ -373,11 +372,11 @@ const codeLoading = ref(false);
 
 const registerAgreementRead = ref(false);
 
-const registerForm = reactive<RegisterForm & { email: string }>({
+const registerForm = reactive<RegisterForm>({
   username: "",
+  name: "",
   password: "",
   confirmPassword: "",
-  email: "",
 });
 
 const forgetForm = reactive<ForgetPasswordForm>({
@@ -409,8 +408,9 @@ const validateRegisterConfirm = (_rule: unknown, value: string, callback: (e?: E
   callback();
 };
 
-const registerRules = computed<FormRules<RegisterForm & { email: string }>>(() => ({
+const registerRules = computed<FormRules<RegisterForm>>(() => ({
   username: [{ required: true, message: t("login.message.username.required"), trigger: "blur" }],
+  name: [{ required: true, message: "请输入昵称", trigger: "blur" }],
   password: [
     { required: true, validator: validateRegisterPassword, trigger: "blur" },
     { min: 6, message: t("login.message.password.min"), trigger: "blur" },
@@ -419,14 +419,6 @@ const registerRules = computed<FormRules<RegisterForm & { email: string }>>(() =
     { required: true, message: t("login.message.password.required"), trigger: "blur" },
     { min: 6, message: t("login.message.password.min"), trigger: "blur" },
     { validator: validateRegisterConfirm, trigger: "blur" },
-  ],
-  email: [
-    { required: true, message: t("login.email.required"), trigger: "blur" },
-    {
-      type: "email",
-      message: t("login.email.invalid"),
-      trigger: "blur",
-    },
   ],
 }));
 
@@ -662,7 +654,7 @@ async function submitRegister() {
     registerForm.username = "";
     registerForm.password = "";
     registerForm.confirmPassword = "";
-    registerForm.email = "";
+    registerForm.name = "";
     registerAgreementRead.value = false;
     setAuthPanel("login");
     await handleSubmit();
