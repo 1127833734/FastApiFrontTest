@@ -88,11 +88,12 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
-          :column="2"
+          :column="4"
           :data="detailFormData"
           :items="userDetailItems"
           :scrollbar="false"
@@ -215,7 +216,15 @@ import UserAPI, {
   type UserInfo,
   type UserPageQuery,
 } from "@/api/module_system/user";
-import { formatTree, renderTableOperationCell, type TableOperationAction } from "@utils";
+import {
+  formatTree,
+  renderTableOperationCell,
+  resolveStatusColumns,
+  stripPaginationParams,
+  cleanEmptyArrayParams,
+  toCrudCols,
+  type TableOperationAction,
+} from "@utils";
 import PositionAPI from "@/api/module_system/position";
 import DeptAPI from "@/api/module_system/dept";
 import RoleAPI from "@/api/module_system/role";
@@ -232,9 +241,7 @@ import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
 import type { IContentConfig, IObject } from "@/components/modal/types";
 import FaDeptTree from "./components/FaDeptTree.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { ColumnOption } from "@/types/component";
 
-const { hasAuth } = useAuth();
 const userStore = useUserStore();
 
 type UserSearchForm = {
@@ -321,7 +328,7 @@ function buildUserRowActions(
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatUserOperationCell(row: UserInfo, ctx: Parameters<typeof buildUserRowActions>[1]) {
@@ -463,10 +470,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const userSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -491,7 +498,7 @@ const userSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -629,17 +636,7 @@ const {
   },
 });
 
-const userCrudCols = computed(() =>
-  (columns?.value ?? []).map((c: ColumnOption<UserInfo>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
+const userCrudCols = toCrudCols(columns);
 
 const exportQueryParams = computed(() => {
   const sp = stripPaginationParams(searchParams);
@@ -768,7 +765,7 @@ async function handleSearchBarSearch(params: UserSearchForm) {
   await getData();
 }
 
-function onResetSearch() {
+async function onResetSearch() {
   searchForm.value = {
     username: undefined,
     name: undefined,
@@ -777,7 +774,7 @@ function onResetSearch() {
     created_time: undefined,
   };
   deptFilterId.value = undefined;
-  void resetSearchParams();
+  await resetSearchParams();
 }
 
 async function handleDeptNodeClick() {
@@ -787,12 +784,9 @@ async function handleDeptNodeClick() {
 async function handleImportUpload(formDataUpload: FormData) {
   uploadLoading.value = true;
   try {
-    const response = await UserAPI.importUser(formDataUpload);
-    if (response.data.code === ResultEnum.SUCCESS) {
-      ElMessage.success(`${response.data.msg}，${response.data.data}`);
-      importVisible.value = false;
-      await refreshData();
-    }
+    await UserAPI.importUser(formDataUpload);
+    importVisible.value = false;
+    await refreshData();
     // 失败分支提示由 axios 拦截器统一处理
   } catch (error: unknown) {
     if (import.meta.env.DEV) console.error(error);
@@ -863,29 +857,30 @@ async function handleOpenDialog(type: "create" | "update" | "detail", id?: numbe
 }
 
 async function handleSubmit() {
-  dataFormRef.value?.validate(async (valid: boolean) => {
-    if (!valid) return;
-    submitLoading.value = true;
-    const id = formData.value.id;
-    try {
-      if (id) {
-        await UserAPI.updateUser(id, formData.value);
-        await refreshUpdate();
-      } else {
-        await UserAPI.createUser(formData.value);
-        await refreshCreate();
-      }
-      dialogVisible.visible = false;
-      await resetForm();
-      if (id === userStore.basicInfo.id) {
-        await userStore.getUserInfo();
-      }
-    } catch (error: unknown) {
-      if (import.meta.env.DEV) console.error(error);
-    } finally {
-      submitLoading.value = false;
+  const form = dataFormRef.value;
+  if (!form) return;
+  const valid = await (form.validate as () => Promise<boolean>)().catch(() => false);
+  if (!valid) return;
+  submitLoading.value = true;
+  const id = formData.value.id;
+  try {
+    if (id) {
+      await UserAPI.updateUser(id, formData.value);
+      await refreshUpdate();
+    } else {
+      await UserAPI.createUser(formData.value);
+      await refreshCreate();
     }
-  });
+    dialogVisible.visible = false;
+    await resetForm();
+    if (id === userStore.basicInfo.id) {
+      await userStore.getUserInfo();
+    }
+  } catch (error: unknown) {
+    if (import.meta.env.DEV) console.error(error);
+  } finally {
+    submitLoading.value = false;
+  }
 }
 
 async function handleBatchDelete() {
@@ -912,15 +907,16 @@ async function handleBatchDelete() {
   }
 }
 
-async function handleMoreClick(status: number) {
+async function handleMoreClick(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (!ids.length) {
     ElMessage.warning("请先选择要操作的数据");
     return;
   }
   try {
-    await confirmToggleStatus(status);
+    await confirmToggleStatus(value);
     moreLoading.value = true;
+    const status = value === "enable" ? 0 : 1;
     await UserAPI.batchUser({ ids, status });
     await refreshData();
   } catch {

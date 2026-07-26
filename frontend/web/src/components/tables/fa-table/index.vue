@@ -38,8 +38,7 @@
           :animation="150"
           :disabled="rowDragDisabled"
           @end="onRowDragEnd"
-        >
-          <ElTable
+          ><ElTable
             ref="elTableRef"
             :key="tableKey"
             v-loading="!!loading"
@@ -49,6 +48,7 @@
                 : undefined
             "
             @expand-change="!hasExplicitTableProp('treeProps') ? onExpandChange : undefined"
+            @selection-change="(val: any[]) => emit('selection-change', val)"
             v-bind="mergedTableProps"
           >
             <template v-for="col in columns" :key="col.prop || col.type">
@@ -99,10 +99,9 @@
       ref="paginationRef"
     >
       <FaPagination
-        v-if="pagination"
-        :page="pagination.current"
-        :limit="pagination.size"
-        :total="pagination.total"
+        :page="pagination!.current"
+        :limit="pagination!.size"
+        :total="pagination!.total"
         :page-sizes="mergedPaginationOptions.pageSizes"
         :layout="mergedPaginationOptions.layout"
         :background="mergedPaginationOptions.background ?? true"
@@ -169,7 +168,7 @@ const {
 } = storeToRefs(tableStore);
 
 /** 分页配置接口 */
-interface PaginationConfig {
+interface FaPaginationConfig {
   /** 当前页码 */
   current: number;
   /** 每页显示条目个数 */
@@ -203,7 +202,7 @@ interface Props extends TableProps<Record<string, any>> {
   /** 列渲染配置 */
   columns?: ColumnOption[];
   /** 分页状态 */
-  pagination?: PaginationConfig;
+  pagination?: FaPaginationConfig;
   /** 分页配置 */
   paginationOptions?: PaginationOptions;
   /** 空数据表格高度 */
@@ -278,9 +277,13 @@ watch(
 
 /** 仅当调用方显式传入对应 prop 时视为「固定」，否则交由表格 store */
 const hasExplicitTableProp = (propName: string): boolean => {
-  const rawProps = (instance?.vnode.props || {}) as Record<string, unknown>;
-  const kebabName = propName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
-  return propName in rawProps || kebabName in rawProps;
+  try {
+    const rawProps = (instance?.vnode.props || {}) as Record<string, unknown>;
+    const kebabName = propName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+    return propName in rawProps || kebabName in rawProps;
+  } catch {
+    return false;
+  }
 };
 
 const LAYOUT = {
@@ -412,6 +415,7 @@ const mergedTableProps = computed(() => {
 });
 
 interface Emits {
+  (e: "selection-change", val: any[]): void;
   (e: "pagination:size-change", val: number): void;
   (e: "pagination:current-change", val: number): void;
   (e: "update:data", val: Record<string, unknown>[]): void;

@@ -62,7 +62,3 @@ function onGuideFinished(): void {
   settingStore.updateSetting("showGuide", false);
 }
 </script>
-
-<style lang="scss" scoped>
-@use "./fa-layouts";
-</style>

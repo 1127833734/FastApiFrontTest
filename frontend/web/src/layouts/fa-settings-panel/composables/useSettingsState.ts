@@ -1,4 +1,4 @@
-import { MenuTypeEnum } from "@/enums/appEnum";
+import { MenuTypeEnum, MenuThemeEnum } from "@/enums/appEnum";
 import { useSettingsStore } from "@stores";
 
 /**

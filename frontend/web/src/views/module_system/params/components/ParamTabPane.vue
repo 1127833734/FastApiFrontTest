@@ -1,5 +1,5 @@
 <template>
-  <div class="param-fields-wrap">
+  <div class="param-fields-wrap max-w-180">
     <ElButton v-if="modified" type="primary" size="small" @click="$emit('saveGroup')">
       {{ saveText || `保存${title}` }}
     </ElButton>
@@ -28,9 +28,3 @@ interface Emits {
 
 defineEmits<Emits>();
 </script>
-
-<style scoped lang="scss">
-.param-fields-wrap {
-  max-width: 720px;
-}
-</style>

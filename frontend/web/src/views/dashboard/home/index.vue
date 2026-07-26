@@ -252,16 +252,3 @@ function handleImageCardClick() {
   // TODO: 接入真实跳转
 }
 </script>
-
-<style scoped lang="scss">
-:deep(.el-card) {
-  --el-card-border-radius: calc(var(--custom-radius) + 2px);
-
-  border: 1px solid var(--fa-card-border);
-}
-
-/* 日程日历 el-calendar 容器 */
-.overflow-hidden:deep(.el-card__header) {
-  border-bottom-color: var(--el-border-color-extra-light);
-}
-</style>

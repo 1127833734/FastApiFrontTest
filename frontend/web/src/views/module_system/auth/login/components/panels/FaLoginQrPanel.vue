@@ -70,7 +70,3 @@ const qrPayload = computed(() => {
   return `${origin}${pathname}?qrLogin=demo`;
 });
 </script>
-
-<style scoped lang="scss">
-@use "../composables/fa-login";
-</style>

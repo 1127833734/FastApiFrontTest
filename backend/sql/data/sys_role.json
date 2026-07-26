@@ -4,7 +4,7 @@
         "code": "SUPER_ADMIN",
         "status": 0,
         "order": 1,
-        "data_scope": 4,
+        "data_scope": 3,
         "description": "拥有系统最高权限"
     },
     {

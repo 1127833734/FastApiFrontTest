@@ -33,7 +33,11 @@
               <div class="w-full min-w-0">
                 <FaUserTableSelect
                   :model-value="modelValue?.created_id == null ? undefined : modelValue.created_id"
-                  @update:model-value="(v: number | undefined) => patchAuditField('created_id', v)"
+                  @update:model-value="
+                    (v: number | undefined) => {
+                      modelValue.value['created_id'] = v;
+                    }
+                  "
                   @confirm-click="emitImmediateSearch"
                   @clear-click="emitImmediateSearch"
                 />
@@ -44,7 +48,11 @@
               <div class="w-full min-w-0">
                 <FaUserTableSelect
                   :model-value="modelValue?.updated_id == null ? undefined : modelValue.updated_id"
-                  @update:model-value="(v: number | undefined) => patchAuditField('updated_id', v)"
+                  @update:model-value="
+                    (v: number | undefined) => {
+                      modelValue.value['updated_id'] = v;
+                    }
+                  "
                   @confirm-click="emitImmediateSearch"
                   @clear-click="emitImmediateSearch"
                 />
@@ -287,6 +295,7 @@ interface Props {
   includeAudit?: boolean;
   /** 传给 getAuditSearchFormItems 的选项 */
   auditItemOptions?: GetAuditSearchFormItemsOptions;
+  /** 表单校验规则（通过 $attrs 透传至 ElForm） */
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -341,6 +350,16 @@ const getSlots = getSlotsShared;
  */
 const isExpanded = ref(props.defaultExpanded);
 
+// 当外部控制 isExpand 为 true 时，同步内部展开状态
+watch(
+  () => props.isExpand,
+  (val) => {
+    if (val === true) {
+      isExpanded.value = true;
+    }
+  }
+);
+
 // 搜索表单清空输入时不保留空字符串，避免后续请求携带空字段。
 const normalizeFieldValue = (value: unknown) => {
   return value === "" ? undefined : value;
@@ -377,14 +396,9 @@ const getComponent = (item: SearchFormItem) => {
   return componentMap[type as keyof typeof componentMap] || componentMap["input"];
 };
 
-/**
- * 更新审计字段并立即触发搜索
- */
-const patchAuditField = (key: "created_id" | "updated_id", val: number | undefined) => {
-  modelValue.value[key] = val;
-};
-
-const emitImmediateSearch = () => {
+const emitImmediateSearch = async () => {
+  const valid = (await formInstance.value?.validate?.().catch(() => false)) ?? true;
+  if (!valid) return;
   emit("search", getSanitizedOutput());
 };
 
@@ -461,7 +475,9 @@ const handleReset = () => {
 /**
  * 处理搜索事件
  */
-const handleSearch = () => {
+const handleSearch = async () => {
+  const valid = (await formInstance.value?.validate?.().catch(() => false)) ?? true;
+  if (!valid) return;
   // 对外只抛出清洗后的查询参数，避免接口收到空数组/空字符串。
   emit("search", getSanitizedOutput());
 };

@@ -64,20 +64,21 @@
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
           :column="4"
           :data="detailFormData"
           :items="positionDetailItems"
-          max-height="75vh"
+          max-height="70vh"
         />
       </template>
       <template v-else>
         <FaForm
           scrollbar
-          max-height="75vh"
+          max-height="70vh"
           :key="positionFormRenderKey"
           ref="dataFormRef"
           v-model="formData"
@@ -127,15 +128,20 @@ import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import FaForm from "@/components/forms/fa-form/index.vue";
 import { ElMessage } from "element-plus";
-import type { ColumnOption } from "@/types/component";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
+import {
+  renderTableOperationCell,
+  resolveStatusColumns,
+  stripPaginationParams,
+  cleanEmptyArrayParams,
+  toCrudCols,
+} from "@utils";
 
 defineOptions({
   name: "Position",
   inheritAttrs: false,
 });
 
-const { hasAuth } = useAuth();
 const userStore = useUserStore();
 
 type PositionSearchForm = {
@@ -200,7 +206,7 @@ function buildPositionRowActions(
       run: () => ctx.onDelete(row.id!, row.name ?? ""),
     },
   ];
-  return all.filter((a) => hasAuth(a.perm));
+  return all;
 }
 
 function formatPositionOperationCell(
@@ -208,7 +214,8 @@ function formatPositionOperationCell(
   ctx: Parameters<typeof buildPositionRowActions>[1]
 ) {
   return renderTableOperationCell(buildPositionRowActions(row, ctx), {
-    wrapperClass: "inline-flex flex-wrap items-center justify-end gap-1 position-table-actions",
+    wrapperClass:
+      "inline-flex flex-wrap items-center justify-end gap-1 position-table-actions align-middle",
   });
 }
 
@@ -223,10 +230,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const positionSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -243,7 +250,7 @@ const positionSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -327,17 +334,7 @@ const {
   },
 });
 
-const positionCrudCols = computed(() =>
-  columns!.value.map((c: ColumnOption<PositionTable>) => {
-    const t = (c as { type?: string }).type;
-    return {
-      prop: c.prop,
-      label: c.label,
-      type: t === "selection" ? ("selection" as const) : ("default" as const),
-      show: true,
-    };
-  })
-);
+const positionCrudCols = toCrudCols(columns);
 
 const exportQueryParams = computed(() => {
   return normalizePositionQuery(stripPaginationParams(searchParams)) as unknown as Record<
@@ -369,7 +366,7 @@ const positionDetailItems: import("@/components/others/fa-descriptions/index.vue
       label: "状态",
       prop: "status",
       tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
+        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
       },
     },
     { label: "创建人", prop: "created_by.name" },
@@ -464,13 +461,7 @@ const positionDialogFormItems = computed<FormItem[]>(() => [
     span: 24,
     props: { controlsPosition: "right", min: 1 },
   },
-  {
-    label: "状态",
-    key: "status",
-    type: "input",
-    span: 24,
-    placeholder: "",
-  },
+  { key: "status", label: "状态", type: "radiogroup", span: 24 },
   {
     label: "描述",
     key: "description",
@@ -490,17 +481,17 @@ const { exportVisible, openExport } = useImportExport();
 async function handleSearchBarSearch(params: PositionSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildPositionReplaceParams(params));
-  getData();
+  await getData();
 }
 
-function onResetSearch() {
+async function onResetSearch() {
   searchForm.value = {
     name: undefined,
     status: undefined,
     created_time: undefined,
     created_id: undefined,
   };
-  void resetSearchParams();
+  await resetSearchParams();
 }
 
 async function deletePositionRow(id: number, name: string) {
@@ -511,7 +502,7 @@ async function deletePositionRow(id: number, name: string) {
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
-    ElMessage.info("删除取消");
+    // 用户取消
   }
 }
 
@@ -535,15 +526,16 @@ async function handleBatchDelete() {
   }
 }
 
-async function handleMoreClick(status: number) {
+async function handleMoreClick(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (!ids.length) {
     ElMessage.warning("请先选择要操作的数据");
     return;
   }
   try {
-    await confirmToggleStatus(status);
+    await confirmToggleStatus(value);
     moreLoading.value = true;
+    const status = value === "enable" ? 0 : 1;
     await PositionAPI.batchPosition({ ids, status });
     await refreshData();
     await userStore.getUserInfo();
@@ -554,9 +546,3 @@ async function handleMoreClick(status: number) {
   }
 }
 </script>
-
-<style scoped lang="scss">
-:deep(.position-table-actions .inline-flex) {
-  vertical-align: middle;
-}
-</style>

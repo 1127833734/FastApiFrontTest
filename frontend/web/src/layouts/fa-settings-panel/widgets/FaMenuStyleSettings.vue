@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { MenuThemeEnum } from "@/enums/appEnum";
+import { MenuThemeEnum, MenuTypeEnum } from "@/enums/appEnum";
 import AppConfig from "@/config";
 
 defineOptions({ name: "FaMenuStyleSettings" });

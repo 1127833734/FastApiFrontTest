@@ -66,10 +66,6 @@ html.dark .el-card {
     --el-pagination-button-width: 28px !important;
   }
 
-  .el-select--default .el-select__wrapper {
-    min-height: var(--el-pagination-button-width) !important;
-  }
-
   .el-pagination__jump .el-input {
     height: var(--el-pagination-button-width) !important;
   }
@@ -718,6 +714,12 @@ html.dark .el-card {
 }
 
 // ── ElInput 输入框优化 ──
+// 图标/表格选择器：让输入框显示为可点击状态
+.reference .el-input__wrapper,
+.reference .el-input__inner {
+  cursor: pointer;
+}
+
 .el-input--default {
   .el-input__wrapper {
     box-shadow: 0 0 0 1px var(--default-border) inset !important;
@@ -735,6 +737,9 @@ html.dark .el-card {
 
 // ── ElCard 卡片优化 ──
 .el-card {
+  --el-card-border-radius: calc(var(--custom-radius) + 2px);
+
+  border: 1px solid var(--fa-card-border);
   transition:
     box-shadow 0.25s ease,
     transform 0.25s ease;
@@ -818,4 +823,58 @@ html.dark .el-card {
 .el-result__sub-title {
   font-size: 13px !important;
   color: var(--fa-gray-500) !important;
+}
+
+// ── overlay 布局通用（fa-dialog / fa-drawer 共享） ──
+.core-overlay-dialog__header,
+.core-overlay-drawer__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 4px;
+}
+
+.core-overlay-drawer__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.core-overlay-dialog__actions,
+.core-overlay-drawer__actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+
+  .core-overlay-icon-btn {
+    min-width: 32px;
+    padding: 6px;
+    border-radius: var(--el-border-radius-base);
+
+    &:hover {
+      color: var(--theme-color);
+    }
+  }
+}
+
+.fa-dialog-footer,
+.fa-drawer-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+
+  .el-button {
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+      transform: translateY(-2px);
+    }
+  }
 }

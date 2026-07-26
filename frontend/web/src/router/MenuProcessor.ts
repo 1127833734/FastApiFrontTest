@@ -1,14 +1,17 @@
 import type { UserInfo } from "@/api/module_system/user";
 import type { MenuTable } from "@/api/module_system/menu";
 import type { AppRouteRecord, RouteMeta } from "@/types/router";
+import type { AppRouteRecordRaw } from "@utils";
 import { useUserStore } from "@stores";
 import { useAppMode } from "@/hooks/core/useAppMode";
 
 import {
-  mergeAppRouteRecords,
+  HOME_MENU_META,
+  DASHBOARD_PARENT_META,
+  dashboardLayoutChildren,
   ROUTE_COMPONENT_LAYOUT,
   ROUTE_COMPONENT_NESTED_PARENT,
-} from "./staticRoutes";
+} from "./routes";
 import { MenuTypeEnum } from "@/enums/system/menu.enum";
 
 /**
@@ -182,30 +185,17 @@ export class MenuProcessor {
   private filterEmptyMenus(menuList: AppRouteRecord[]): AppRouteRecord[] {
     return menuList
       .map((item) => {
-        if (item.children && item.children.length > 0) {
-          const filteredChildren = this.filterEmptyMenus(item.children);
-          return {
-            ...item,
-            children: filteredChildren,
-          };
-        }
-        return item;
+        if (!item.children?.length) return item;
+        return { ...item, children: this.filterEmptyMenus(item.children) };
       })
-      .filter((item) => {
-        if ("children" in item) {
-          return true;
-        }
+      .filter((item) => this.isMenuNodeVisible(item));
+  }
 
-        if (item.meta?.isIframe === true || item.meta?.link) {
-          return true;
-        }
-
-        if (item.component && item.component !== "" && item.component !== ROUTE_COMPONENT_LAYOUT) {
-          return true;
-        }
-
-        return false;
-      });
+  /** 菜单节点在侧栏中是否可见（有子菜单 / iframe / 外链 / 有实际组件） */
+  private isMenuNodeVisible(item: AppRouteRecord): boolean {
+    if (item.children?.length) return true;
+    if (item.meta?.isIframe || item.meta?.link) return true;
+    return !!(item.component && item.component !== "" && item.component !== ROUTE_COMPONENT_LAYOUT);
   }
 
   validateMenuList(menuList: AppRouteRecord[]): boolean {
@@ -280,4 +270,119 @@ export class MenuProcessor {
 
     return `/${path}`;
   }
+}
+
+// ──────── 壳层路由补全 ────────
+
+/** 从后端菜单中去掉组件和 redirect，供侧栏合并 */
+function stripRouteRecordForShell(route: AppRouteRecordRaw): AppRouteRecord {
+  const children = route.children?.map(stripRouteRecordForShell);
+  return {
+    path: route.path,
+    name: route.name,
+    meta: (route.meta ?? {}) as AppRouteRecord["meta"],
+    ...(children?.length ? { children } : {}),
+  } as AppRouteRecord;
+}
+
+function getDashboardMenuTreeForMerge(): AppRouteRecord {
+  return {
+    name: "Dashboard",
+    path: "/dashboard",
+    meta: DASHBOARD_PARENT_META,
+    children: dashboardLayoutChildren.map(stripRouteRecordForShell),
+  };
+}
+
+const mergeShellHomeMenu: AppRouteRecord = {
+  path: "/home",
+  name: "Home",
+  meta: { ...HOME_MENU_META, shellRoute: true },
+};
+
+function normalizeMenuPath(path?: string): string {
+  if (!path || !path.trim()) return "";
+  const p = path.trim();
+  return p.startsWith("/") ? p : `/${p}`;
+}
+
+function collectPathsAndNames(items: AppRouteRecord[], paths: Set<string>, names: Set<string>) {
+  for (const r of items) {
+    const np = normalizeMenuPath(r.path as string);
+    if (np) paths.add(np);
+    if (r.name) names.add(String(r.name));
+    if (r.children?.length) collectPathsAndNames(r.children, paths, names);
+  }
+}
+
+function dashboardRoutesToShellMenu(route: AppRouteRecord, parentAbs = ""): AppRouteRecord {
+  const raw = route.path?.trim() ?? "";
+  const fullPath =
+    raw.startsWith("/") && raw !== "/"
+      ? raw
+      : parentAbs
+        ? `${parentAbs.replace(/\/$/, "")}/${raw.replace(/^\/+/, "")}`
+        : `/${raw.replace(/^\/+/, "")}`;
+  const meta = { ...route.meta, shellRoute: true as const };
+  const children = route.children?.map((c) => dashboardRoutesToShellMenu(c, fullPath));
+  return { ...route, path: fullPath, meta, children, component: undefined, redirect: undefined };
+}
+
+/** 将壳层路由（/home、/dashboard）合并到菜单列表 */
+export function mergeShellRoutesIntoMenu(menuList: AppRouteRecord[]): AppRouteRecord[] {
+  const paths = new Set<string>();
+  const names = new Set<string>();
+  collectPathsAndNames(menuList, paths, names);
+
+  const additions: AppRouteRecord[] = [];
+
+  const tryPush = (item: AppRouteRecord) => {
+    const p = normalizeMenuPath(item.path as string);
+    const n = item.name ? String(item.name) : "";
+    if (p && !paths.has(p) && (!n || !names.has(n))) {
+      additions.push(item);
+      if (p) paths.add(p);
+      if (n) names.add(n);
+      if (item.children?.length) collectPathsAndNames(item.children, paths, names);
+    }
+  };
+
+  tryPush(mergeShellHomeMenu);
+  if (!paths.has("/dashboard")) {
+    tryPush(dashboardRoutesToShellMenu(getDashboardMenuTreeForMerge()));
+  }
+
+  if (additions.length === 0) return menuList;
+  return [...additions, ...menuList];
+}
+
+/** 按 name 去重合并两套菜单记录 */
+export function mergeAppRouteRecords(
+  primary: AppRouteRecord[],
+  secondary: AppRouteRecord[]
+): AppRouteRecord[] {
+  const usedNames = new Set<string>();
+
+  const collectNames = (routes: AppRouteRecord[]) => {
+    for (const r of routes) {
+      if (r.name) usedNames.add(String(r.name));
+      if (r.children?.length) collectNames(r.children);
+    }
+  };
+  collectNames(primary);
+
+  const pickFresh = (routes: AppRouteRecord[]): AppRouteRecord[] => {
+    const out: AppRouteRecord[] = [];
+    for (const r of routes) {
+      const n = r.name ? String(r.name) : "";
+      if (n && usedNames.has(n)) continue;
+      const next: AppRouteRecord = { ...r };
+      if (r.children?.length) next.children = pickFresh(r.children);
+      if (n) usedNames.add(n);
+      out.push(next);
+    }
+    return out;
+  };
+
+  return [...primary, ...pickFresh(secondary)];
 }

@@ -25,7 +25,7 @@
       >
         <template #left>
           <ElButton
-            v-if="hasAuth('module_system:ticket:create')"
+            v-hasPerm="['module_system:ticket:create']"
             type="primary"
             @click="handleOpenDialog('create')"
           >
@@ -33,7 +33,8 @@
             提交工单
           </ElButton>
           <ElButton
-            v-if="hasAuth('module_system:ticket:delete') && selectedIds.length"
+            v-hasPerm="['module_system:ticket:delete']"
+            v-if="selectedIds.length"
             type="danger"
             :loading="batchDeleting"
             @click="handleBatchDelete"
@@ -44,224 +45,202 @@
         </template>
       </FaTableHeader>
 
-      <!-- 加载骨架 -->
-      <ElSkeleton v-if="loading && !data.length" :rows="4" animated style="margin-top: 16px">
-        <template #template>
-          <div class="ticket-skeleton-grid">
-            <div v-for="i in 6" :key="i" style="height: 320px">
-              <ElSkeletonItem
-                variant="rect"
-                style="width: 100%; height: 100%; border-radius: var(--custom-radius)"
-              />
+      <FaCardGrid
+        :items="data"
+        :pagination="{ current: pageNo, size: pageSize, total }"
+        :loading="loading"
+        empty-text="暂无工单"
+        @pagination:size-change="onPageSizeChange"
+        @pagination:current-change="onPageCurrentChange"
+      >
+        <template #header="{ item }">
+          <div class="flex items-center gap-2 min-w-0">
+            <span
+              class="flex shrink-0 items-center justify-center w-5 h-5 rounded text-[10px]"
+              :class="typeIconClass(item.ticket_type!)"
+            >
+              <FaSvgIcon :icon="typeIcon(item.ticket_type!)" />
+            </span>
+            <span class="flex-1 truncate text-sm font-semibold">{{ item.title }}</span>
+            <ElTag size="small" :type="statusTagType(String(item.status))" effect="dark" class="shrink-0">
+              {{ statusLabel(item.status ?? 0) }}
+            </ElTag>
+          </div>
+        </template>
+
+        <template #default="{ item }">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5 text-xs" style="color: var(--el-text-color-secondary)">
+              <FaSvgIcon icon="ri:user-3-line" class="shrink-0" />
+              <span>{{ item.created_by?.name ?? "—" }} · {{ item.created_time?.slice(0, 10) ?? "" }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5 text-xs" style="color: var(--el-text-color-secondary)">
+                <FaSvgIcon icon="ri:user-add-line" class="shrink-0" />
+                <span>{{ item.assigned_by?.name ?? "未分配" }}</span>
+              </div>
+              <ElTag size="small" effect="light" :type="typeTag(item.ticket_type!)">
+                {{ typeLabel(item.ticket_type!) }}
+              </ElTag>
             </div>
           </div>
         </template>
-      </ElSkeleton>
 
-      <!-- 卡片网格 -->
-      <ElScrollbar v-else-if="data.length" class="ticket-scroll">
-        <div class="ticket-grid">
-          <div
-            v-for="item in data"
-            :key="item.id"
-            class="ticket-card fa-card"
-            :class="[`status-${item.status}`]"
-          >
-            <!-- 头部：类型图标 + 标题 + 状态徽章 -->
-            <div class="card-header">
-              <span class="card-icon" :class="typeIconClass(item.ticket_type!)">
-                <FaSvgIcon :icon="typeIcon(item.ticket_type!)" />
-              </span>
-              <div class="card-title-group">
-                <span class="card-title" :title="item.title">{{ item.title }}</span>
-                <ElTag size="small" :type="statusTagType(String(item.status))" effect="plain">
-                  {{ statusLabel(String(item.status)) }}
-                </ElTag>
-              </div>
-            </div>
-
-            <!-- 内容摘要 -->
-            <p class="card-desc">{{ contentSummary(item.ticket_content) }}</p>
-
-            <!-- 标签行 -->
-            <div class="card-tags">
-              <ElTag size="small" effect="plain" :type="typeTag(item.ticket_type!)">
-                {{ typeLabel(item.ticket_type!) }}
-              </ElTag>
-              <span v-if="item.assigned_by" class="tag-assignee">
-                <FaSvgIcon icon="ri:user-3-line" />
-                {{ item.assigned_by.name }}
-              </span>
-              <span v-else class="tag-unassigned">未分配</span>
-              <span v-if="item.reply" class="tag-replied">
-                <FaSvgIcon icon="ri:chat-1-line" />已回复
-              </span>
-            </div>
-
-            <!-- 底部 -->
-            <div class="card-footer">
-              <span class="footer-meta">
-                {{ item.created_by?.name ?? "—" }}
-                &nbsp;·&nbsp;
-                {{ item.created_time?.slice(0, 10) ?? "" }}
-              </span>
-              <div class="footer-actions">
-                <ElButton
-                  size="small"
-                  link
-                  type="primary"
-                  @click="handleOpenDialog('detail', item.id!)"
-                >
-                  详情
-                </ElButton>
-                <ElButton
-                  v-if="hasAuth('module_system:ticket:update') && item.status! < 3"
-                  size="small"
-                  type="primary"
-                  @click="handleOpenDialog('update', item.id!)"
-                >
-                  处理
-                </ElButton>
-                <ElDropdown v-if="showCardMore(item)" trigger="click">
-                  <ElButton size="small" link type="primary" class="more-btn">
-                    <ElIcon><MoreFilled /></ElIcon>
-                  </ElButton>
-                  <template #dropdown>
-                    <ElDropdownMenu>
-                      <ElDropdownItem
-                        v-if="hasAuth('module_system:ticket:update') && item.status! < 3"
-                        @click="closeTicket(item.id!)"
-                      >
-                        <ElIcon><CircleClose /></ElIcon>关闭
-                      </ElDropdownItem>
-                      <ElDropdownItem
-                        v-if="hasAuth('module_system:ticket:delete')"
-                        divided
-                        @click="deleteTicketRow(item.id!, item.title ?? '')"
-                      >
-                        <ElIcon><Delete /></ElIcon>删除
-                      </ElDropdownItem>
-                    </ElDropdownMenu>
-                  </template>
-                </ElDropdown>
-              </div>
-            </div>
+        <template #footer="{ item }">
+          <div class="flex items-center gap-1">
+            <ElButton size="small" link type="primary" @click="handleOpenDialog('detail', item.id!)">详情</ElButton>
+            <ElButton
+              v-if="item.status! < 3"
+              v-hasPerm="['module_system:ticket:update']"
+              size="small"
+              link
+              type="primary"
+              @click="handleOpenDialog('update', item.id!)"
+            >处理</ElButton>
+            <ElDropdown v-if="showCardMore(item)" trigger="click">
+              <ElButton size="small" link type="primary" class="px-1 py-0.5 text-base">
+                <ElIcon><MoreFilled /></ElIcon>
+              </ElButton>
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <div v-hasPerm="['module_system:ticket:update']" style="display: contents">
+                    <ElDropdownItem v-if="item.status! < 3" @click="closeTicket(item.id!)">
+                      <ElIcon><CircleClose /></ElIcon>关闭
+                    </ElDropdownItem>
+                  </div>
+                  <div v-hasPerm="['module_system:ticket:delete']" style="display: contents">
+                    <ElDropdownItem divided @click="deleteTicketRow(item.id!, item.title ?? '')">
+                      <ElIcon><Delete /></ElIcon>删除
+                    </ElDropdownItem>
+                  </div>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
           </div>
-        </div>
-      </ElScrollbar>
-
-      <ElEmpty v-else-if="!loading" description="暂无工单" style="margin-top: 40px" />
-
-      <!-- 分页 -->
-      <div v-if="total > 0" class="ticket-pagination">
-        <FaPagination
-          :page="pageNo"
-          :limit="pageSize"
-          :total="total"
-          :page-sizes="[12, 24, 48]"
-          :disabled="loading"
-          @pagination="onPaginationChange"
-        />
-      </div>
+        </template>
+      </FaCardGrid>
     </ElCard>
 
-    <!-- ─── 对话框 ─── -->
     <FaDialog
       v-model="dialogVisible.visible"
       :title="dialogVisible.title"
-      width="960px"
+      width="900px"
       dialog-class="crud-embed-dialog"
       modal-class="crud-embed-dialog"
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
+      @close="handleCloseDialog"
       @confirm="handleDialogConfirm"
     >
       <template v-if="dialogVisible.type === 'detail'">
-        <FaDescriptions
-          :column="4"
-          :data="detailFormData"
-          :items="ticketDetailItems"
-          label-width="120px"
-          max-height="40vh"
-        >
-          <template #ticket_type="{ row }">
-            <FaStatusTag
-              :type="typeTag(row?.ticket_type as string)"
-              :label="typeLabel(row?.ticket_type as string)"
-            />
-          </template>
-          <template #status="{ row }">
-            <FaStatusTag
-              :type="statusTagType(String(row?.status ?? 0))"
-              :label="statusLabel(String(row?.status ?? 0))"
-            />
-          </template>
-          <template #ticket_content>
-            <ElScrollbar class="ticket-html-preview" view-class="p-3">
-              <template v-if="detailHasRenderableContent">
-                <div v-html="detailContentHtml" />
-              </template>
-              <p v-else class="ticket-html-empty">暂无内容</p>
-            </ElScrollbar>
-          </template>
-          <template #reply_content>
-            <ElScrollbar v-if="detailFormData.reply" class="ticket-html-preview" view-class="p-3">
-              <div v-html="sanitizedReply" />
-            </ElScrollbar>
-            <p v-else class="ticket-html-empty">暂无回复</p>
-          </template>
-        </FaDescriptions>
-
-        <!-- ── 评论区 ── -->
-        <ElDivider content-position="left">
-          <span class="comment-divider-title">
-            <FaSvgIcon icon="ri:chat-3-line" style="margin-right: 6px" />
-            评论（{{ commentsTotal }}）
-          </span>
-        </ElDivider>
-        <div class="comment-section">
-          <ElScrollbar max-height="280px" class="comment-list-scroll">
-            <div v-if="commentsLoading" class="comment-loading">
-              <ElSkeleton :rows="2" animated />
-            </div>
-            <template v-else-if="comments.length">
-              <div v-for="c in comments" :key="c.id" class="comment-item">
-                <div class="comment-avatar">
-                  <FaSvgIcon icon="ri:user-6-fill" />
-                </div>
-                <div class="comment-body">
-                  <div class="comment-meta">
-                    <span class="comment-author">{{
-                      c.created_by_name || c.created_by?.name || "匿名"
-                    }}</span>
-                    <span class="comment-time">{{ c.created_time?.slice(0, 16) ?? "" }}</span>
-                  </div>
-                  <div class="comment-content" v-html="sanitizeComment(c.content)" />
-                </div>
-              </div>
+        <div class="max-h-[65vh] overflow-y-auto">
+          <FaDescriptions
+            :column="4"
+            :data="detailFormData"
+            :items="ticketDetailItems"
+            label-width="120px"
+          >
+            <template #ticket_type="{ row }">
+              <FaStatusTag
+                :type="typeTag(row?.ticket_type as string)"
+                :label="typeLabel(row?.ticket_type as string)"
+              />
             </template>
-            <ElEmpty v-else description="暂无评论" :image-size="60" />
-          </ElScrollbar>
+            <template #status="{ row }">
+              <FaStatusTag
+                :type="statusTagType(String(row?.status ?? 0))"
+                :label="statusLabel(Number(row?.status ?? 0))"
+              />
+            </template>
+            <template #ticket_content>
+              <ElScrollbar
+                class="box-border min-h-30 max-h-[min(360px,45vh)] bg-(--el-bg-color) border border-(--el-border-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)]"
+                view-class="p-3"
+              >
+                <template v-if="detailHasRenderableContent">
+                  <div v-html="detailContentHtml" />
+                </template>
+                <p v-else class="m-0 text-sm text-(--el-text-color-placeholder)">暂无内容</p>
+              </ElScrollbar>
+            </template>
+            <template #reply_content>
+              <ElScrollbar
+                v-if="detailFormData.reply"
+                class="box-border min-h-30h-[min(360px,45vh)] bg-(--el-bg-color) border border-(--el-border-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)]"
+                view-class="p-3"
+              >
+                <div v-html="sanitizedReply" />
+              </ElScrollbar>
+              <p v-else class="m-0 text-sm text-(--el-text-color-placeholder)">暂无回复</p>
+            </template>
+          </FaDescriptions>
 
-          <!-- 提交评论 -->
-          <div class="comment-input-row">
-            <ElInput
-              v-model="commentInput"
-              type="textarea"
-              :rows="2"
-              placeholder="输入评论内容..."
-              :disabled="commentSubmitting"
-              resize="none"
-            />
-            <ElButton
-              type="primary"
-              :loading="commentSubmitting"
-              :disabled="!commentInput.trim()"
-              @click="handleSubmitComment"
+          <!-- ── 评论区 ── -->
+          <ElDivider content-position="left">
+            <span
+              class="inline-flex items-center text-sm font-semibold text-(--el-text-color-primary)"
             >
-              发表评论
-            </ElButton>
+              <FaSvgIcon icon="ri:chat-3-line" class="mr-1.5" />
+              评论（{{ commentsTotal }}）
+            </span>
+          </ElDivider>
+          <div class="flex flex-col gap-3">
+            <ElScrollbar class="px-1">
+              <div v-if="commentsLoading" class="py-3">
+                <ElSkeleton :rows="2" animated />
+              </div>
+              <template v-else-if="comments.length">
+                <div
+                  v-for="c in comments"
+                  :key="c.id"
+                  class="flex gap-3 py-3 border-b border-(--el-border-color-lighter) last:border-b-0"
+                >
+                  <div
+                    class="flex shrink-0 items-center justify-center w-8 h-8 text-base text-(--el-color-primary) bg-(--el-color-primary-light-9) rounded-full"
+                  >
+                    <FaSvgIcon icon="ri:user-6-fill" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex gap-2 items-center mb-1.5">
+                      <span class="text-sm font-semibold text-(--el-text-color-primary)">{{
+                        c.created_by_name || c.created_by?.name || "匿名"
+                      }}</span>
+                      <span class="text-xs text-(--el-text-color-placeholder)">{{
+                        c.created_time?.slice(0, 16) ?? ""
+                      }}</span>
+                    </div>
+                    <div
+                      class="text-sm leading-relaxed text-(--el-text-color-regular) wrap-break-word"
+                      v-html="sanitizeComment(c.content)"
+                    />
+                  </div>
+                </div>
+              </template>
+              <ElEmpty v-else description="暂无评论" :image-size="60" />
+            </ElScrollbar>
+
+            <!-- 提交评论 -->
+            <div
+              class="flex gap-3 items-start pt-2 border-t border-(--el-border-color-lighter) [&_.el-textarea]:flex-1 [&_.el-button]:shrink-0 [&_.el-button]:mt-0.5"
+            >
+              <ElInput
+                v-model="commentInput"
+                type="textarea"
+                :rows="2"
+                placeholder="输入评论内容..."
+                :disabled="commentSubmitting"
+                resize="none"
+              />
+              <ElButton
+                type="primary"
+                :loading="commentSubmitting"
+                :disabled="!commentInput.trim()"
+                @click="handleSubmitComment"
+              >
+                发表评论
+              </ElButton>
+            </div>
           </div>
         </div>
       </template>
@@ -270,7 +249,7 @@
           v-if="dialogVisible.type === 'create'"
           :key="ticketFormRenderKey"
           scrollbar
-          max-height="75vh"
+          max-height="70vh"
           ref="dataFormRef"
           v-model="formData"
           :items="ticketDialogFormItems"
@@ -311,7 +290,7 @@
           <template #ticket_content>
             <FaWangEditor
               :model-value="formData.ticket_content ?? ''"
-              height="min(38vh, 320px)"
+              height="min(18vh, 280px)"
               placeholder="请详细描述您的问题、建议或优化想法..."
               :exclude-keys="[]"
               @update:model-value="(v: string) => (formData.ticket_content = v)"
@@ -320,27 +299,29 @@
         </FaForm>
 
         <!-- 处理工单：展示工单信息 + 回复处理 -->
-        <div v-else class="ticket-process-panel">
+        <div v-else class="flex flex-col max-h-[75vh] overflow-y-auto">
           <!-- 工单信息区 -->
-          <div class="ticket-info-section">
-            <div class="ticket-info-header">
+          <div class="flex flex-col gap-3 py-1">
+            <div class="flex gap-2.5 items-center">
               <ElTag :type="typeTag(formData.ticket_type!)" size="small" effect="plain">
                 {{ typeLabel(formData.ticket_type!) }}
               </ElTag>
-              <span class="ticket-info-title">{{ formData.title }}</span>
+              <span class="text-base font-semibold text-(--el-text-color-primary)">{{
+                formData.title
+              }}</span>
             </div>
             <FaMarkdownRenderer
               :content="formData.ticket_content ?? ''"
-              class="ticket-process-content"
+              class="min-h-30 p-3 bg-(--el-fill-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)]"
             />
           </div>
 
           <ElDivider />
 
           <!-- 处理区 -->
-          <div class="ticket-process-section">
-            <div class="process-field">
-              <label class="process-label">状态</label>
+          <div class="flex flex-col gap-5 py-1">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-(--el-text-color-primary)">状态</label>
               <ElRadioGroup v-model="formData.status">
                 <ElRadio :value="0">待处理</ElRadio>
                 <ElRadio :value="1">处理中</ElRadio>
@@ -348,11 +329,11 @@
                 <ElRadio :value="3">已关闭</ElRadio>
               </ElRadioGroup>
             </div>
-            <div class="process-field">
-              <label class="process-label">回复内容</label>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-(--el-text-color-primary)">回复内容</label>
               <FaWangEditor
                 :model-value="formData.reply_content ?? ''"
-                height="min(38vh, 280px)"
+                height="min(18vh, 280px)"
                 placeholder="请输入回复内容..."
                 :exclude-keys="[]"
                 @update:model-value="(v: string) => (formData.reply_content = v)"
@@ -381,6 +362,7 @@ import type { FormItem } from "@/components/forms/fa-form/index.vue";
 import {
   ElTag,
   ElButton,
+  ElCard,
   ElIcon,
   ElDropdown,
   ElDropdownMenu,
@@ -399,13 +381,12 @@ import DOMPurify from "dompurify";
 import FaForm from "@/components/forms/fa-form/index.vue";
 import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
 import FaDescriptions from "@/components/others/fa-descriptions/index.vue";
+import FaCardGrid from "@/components/cards/fa-card-grid/index.vue";
 
 defineOptions({
   name: "TicketCard",
   inheritAttrs: false,
 });
-
-const { hasAuth } = useAuth();
 
 // ─── 搜索表单 ───
 type TicketSearchForm = {
@@ -425,19 +406,19 @@ const searchForm = ref<TicketSearchForm>({
 });
 const showSearchBar = ref(true);
 
-const statusOptions = ref([
-  { label: "待处理", value: "0" },
-  { label: "处理中", value: "1" },
-  { label: "已完成", value: "2" },
-  { label: "已关闭", value: "3" },
-]);
+const STATUS_OPTIONS = [
+  { label: "待处理", value: 0 },
+  { label: "处理中", value: 1 },
+  { label: "已完成", value: 2 },
+  { label: "已关闭", value: 3 },
+] as const;
 
-const ticketTypeSearchOptions = ref([
+const TICKET_TYPE_OPTIONS = [
   { label: "💡 建议", value: "suggestion" },
   { label: "🐛 缺陷", value: "bug" },
   { label: "⚡ 优化", value: "optimize" },
   { label: "📋 其他", value: "other" },
-]);
+] as const;
 
 const ticketSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -454,7 +435,7 @@ const ticketSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择类型",
-      options: ticketTypeSearchOptions.value,
+      options: TICKET_TYPE_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -465,7 +446,7 @@ const ticketSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -513,9 +494,14 @@ async function fetchData() {
   }
 }
 
-function onPaginationChange({ page, limit }: { page: number; limit: number }) {
+function onPageSizeChange(size: number) {
+  pageSize.value = size;
+  pageNo.value = 1;
+  fetchData();
+}
+
+function onPageCurrentChange(page: number) {
   pageNo.value = page;
-  pageSize.value = limit;
   fetchData();
 }
 
@@ -546,6 +532,28 @@ async function onResetSearch() {
 }
 
 // ─── 类型/状态辅助 ───
+const TYPE_ICONS: Record<string, string> = {
+  suggestion: "ri:lightbulb-line",
+  bug: "ri:bug-line",
+  optimize: "ri:rocket-line",
+  other: "ri:file-list-3-line",
+};
+
+const TYPE_ICON_CLASSES: Record<string, string> = {
+  suggestion: "text-(--el-color-warning) bg-(--el-color-warning-light-9)",
+  bug: "text-(--el-color-danger) bg-(--el-color-danger-light-9)",
+  optimize: "text-(--el-color-success) bg-(--el-color-success-light-9)",
+  other: "text-(--el-color-info) bg-(--el-color-info-light-9)",
+};
+
+function typeIcon(t: string) {
+  return TYPE_ICONS[t] || TYPE_ICONS.other;
+}
+
+function typeIconClass(t: string) {
+  return TYPE_ICON_CLASSES[t] || TYPE_ICON_CLASSES.other;
+}
+
 const TYPE_MAP: Record<string, string> = {
   suggestion: "建议",
   bug: "缺陷",
@@ -553,64 +561,34 @@ const TYPE_MAP: Record<string, string> = {
   other: "其他",
 };
 
-const STATUS_MAP: Record<string, string> = {
-  "0": "待处理",
-  "1": "处理中",
-  "2": "已完成",
-  "3": "已关闭",
+const STATUS_MAP: Record<number, string> = {
+  0: "待处理",
+  1: "处理中",
+  2: "已完成",
+  3: "已关闭",
 };
 
 function typeLabel(t: string) {
-  return TYPE_MAP[t] || t;
+  return TYPE_MAP[t] || t || "其他";
 }
-function statusLabel(s: string) {
-  return STATUS_MAP[s] || s;
+function statusLabel(s: number) {
+  return STATUS_MAP[s] || String(s);
 }
 function typeTag(t: string): any {
   return { suggestion: "success", bug: "danger", optimize: "warning", other: "info" }[t] || "info";
 }
 function statusTagType(s: string): "warning" | "info" | "success" | "danger" | undefined {
-  const map: Record<string, "warning" | "info" | "success" | "danger"> = {
-    "0": "warning",
-    "1": "info",
-    "2": "success",
-    "3": "info",
+  const map: Record<number, "warning" | "info" | "success" | "danger"> = {
+    0: "warning",
+    1: "info",
+    2: "success",
+    3: "info",
   };
-  return map[s];
+  return map[Number(s)];
 }
-function typeIcon(t: string): string {
-  return (
-    {
-      suggestion: "ri:lightbulb-line",
-      bug: "ri:bug-line",
-      optimize: "ri:rocket-line",
-      other: "ri:file-list-3-line",
-    }[t] || "ri:file-list-3-line"
-  );
-}
-function typeIconClass(t: string): string {
-  return (
-    {
-      suggestion: "icon-bg-warning",
-      bug: "icon-bg-danger",
-      optimize: "icon-bg-success",
-      other: "icon-bg-info",
-    }[t] || "icon-bg-info"
-  );
-}
-function contentSummary(html?: string): string {
-  if (!html) return "暂无内容";
-  const plain = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return plain.length > 120 ? plain.slice(0, 120) + "…" : plain || "暂无内容";
-}
+
 function showCardMore(row: TicketTable): boolean {
-  return (
-    (hasAuth("module_system:ticket:update") && row.status! < 3) ||
-    hasAuth("module_system:ticket:delete")
-  );
+  return row.status! < 3;
 }
 
 // ─── 多选 ───
@@ -765,19 +743,13 @@ const ticketDialogFormItems = computed<FormItem[]>(() => [
     props: { placeholder: "请选择类型", clearable: true },
   },
   {
-    label: "状态",
-    key: "status",
+    label: "处理人",
+    key: "assigned_id",
     type: "input",
     span: 12,
     placeholder: "",
   },
-  {
-    label: "处理人",
-    key: "assigned_id",
-    type: "input",
-    span: 24,
-    placeholder: "",
-  },
+  { key: "status", label: "状态", type: "radiogroup", span: 24 },
   {
     label: "详细描述",
     key: "ticket_content",
@@ -885,414 +857,3 @@ async function handleSubmitComment() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-.fa-full-height {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.ticket-skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.ticket-scroll {
-  flex: 1;
-  min-height: 0;
-  margin-top: 16px;
-}
-
-.ticket-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.ticket-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 20px;
-  overflow: hidden;
-  transition:
-    box-shadow 0.3s,
-    transform 0.25s;
-
-  &:hover {
-    box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
-    transform: translateY(-3px);
-  }
-
-  &.status-0 {
-    border-left: 3px solid var(--el-color-warning);
-  }
-
-  &.status-1 {
-    border-left: 3px solid var(--el-color-info);
-  }
-
-  &.status-2 {
-    border-left: 3px solid var(--el-color-success);
-  }
-
-  &.status-3 {
-    border-left: 3px solid var(--el-border-color);
-  }
-
-  .card-header {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .card-icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    border-radius: 10px;
-
-    &.icon-bg-default {
-      color: var(--el-text-color-secondary);
-      background: var(--el-fill-color);
-    }
-
-    &.icon-bg-warning {
-      color: var(--el-color-warning);
-      background: var(--el-color-warning-light-9);
-    }
-
-    &.icon-bg-success {
-      color: var(--el-color-success);
-      background: var(--el-color-success-light-9);
-    }
-
-    &.icon-bg-info {
-      color: var(--el-color-info);
-      background: var(--el-color-info-light-9);
-    }
-
-    &.icon-bg-danger {
-      color: var(--el-color-danger);
-      background: var(--el-color-danger-light-9);
-    }
-  }
-
-  .card-title-group {
-    display: flex;
-    flex: 1;
-    gap: 8px;
-    align-items: center;
-    min-width: 0;
-  }
-
-  .card-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    white-space: nowrap;
-  }
-
-  .card-desc {
-    display: -webkit-box;
-    min-height: calc(13px * 1.6 * 2);
-    margin: 0 0 12px;
-    overflow: hidden;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--el-text-color-secondary);
-    -webkit-box-orient: vertical;
-  }
-
-  .card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 14px;
-  }
-
-  .tag-assignee {
-    display: inline-flex;
-    gap: 4px;
-    align-items: center;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-
-  .tag-unassigned {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-  }
-
-  .tag-replied {
-    display: inline-flex;
-    gap: 4px;
-    align-items: center;
-    font-size: 12px;
-    color: var(--el-color-primary);
-  }
-
-  .card-footer {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 12px;
-    margin-top: auto;
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
-
-  .footer-meta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    white-space: nowrap;
-  }
-
-  .footer-actions {
-    display: flex;
-    flex-shrink: 0;
-    gap: 4px;
-    align-items: center;
-  }
-
-  .more-btn {
-    padding: 2px 4px;
-    font-size: 16px;
-  }
-}
-
-.ticket-pagination {
-  flex-shrink: 0;
-  padding-top: 16px;
-}
-
-/* ─── 富文本预览样式 ─── */
-.ticket-html-preview {
-  box-sizing: border-box;
-  min-height: 120px;
-  max-height: min(360px, 45vh);
-  background-color: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: calc(var(--custom-radius) / 3 + 2px);
-}
-
-.ticket-html-empty {
-  margin: 0;
-  font-size: 14px;
-  color: var(--el-text-color-placeholder);
-}
-
-/* ─── 处理工单面板 ─── */
-.ticket-process-panel {
-  display: flex;
-  flex-direction: column;
-  max-height: 75vh;
-  overflow-y: auto;
-}
-
-.ticket-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 4px 0;
-}
-
-.ticket-info-header {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.ticket-info-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.ticket-process-content {
-  min-height: 120px;
-  padding: 12px;
-  background-color: var(--el-fill-color-lighter);
-  border-radius: calc(var(--custom-radius) / 3 + 2px);
-}
-
-.ticket-process-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 4px 0;
-}
-
-.process-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.process-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.ticket-html-preview :deep(h1),
-.ticket-html-preview :deep(h2),
-.ticket-html-preview :deep(h3) {
-  margin: 12px 0 8px;
-}
-
-.ticket-html-preview :deep(p) {
-  margin: 8px 0;
-  line-height: 1.6;
-}
-
-.ticket-html-preview :deep(table) {
-  margin: 12px 0;
-}
-
-.ticket-html-preview :deep(table th),
-.ticket-html-preview :deep(table td) {
-  padding: 8px 12px;
-}
-
-.ticket-html-preview :deep(pre) {
-  padding: 12px;
-  margin: 12px 0;
-  overflow-x: auto;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
-}
-
-.ticket-html-preview :deep(blockquote) {
-  padding-left: 16px;
-  margin: 12px 0;
-  color: var(--el-text-color-regular);
-  border-left: 4px solid var(--el-color-primary);
-}
-
-.ticket-html-preview :deep(img) {
-  max-width: 100%;
-  height: auto;
-}
-
-/* ─── 评论区 ─── */
-.comment-divider-title {
-  display: inline-flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.comment-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 400px;
-}
-
-.comment-list-scroll {
-  padding: 0 4px;
-}
-
-.comment-loading {
-  padding: 12px 0;
-}
-
-.comment-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.comment-avatar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border-radius: 50%;
-}
-
-.comment-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.comment-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.comment-author {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.comment-time {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.comment-content {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--el-text-color-regular);
-  overflow-wrap: anywhere;
-}
-
-.comment-content :deep(p) {
-  margin: 4px 0;
-}
-
-.comment-content :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-}
-
-.comment-input-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding-top: 8px;
-  border-top: 1px solid var(--el-border-color-lighter);
-
-  .el-textarea {
-    flex: 1;
-  }
-
-  .el-button {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-}
-</style>

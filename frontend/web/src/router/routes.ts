@@ -1,39 +1,34 @@
 /**
- * 静态路由定义 + IframeRouteManager。
+ * 静态路由定义
  *
  * 静态路由 = 首屏即注册的路由（Layout、登录页、404/500、iframe 占位等），
  * 不依赖菜单权限，用户未登录时即可访问。
  *
- * 动态路由由 `beforeEach.ts` → `RouteRegistry` 在登录后根据不同角色的菜单列表动态 `addRoute`。
+ * 动态路由由 `guards.ts` → `RouteRegistry` 在登录后根据不同角色的菜单列表动态 `addRoute`。
+ *
+ * @module router/routes
  */
 import type { AppRouteRecordRaw } from "@utils";
 import type { AppRouteRecord, RouteMeta } from "@/types/router";
 import { defineComponent, h, onMounted, ref } from "vue";
-import type { RouteRecordRaw } from "vue-router";
 import { RouterView, useRoute } from "vue-router";
 import { $t } from "@/locales";
 
-/** 首页 / 仪表盘父级 meta（侧栏、静态子路由共用） */
-export const HOME_MENU_META: RouteMeta = {
-  title: "menus.home.title",
-  icon: "ri:home-smile-2-line",
-  keepAlive: true,
-  fixedTab: true,
-};
+// ──────── IframeRouteManager ────────
 
-export const DASHBOARD_PARENT_META: RouteMeta = {
-  title: "menus.dashboard.title",
-  icon: "ri:pie-chart-line",
-  alwaysShow: true,
-};
-
-/** iframe 路由注册表（与动态路由、守卫共用） */
+/**
+ * iframe 路由管理器（单例）
+ *
+ * 登录后将所有 iframe 路由存入 sessionStorage，F5 刷新后恢复。
+ * IframeView 组件挂载时通过 findByPath 获取 iframe URL。
+ */
 export class IframeRouteManager {
   private static instance: IframeRouteManager;
   private iframeRoutes: AppRouteRecord[] = [];
 
   private constructor() {}
 
+  /** 获取单例实例 */
   static getInstance(): IframeRouteManager {
     if (!IframeRouteManager.instance) {
       IframeRouteManager.instance = new IframeRouteManager();
@@ -41,30 +36,36 @@ export class IframeRouteManager {
     return IframeRouteManager.instance;
   }
 
+  /** 记录一个 iframe 路由（去重） */
   add(route: AppRouteRecord): void {
     if (!this.iframeRoutes.find((r) => r.path === route.path)) {
       this.iframeRoutes.push(route);
     }
   }
 
+  /** 获取全部 iframe 路由 */
   getAll(): AppRouteRecord[] {
     return this.iframeRoutes;
   }
 
+  /** 按路径查找（IframeView 组件挂载时用） */
   findByPath(path: string): AppRouteRecord | undefined {
     return this.iframeRoutes.find((route) => route.path === path);
   }
 
+  /** 清空所有（退出登录时调用） */
   clear(): void {
     this.iframeRoutes = [];
   }
 
+  /** 存入 sessionStorage（登录后动态路由注册完成时调用） */
   save(): void {
     if (this.iframeRoutes.length > 0) {
       sessionStorage.setItem("iframeRoutes", JSON.stringify(this.iframeRoutes));
     }
   }
 
+  /** 从 sessionStorage 恢复（F5 刷新后调用） */
   load(): void {
     try {
       const data = sessionStorage.getItem("iframeRoutes");
@@ -78,13 +79,58 @@ export class IframeRouteManager {
   }
 }
 
-/** 根 Layout 的 route.name；动态路由 `addRoute` 父级须与此一致 */
+// ──────── 壳层常量 ────────
+
+/** 首页菜单配置（图标、缓存、固定标签） */
+export const HOME_MENU_META: RouteMeta = {
+  title: "menus.home.title",
+  icon: "ri:home-smile-2-line",
+  keepAlive: true,
+  fixedTab: true,
+};
+
+/** 仪表盘父菜单配置 */
+export const DASHBOARD_PARENT_META: RouteMeta = {
+  title: "menus.dashboard.title",
+  icon: "ri:pie-chart-line",
+  alwaysShow: true,
+};
+
+/** Dashboard 静态子路由（唯一数据源，壳层补全和静态路由共用） */
+export const dashboardLayoutChildren: AppRouteRecordRaw[] = [
+  {
+    path: "workplace",
+    name: "DashboardWorkplace",
+    component: () => import("@views/dashboard/workplace/index.vue"),
+    meta: { title: "menus.dashboard.workplace", icon: "ri:bar-chart-box-line", keepAlive: true },
+  },
+  {
+    path: "analysis",
+    name: "DashboardAnalysis",
+    component: () => import("@views/dashboard/analysis/index.vue"),
+    meta: {
+      title: "menus.dashboard.analysis",
+      icon: "ri:align-item-bottom-line",
+      keepAlive: false,
+    },
+  },
+  {
+    path: "screen",
+    name: "DashboardScreen",
+    component: () => import("@views/dashboard/screen/index.vue"),
+    meta: { title: "数据大屏", icon: "ri:tv-line", keepAlive: false, hidden: false },
+  },
+];
+
+// ──────── 路由常量 ────────
+
+/** 动态路由 addRoute 的父级 name（必须和静态路由 / 的 name 一致） */
 export const ROOT_LAYOUT_ROUTE_NAME = "RootLayout" as const;
 
-/** 静态首页子路由 name（面包屑等） */
+/** 首页子路由 name（面包屑组件会用） */
 export const HOME_ROUTE_NAME = "Home" as const;
 
-/** 目录占位：仅嵌一层 RouterView（与 ComponentLoader 中占位同源） */
+/** 纯 RouterView 占位组件 —— 多级目录只需要嵌一层，不需要实际页面 */
 export const NestedRouterParent = defineComponent({
   name: "NestedRouterParent",
   setup() {
@@ -92,22 +138,21 @@ export const NestedRouterParent = defineComponent({
   },
 });
 
-/** 后端菜单 / 动态路由里 `component` 占位（与 ComponentLoader 约定一致） */
+/** 后端菜单中 component: "/index/index" = 使用 Layout 框架 */
 export const ROUTE_COMPONENT_LAYOUT = "/index/index";
 
-/** 多级目录父级占位（`views/nested/router-view-parent`） */
+/** 多级目录父级占位 component */
 export const ROUTE_COMPONENT_NESTED_PARENT = "/nested/router-view-parent";
 
-/** 登录页备用 path（与静态 `/login` 并存，守卫与白名单用） */
+/** 登录页的备用 path（守卫判断用） */
 export const ROUTE_PATH_LOGIN_ALT = "/auth/login";
 
-/**
- * 主框架布局：新版 art 体系（`src/layouts/index.vue` + `src/layouts/fa-*` 组件）。
- * 旧版 Left/Top/Mix 壳子已移除，统一使用 `@/layouts/index.vue`。
- */
+/** 主框架 Layout 懒加载 */
 export const Layout = () => import("@/layouts/index.vue");
 
-/** iframe 内跳页面：内联组件（无需 views/outside/Iframe.vue） */
+// ──────── IframeView 组件 ────────
+
+/** iframe 子路由的 Vue 组件 —— 从 IframeRouteManager 获取链接，加载时显示 loading */
 const IframeView = defineComponent({
   name: "IframeView",
   setup() {
@@ -140,181 +185,17 @@ const IframeView = defineComponent({
   },
 });
 
-/**
- * `/dashboard` 下静态子路由（唯一数据源）。
- * 下方壳层菜单合并函数由此剥离 `component` 生成侧栏补全菜单。
- */
-export const dashboardLayoutChildren: AppRouteRecordRaw[] = [
-  {
-    path: "workplace",
-    name: "DashboardWorkplace",
-    component: () => import("@views/dashboard/workplace/index.vue"),
-    meta: {
-      title: "menus.dashboard.workplace",
-      icon: "ri:bar-chart-box-line",
-      keepAlive: true,
-    },
-  },
-  {
-    path: "analysis",
-    name: "DashboardAnalysis",
-    component: () => import("@views/dashboard/analysis/index.vue"),
-    meta: {
-      title: "menus.dashboard.analysis",
-      icon: "ri:align-item-bottom-line",
-      keepAlive: false,
-    },
-  },
-  {
-    path: "screen",
-    name: "DashboardScreen",
-    component: () => import("@views/dashboard/screen/index.vue"),
-    meta: {
-      title: "数据大屏",
-      icon: "ri:tv-line",
-      keepAlive: false,
-      hidden: false,
-    },
-  },
-];
-
-// -----------------------------------------------------------------------------
-// 静态壳层菜单：后端未下发 /home、/dashboard 时补全侧栏；混合模式路由按 name 去重合并
-
-export const mergeShellHomeMenu: AppRouteRecord = {
-  path: "/home",
-  name: "Home",
-  meta: { ...HOME_MENU_META, shellRoute: true },
-};
-
-/** 去掉组件与 redirect，供侧栏合并（菜单节点不需要懒加载引用） */
-function stripRouteRecordForShell(route: RouteRecordRaw): AppRouteRecord {
-  const children = route.children?.map(stripRouteRecordForShell);
-  return {
-    path: route.path,
-    name: route.name,
-    meta: (route.meta ?? {}) as AppRouteRecord["meta"],
-    ...(children?.length ? { children } : {}),
-  } as AppRouteRecord;
-}
-
-export function getDashboardMenuTreeForMerge(): AppRouteRecord {
-  return {
-    name: "Dashboard",
-    path: "/dashboard",
-    meta: DASHBOARD_PARENT_META,
-    children: dashboardLayoutChildren.map(stripRouteRecordForShell),
-  };
-}
-
-export function mergeAppRouteRecords(
-  primary: AppRouteRecord[],
-  secondary: AppRouteRecord[]
-): AppRouteRecord[] {
-  const usedNames = new Set<string>();
-
-  const collectNames = (routes: AppRouteRecord[]) => {
-    for (const r of routes) {
-      if (r.name) usedNames.add(String(r.name));
-      if (r.children?.length) collectNames(r.children);
-    }
-  };
-  collectNames(primary);
-
-  const pickFresh = (routes: AppRouteRecord[]): AppRouteRecord[] => {
-    const out: AppRouteRecord[] = [];
-    for (const r of routes) {
-      const n = r.name ? String(r.name) : "";
-      if (n && usedNames.has(n)) continue;
-      const next: AppRouteRecord = { ...r };
-      if (r.children?.length) {
-        next.children = pickFresh(r.children);
-      }
-      if (n) usedNames.add(n);
-      out.push(next);
-    }
-    return out;
-  };
-
-  return [...primary, ...pickFresh(secondary)];
-}
-
-function normalizeMenuPath(path?: string): string {
-  if (!path || !path.trim()) return "";
-  const p = path.trim();
-  return p.startsWith("/") ? p : `/${p}`;
-}
-
-function collectPathsAndNames(items: AppRouteRecord[], paths: Set<string>, names: Set<string>) {
-  for (const r of items) {
-    const np = normalizeMenuPath(r.path as string);
-    if (np) paths.add(np);
-    if (r.name) names.add(String(r.name));
-    if (r.children?.length) collectPathsAndNames(r.children, paths, names);
-  }
-}
-
-function dashboardRoutesToShellMenu(route: AppRouteRecord, parentAbs = ""): AppRouteRecord {
-  const raw = route.path?.trim() ?? "";
-  const fullPath =
-    raw.startsWith("/") && raw !== "/"
-      ? raw
-      : parentAbs
-        ? `${parentAbs.replace(/\/$/, "")}/${raw.replace(/^\/+/, "")}`
-        : `/${raw.replace(/^\/+/, "")}`;
-  const meta = { ...route.meta, shellRoute: true as const };
-  const children = route.children?.map((c) => dashboardRoutesToShellMenu(c, fullPath));
-  return {
-    ...route,
-    path: fullPath,
-    meta,
-    children,
-    component: undefined,
-    redirect: undefined,
-  };
-}
-
-export function mergeShellRoutesIntoMenu(menuList: AppRouteRecord[]): AppRouteRecord[] {
-  const paths = new Set<string>();
-  const names = new Set<string>();
-  collectPathsAndNames(menuList, paths, names);
-
-  const additions: AppRouteRecord[] = [];
-
-  const tryPush = (item: AppRouteRecord) => {
-    const p = normalizeMenuPath(item.path as string);
-    const n = item.name ? String(item.name) : "";
-    if (p && !paths.has(p) && (!n || !names.has(n))) {
-      additions.push(item);
-      if (p) paths.add(p);
-      if (n) names.add(n);
-      if (item.children?.length) {
-        collectPathsAndNames(item.children, paths, names);
-      }
-    }
-  };
-
-  tryPush(mergeShellHomeMenu);
-
-  if (!paths.has("/dashboard")) {
-    tryPush(dashboardRoutesToShellMenu(getDashboardMenuTreeForMerge()));
-  }
-
-  if (additions.length === 0) return menuList;
-  return [...additions, ...menuList];
-}
+// ──────── 静态路由配置 ────────
 
 /**
  * 静态路由配置（不需要权限就能访问的路由）
- *
- * 属性说明：
- * isHideTab: true 表示不在标签页中显示
  *
  * 注意事项：
  * 1、path、name 不要和动态路由冲突，否则会导致路由冲突无法访问
  * 2、静态路由不管是否登录都可以访问
  */
 export const staticRoutes: AppRouteRecordRaw[] = [
+  // 重定向中转页
   {
     path: "/redirect",
     meta: { hidden: true },
@@ -326,13 +207,14 @@ export const staticRoutes: AppRouteRecordRaw[] = [
       },
     ],
   },
+  // 登录页
   {
     path: "/login",
     name: "Login",
     meta: { hidden: true, isHideTab: true, title: "menus.login.title" },
     component: () => import("@views/module_system/auth/login/index.vue"),
   },
-  /** 无 Layout 全屏异常页；守卫与白名单跳转使用（勿再在 RootLayout 下重复挂载同组件） */
+  // 异常页
   {
     path: "/401",
     name: "401",
@@ -357,20 +239,19 @@ export const staticRoutes: AppRouteRecordRaw[] = [
     meta: { hidden: true, title: "500" },
     component: () => import("@views/exception/500/index.vue"),
   },
+  // 根 Layout：存放壳层路由（home/dashboard/fastlink）
   {
     path: "/",
     name: ROOT_LAYOUT_ROUTE_NAME,
     redirect: "/home",
     component: Layout,
     children: [
-      /** 首页（侧栏补入逻辑见同文件 `mergeShellRoutesIntoMenu`） */
       {
         path: "home",
         name: HOME_ROUTE_NAME,
         component: () => import("@views/dashboard/home/index.vue"),
         meta: HOME_MENU_META,
       },
-      /** 仪表盘子路由定义见同文件导出的 `dashboardLayoutChildren` */
       {
         path: "dashboard",
         name: "Dashboard",
@@ -379,7 +260,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
         meta: DASHBOARD_PARENT_META,
         children: dashboardLayoutChildren,
       },
-      /** 快速链接：统一父级，不在菜单中展示，通过 URL 或 fastEnter 直接访问 */
+      // 隐藏的壳层路由：个人中心、更新日志、定价、教程、AI 聊天
       {
         path: "fastlink",
         name: "Fastlink",
@@ -400,6 +281,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               icon: "ri:draft-line",
               hidden: true,
               keepAlive: true,
+              isHideTab: true,
             },
             component: () => import("@views/fastlink/changelog/index.vue"),
           },
@@ -411,6 +293,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               icon: "ri:money-cny-box-line",
               hidden: true,
               keepAlive: true,
+              isHideTab: true,
             },
             component: () => import("@views/fastlink/pricing/index.vue"),
           },
@@ -422,6 +305,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               icon: "ri:book-2-line",
               hidden: true,
               keepAlive: true,
+              isHideTab: true,
             },
             component: () => import("@views/fastlink/tutorial/index.vue"),
           },
@@ -433,6 +317,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
               icon: "ri:message-3-line",
               hidden: true,
               keepAlive: true,
+              isHideTab: true,
             },
             component: () => import("@views/fastlink/fachat/index.vue"),
           },
@@ -440,6 +325,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
       },
     ],
   },
+  // iframe 外部链接
   {
     path: "/outside",
     component: () => import("@/layouts/index.vue"),
@@ -454,7 +340,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
       },
     ],
   },
-  // 通配 404 必须置于静态路由最后（name 勿与上方 `/404` 重复，否则按名跳转不稳定）
+  // 兜底 404（必须放最后）
   {
     path: "/:pathMatch(.*)*",
     name: "CatchAll404",

@@ -44,7 +44,7 @@ import type { LocationQueryRaw, Router } from "vue-router";
 import type { WorkTab } from "@/types/store";
 
 import { useCommon } from "@/hooks/core/useCommon";
-import { ROUTE_PATH_LOGIN_ALT } from "@/router/staticRoutes";
+import { ROUTE_PATH_LOGIN_ALT } from "@/router/routes";
 
 interface WorktabState {
   current: Partial<WorkTab>;

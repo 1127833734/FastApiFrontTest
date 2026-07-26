@@ -83,6 +83,8 @@ export const useConfigStore = defineStore(
 
         isConfigLoaded.value = true;
         _lastFetchedAt = Date.now();
+      } catch (error) {
+        console.warn("[configStore] 获取配置失败:", error);
       } finally {
         configLoading.value = false;
       }
@@ -96,7 +98,11 @@ export const useConfigStore = defineStore(
     };
   },
   {
-    persist: true,
+    persist: {
+      key: "config",
+      storage: localStorage,
+      pick: ["configData", "isConfigLoaded"],
+    },
   }
 );
 

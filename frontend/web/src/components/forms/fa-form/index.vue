@@ -197,7 +197,6 @@
  *
  * @see SearchFormItem 接口定义
  */
-import { useWindowSize } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { type Component } from "vue";
 import FaDatePicker from "@/components/forms/fa-search-bar/FaDatePicker.vue";
@@ -255,10 +254,7 @@ const componentMap = {
   treeselect: ElTreeSelect, // 树选择器
 };
 
-const { width } = useWindowSize();
 const { t } = useI18n();
-const isMobile = computed(() => width.value < 500); // 表单窄布局阈值
-
 const formInstance = useTemplateRef<FormInstance>("formRef");
 
 // 表单项配置
@@ -291,7 +287,7 @@ export interface FormItem {
 // 表单配置
 interface Props {
   /** 表单数据 */
-  items: FormItem[];
+  items?: FormItem[];
   /** 每列的宽度（基于 24 格布局） */
   span?: number;
   /** 表单控件间隙 */
@@ -300,7 +296,7 @@ interface Props {
   labelPosition?: "left" | "right" | "top";
   /** 文字宽度 */
   labelWidth?: string | number;
-  /** 按钮靠左对齐限制（表单项小于等于该值时） */
+  /** 可见表单项少时按钮左对齐，该值控制对齐方式切换阈值 */
   buttonLeftLimit?: number;
   /** 是否显示重置按钮 */
   showReset?: boolean;
@@ -316,6 +312,7 @@ interface Props {
   scrollbar?: boolean;
   /** ElScrollbar 最大高度 */
   maxHeight?: string;
+  /** 表单校验规则（通过 $attrs 透传至 ElForm） */
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -325,8 +322,8 @@ const props = withDefaults(defineProps<Props>(), {
   labelPosition: "right",
   labelWidth: "70px",
   buttonLeftLimit: 2,
-  showReset: true,
-  showSubmit: true,
+  showReset: false,
+  showSubmit: false,
   disabledSubmit: false,
   loading: false,
   sanitizeOutput: () => ({}),
@@ -459,13 +456,12 @@ const visibleFormItems = computed(() => {
 /**
  * 操作按钮样式
  */
-const actionButtonsStyle = computed(() => ({
-  "justify-content": isMobile.value
-    ? "flex-end"
-    : props.items.filter((item) => !item.hidden).length <= props.buttonLeftLimit
-      ? "flex-start"
-      : "flex-end",
-}));
+const actionButtonsStyle = computed(() => {
+  if (visibleFormItems.value.length <= props.buttonLeftLimit) {
+    return { justifyContent: "flex-start" as const };
+  }
+  return undefined;
+});
 
 /**
  * 处理重置事件

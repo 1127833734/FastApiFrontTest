@@ -43,11 +43,11 @@
         <ElTabs v-model="activeTab" @tab-click="handleTabClick">
           <ElTabPane label="SVG 图标" name="svg">
             <ElScrollbar height="300px">
-              <ul class="icon-grid">
+              <ul class="flex flex-wrap">
                 <li
                   v-for="icon in filteredSvgIcons"
                   :key="'svg-' + icon"
-                  class="icon-grid-item"
+                  class="p-2 m-1 cursor-pointer border border-(--el-border-color) rounded transition-all duration-300 hover:border-(--el-color-primary) hover:scale-120"
                   @click="selectIcon(icon)"
                 >
                   <ElTooltip :content="icon" placement="bottom" effect="light">
@@ -59,11 +59,11 @@
           </ElTabPane>
           <ElTabPane label="Element 图标" name="element">
             <ElScrollbar height="300px">
-              <ul class="icon-grid">
+              <ul class="flex flex-wrap">
                 <li
                   v-for="icon in filteredElementIcons"
                   :key="icon"
-                  class="icon-grid-item flex-cc"
+                  class="flex-cc p-2 m-1 cursor-pointer border border-(--el-border-color) rounded transition-all duration-300 hover:border-(--el-color-primary) hover:scale-120"
                   @click="selectIcon(icon)"
                 >
                   <ElIcon>
@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: "FaIconSelect" });
+import { CircleClose, ArrowDown } from "@element-plus/icons-vue";
 import {
   listLocalIconBasenames,
   isIconifyStoredIcon,
@@ -90,12 +91,12 @@ import {
 
 interface Props {
   modelValue?: string;
-  width?: string;
+  width?: string | number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: "",
-  width: "500px",
+  width: 500,
 });
 
 interface Emits {
@@ -198,29 +199,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped lang="scss">
-.reference :deep(.el-input__wrapper),
-.reference :deep(.el-input__inner) {
-  cursor: pointer;
-}
-
-.icon-grid {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.icon-grid-item {
-  padding: 8px;
-  margin: 4px;
-  cursor: pointer;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.icon-grid-item:hover {
-  border-color: var(--el-color-primary);
-  transform: scale(1.2);
-}
-</style>

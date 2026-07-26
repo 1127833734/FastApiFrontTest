@@ -61,15 +61,12 @@
                     <ElIcon class="more-icon" @click.stop><MoreFilled /></ElIcon>
                     <template #dropdown>
                       <ElDropdownMenu>
-                        <ElDropdownItem v-hasPerm="['module_ai:chat:update']" command="rename"
-                          >重命名</ElDropdownItem
-                        >
-                        <ElDropdownItem
-                          v-hasPerm="['module_ai:chat:delete']"
-                          command="delete"
-                          divided
-                          >删除</ElDropdownItem
-                        >
+                        <div v-hasPerm="['module_ai:chat:update']" style="display: contents">
+                          <ElDropdownItem command="rename">重命名</ElDropdownItem>
+                        </div>
+                        <div v-hasPerm="['module_ai:chat:delete']" style="display: contents">
+                          <ElDropdownItem command="delete" divided>删除</ElDropdownItem>
+                        </div>
                       </ElDropdownMenu>
                     </template>
                   </ElDropdown>

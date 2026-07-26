@@ -31,12 +31,3 @@ interface Emits {
 
 defineEmits<Emits>();
 </script>
-
-<style scoped lang="scss">
-.login-auth-link-row {
-  :deep(.el-link),
-  :deep(.el-link__inner) {
-    line-height: inherit;
-  }
-}
-</style>

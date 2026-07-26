@@ -9,7 +9,7 @@ dist-ssr
 # Auto-generated files
 src/types/auto-imports.d.ts
 src/types/components.d.ts
-eslint-globals.json
+.eslintrc-auto-import.json
 
 # Editor directories and files
 .idea

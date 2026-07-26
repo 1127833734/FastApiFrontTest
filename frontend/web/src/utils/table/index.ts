@@ -15,14 +15,16 @@
  * @see TableCache 实现
  */
 
-import { h } from "vue";
-import type { VNode } from "vue";
+import { computed, h } from "vue";
+import type { Ref, VNode } from "vue";
 
 import { hash } from "ohash";
 import { MOBILE_BREAKPOINT } from "@/utils/constants/definitions";
+import { checkPerm } from "@/utils/checkPerm";
 import FaButtonMore from "@/components/forms/fa-button-more/index.vue";
-import type { ButtonMoreItem } from "@/components/forms/fa-button-more/types";
 import FaButtonTable from "@/components/forms/fa-button-table/index.vue";
+import type { ColumnOption } from "@/types/component";
+import { ButtonMoreItem } from "@/components/forms/fa-button-more/types";
 
 // --- 全局分页字段名（与 PageQuery 对齐） ---
 
@@ -524,6 +526,9 @@ export function renderTableOperationCell(
   actions: TableOperationAction[],
   options?: RenderTableOperationCellOptions
 ): VNode {
+  // 按权限过滤操作按钮
+  const permittedActions = actions.filter((a) => checkPerm(a.perm));
+
   // H5（< 768px）全部收进「更多」下拉菜单
   const isMobile = typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
   const maxInline = isMobile ? 0 : (options?.maxInline ?? DEFAULT_MAX_INLINE_TABLE_OPERATIONS);
@@ -531,10 +536,10 @@ export function renderTableOperationCell(
     options?.wrapperClass ?? "inline-flex flex-wrap items-center justify-end gap-1";
   const emptyText = options?.emptyText ?? "—";
 
-  if (actions.length === 0) return h("span", { class: "text-g-400" }, emptyText);
+  if (permittedActions.length === 0) return h("span", { class: "text-g-400" }, emptyText);
 
-  const inline = actions.slice(0, maxInline);
-  const overflow = actions.slice(maxInline);
+  const inline = permittedActions.slice(0, maxInline);
+  const overflow = permittedActions.slice(maxInline);
 
   const inlineNodes = inline.map((a) =>
     h(ElTooltip, { content: a.label, placement: "top" }, () =>
@@ -575,6 +580,25 @@ export function renderTableOperationCell(
   });
 
   return h("div", { class: wrapperClass }, [...inlineNodes, moreDropdown]);
+}
+
+/* ============ 表格列 → 导入/导出列转换 ============ */
+
+/** 将表格列配置转为导入/导出弹窗的列格式（IContentConfig['cols']） */
+export function toCrudCols<T>(
+  columns: Ref<ColumnOption<T>[] | null | undefined> | undefined | null
+) {
+  return computed(() =>
+    (columns?.value ?? []).map((c) => ({
+      prop: c.prop,
+      label: c.label,
+      type:
+        (c as { type?: string }).type === "selection"
+          ? ("selection" as const)
+          : ("default" as const),
+      show: true as const,
+    }))
+  );
 }
 
 /* ============ 状态 Tag 工具 ============ */

@@ -1,59 +1,5 @@
 declare global {
   /**
-   * 系统设置
-   */
-  interface AppSettings {
-    /** 系统名称 */
-    name: string;
-    /** 系统标题 */
-    title: string;
-    /** 系统版本 */
-    version: string;
-    /** 是否显示设置按钮 */
-    showSettings: boolean;
-    /** 是否显示菜单搜索 */
-    showMenuSearch: boolean;
-    /** 是否显示全屏切换 */
-    showFullscreen: boolean;
-    /** 是否显示布局大小 */
-    showSizeSelect: boolean;
-    /** 是否显示语言选择 */
-    showLangSelect: boolean;
-    /** 是否显示通知 */
-    showNotification: boolean;
-    /** 是否显示多标签导航 */
-    showTagsView: boolean;
-    /** 是否显示应用Logo */
-    showAppLogo: boolean;
-    /** 导航栏布局(left|top|mix) */
-    layout: "left" | "top" | "mix";
-    /** 主题颜色 */
-    themeColor: string;
-    /** 主题模式(dark|light) */
-    theme: import("@/enums/settings/theme.enum").ThemeMode;
-    /** 布局大小(default |large |small) */
-    size: string;
-    /** 语言( zh-cn| en) */
-    language: string;
-    /** 是否显示水印 */
-    showWatermark: boolean;
-    /** 水印内容 */
-    watermarkContent: string;
-    /** 侧边栏配色方案 */
-    sidebarColorScheme: "classic-blue" | "minimal-white";
-    /** 项目引导 */
-    guideVisible: boolean;
-    /** 是否启动引导 */
-    showGuide: boolean;
-    /** 是否开启AI助手 */
-    aiEnabled: boolean;
-    /** 是否开启灰色模式 */
-    grayMode: boolean;
-    /** 页面切换动画 */
-    pageSwitchingAnimation: string;
-  }
-
-  /**
    * 下拉选项数据类型
    */
   interface OptionType {
@@ -88,17 +34,6 @@ declare global {
     msg: string;
     status_code: number;
     success: boolean;
-  }
-
-  /**
-   * web 目前以真实接口模块导出的类型为准，这里先提供最小声明避免 vue-tsc 阻断。
-   */
-  namespace Api {
-    namespace Auth {
-      interface UserInfo {
-        [key: string]: unknown;
-      }
-    }
   }
 
   /**
@@ -253,115 +188,6 @@ declare global {
   type Environment = "dev" | "prod" | "test";
   /** 弹窗类型 */
   type DialogType = "add" | "edit";
-
-  /**
-   * 登录参数
-   */
-  interface LoginParams {
-    username: string;
-    password: string;
-    captcha_key?: string;
-    captcha?: string;
-    remember?: boolean;
-    login_type?: string;
-  }
-
-  /**
-   * 登录响应
-   */
-  interface LoginResponse {
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
-    expires_in: number;
-  }
-
-  /**
-   * 用户信息
-   */
-  interface UserInfo {
-    user_id: number;
-    username: string;
-    nickname?: string;
-    email?: string;
-    avatar?: string;
-    phone?: string;
-    roles?: RoleInfo[];
-    permissions?: string[];
-    menus?: MenuTable[];
-    created_at?: string;
-    updated_at?: string;
-  }
-
-  /**
-   * 角色信息
-   */
-  interface RoleInfo {
-    id?: number;
-    name?: string;
-    code?: string;
-    menus?: any[];
-  }
-
-  /**
-   * 用户列表
-   */
-  type UserList = PageResult<UserListItem>;
-
-  /**
-   * 用户列表项
-   */
-  interface UserListItem {
-    id: number;
-    avatar: string;
-    status: number;
-    userName: string;
-    userGender: string;
-    nickName: string;
-    userPhone: string;
-    userEmail: string;
-    userRoles: string[];
-    createBy: string;
-    createTime: string;
-    updateBy: string;
-    updateTime: string;
-  }
-
-  /**
-   * 用户搜索参数
-   */
-  type UserSearchParams = Partial<
-    Pick<UserListItem, "id" | "userName" | "userGender" | "userPhone" | "userEmail" | "status"> &
-      CommonSearchParams
-  >;
-
-  /**
-   * 角色列表
-   */
-  type RoleList = PageResult<RoleListItem>;
-
-  /**
-   * 角色列表项
-   */
-  interface RoleListItem {
-    roleId: number;
-    roleName: string;
-    roleCode: string;
-    description: string;
-    enabled: boolean;
-    createTime: string;
-  }
-
-  /**
-   * 角色搜索参数
-   */
-  type RoleSearchParams = Partial<
-    Pick<RoleListItem, "roleId" | "roleName" | "roleCode" | "description" | "enabled"> &
-      CommonSearchParams & {
-        startTime: string | null;
-        endTime: string | null;
-      }
-  >;
 }
 
 export {};

@@ -65,13 +65,14 @@
     <FaDialog
       v-model="dialogVisible.visible"
       :title="dialogVisible.title"
-      width="920px"
+      width="820px"
       dialog-class="crud-embed-dialog"
       modal-class="crud-embed-dialog"
       :form-mode="dialogVisible.type"
       :confirm-loading="submitLoading"
       @cancel="handleCloseDialog"
-      @confirm="dialogVisible.type === 'detail' ? handleCloseDialog() : handleSubmit()"
+      @close="handleCloseDialog"
+      @confirm="handleSubmit()"
     >
       <template v-if="dialogVisible.type === 'detail'">
         <FaDescriptions
@@ -79,7 +80,7 @@
           :data="detailFormData"
           :items="noticeDetailItems"
           label-width="120px"
-          max-height="75vh"
+          max-height="70vh"
         >
           <template #notice_type="{ row }">
             <FaStatusTag
@@ -96,7 +97,7 @@
         <FaForm
           :key="noticeFormRenderKey"
           scrollbar
-          max-height="75vh"
+          max-height="70vh"
           ref="dataFormRef"
           v-model="formData"
           :items="noticeDialogFormItems"
@@ -119,7 +120,7 @@
           <template #notice_content>
             <FaWangEditor
               :model-value="formData.notice_content ?? ''"
-              height="min(38vh, 280px)"
+              height="min(18vh, 280px)"
               placeholder="请输入公告内容，支持完整排版与插入..."
               :exclude-keys="[]"
               @update:model-value="(v: string) => (formData.notice_content = v)"
@@ -135,7 +136,7 @@
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 import NoticeAPI, { type NoticeForm, type NoticeTable } from "@/api/module_system/notice";
-import { type TableOperationAction } from "@utils";
+import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import { useDictStore, useNoticeStore } from "@stores";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
@@ -152,7 +153,6 @@ defineOptions({
 
 const dictStore = useDictStore();
 const noticeStore = useNoticeStore();
-const { hasAuth } = useAuth();
 
 type NoticeSearchForm = {
   notice_title?: string;
@@ -181,10 +181,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const statusOptions = ref([
+const STATUS_OPTIONS = [
   { label: "启用", value: 0 },
   { label: "停用", value: 1 },
-]);
+] as const;
 
 const noticeTypeSearchOptions = computed(() =>
   dictStore.getDictArray("sys_notice_type").map((item) => ({
@@ -219,7 +219,7 @@ const noticeSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: statusOptions.value,
+      options: STATUS_OPTIONS,
       clearable: true,
     },
     span: 6,
@@ -247,7 +247,7 @@ const noticeDetailItems: import("@/components/others/fa-descriptions/index.vue")
       label: "状态",
       prop: "status",
       tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
+        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
       },
     },
     { label: "描述", prop: "description" },
@@ -355,13 +355,7 @@ const noticeDialogFormItems = computed<FormItem[]>(() => [
       })),
     },
   },
-  {
-    label: "状态",
-    key: "status",
-    type: "input",
-    span: 24,
-    placeholder: "",
-  },
+  { key: "status", label: "状态", type: "radiogroup", span: 24 },
   {
     label: "内容",
     key: "notice_content",
@@ -456,13 +450,13 @@ function buildNoticeReplaceParams(p: NoticeSearchForm): Record<string, unknown> 
 async function handleSearchBarSearch(params: NoticeSearchForm) {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildNoticeReplaceParams(params));
-  getData();
+  await getData();
 }
 
 async function applyNoticeSearchFromForm() {
   await searchBarRef.value?.validate?.();
   replaceSearchParams(buildNoticeReplaceParams(searchForm.value));
-  getData();
+  await getData();
 }
 
 async function afterUserSelectSearch() {
@@ -470,7 +464,7 @@ async function afterUserSelectSearch() {
   await applyNoticeSearchFromForm();
 }
 
-function onResetSearch() {
+async function onResetSearch() {
   searchForm.value = {
     notice_title: undefined,
     notice_type: undefined,
@@ -478,7 +472,7 @@ function onResetSearch() {
     created_time: undefined,
     created_id: undefined,
   };
-  void resetSearchParams();
+  await resetSearchParams();
 }
 
 async function deleteNoticeRow(id: number, name: string) {
@@ -489,7 +483,7 @@ async function deleteNoticeRow(id: number, name: string) {
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
-    ElMessage.info("删除取消");
+    // 用户取消
   }
 }
 
@@ -525,7 +519,7 @@ function buildNoticeRowActions(row: NoticeTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatNoticeOperationCell(row: NoticeTable) {
@@ -550,21 +544,22 @@ async function handleBatchDelete() {
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshRemove();
   } catch {
-    ElMessage.info("删除取消");
+    // 用户取消
   } finally {
     batchDeleting.value = false;
   }
 }
 
-async function handleMoreClick(status: number) {
+async function handleMoreClick(value: "enable" | "disable") {
   const ids = selectedIds.value;
   if (!ids.length) {
     ElMessage.warning("请先选择要操作的数据");
     return;
   }
   try {
-    await confirmToggleStatus(status);
+    await confirmToggleStatus(value);
     moreLoading.value = true;
+    const status = value === "enable" ? 0 : 1;
     await NoticeAPI.batchNotice({ ids, status });
     await refreshData();
     await noticeStore.getNotice();

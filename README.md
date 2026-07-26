@@ -124,10 +124,6 @@ FastapiAdmin/            # Monorepo 全栈工程
 | ------ | -------- |
 | ![群组二维码](frontend/web/public/group.jpg) | ![微信支付](frontend/web/public/wechatPay.jpg) |
 
-> 如果你觉得项目有用，请给一个 ⭐️ Star 支持！
-
-[![Stargazers over time](https://starchart.cc/fastapiadmin/FastapiAdmin.svg?variant=adaptive)](https://starchart.cc/fastapiadmin/FastapiAdmin)
-
 ## 👥 贡献者
 
 <a href="https://github.com/fastapiadmin/FastapiAdmin/graphs/contributors">
@@ -135,6 +131,8 @@ FastapiAdmin/            # Monorepo 全栈工程
 </a>
 
 ## 🙏 鸣谢
+
+> 如果你觉得项目有用，请给一个 ⭐️ Star 支持！
 
 - 后端：[FastAPI](https://fastapi.tiangolo.com/) · [Pydantic](https://docs.pydantic.dev/) · [SQLAlchemy](https://www.sqlalchemy.org/) · [APScheduler](https://github.com/agronholm/apscheduler)
 - 前端：[Vue3](https://cn.vuejs.org/) · [TypeScript](https://www.typescriptlang.org/) · [Vite](https://vitejs.dev/) · [Element Plus](https://element-plus.org/)

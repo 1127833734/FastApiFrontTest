@@ -1,7 +1,7 @@
 <!-- 日志管理：登录日志 + 操作日志 -->
 <template>
   <div class="fa-full-height">
-    <ElTabs v-model="activeTab">
+    <ElTabs v-model="activeTab" class="fa-tabs-fill">
       <ElTabPane label="操作日志" name="operation">
         <FaSearchBar
           v-show="opShowSearchBar"
@@ -59,14 +59,14 @@
           dialog-class="crud-embed-dialog"
           modal-class="crud-embed-dialog"
           form-mode="detail"
-          @confirm="handleOpCloseDialog"
+          @close="handleOpCloseDialog"
         >
           <FaDescriptions
             :column="8"
             :data="opFormData"
             :items="opDetailItems"
             label-width="200px"
-            max-height="75vh"
+            max-height="70vh"
           >
             <template #request_method="{ row }">
               <ElTag :type="getMethodType(row?.request_method as string)">{{
@@ -157,14 +157,14 @@
           dialog-class="crud-embed-dialog"
           modal-class="crud-embed-dialog"
           form-mode="detail"
-          @confirm="handleLoginCloseDialog"
+          @close="handleLoginCloseDialog"
         >
           <FaDescriptions
-            :column="2"
+            :column="4"
             :data="loginFormData"
             :items="loginDetailItems"
             label-width="120px"
-            max-height="75vh"
+            max-height="70vh"
           >
             <template #status="{ row }">
               <ElTag :type="row?.status === 1 ? 'success' : 'danger'">{{
@@ -187,7 +187,15 @@ import OperationLogAPI, {
   type LoginLogTable,
   LoginLogAPI,
 } from "@/api/module_system/log";
-import { renderTableOperationCell, type TableOperationAction, type StatusType } from "@utils";
+import {
+  renderTableOperationCell,
+  resolveStatusColumns,
+  stripPaginationParams,
+  cleanEmptyArrayParams,
+  toCrudCols,
+  type TableOperationAction,
+  type StatusType,
+} from "@utils";
 import type { IObject } from "@/components/modal/types";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
@@ -202,15 +210,13 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const { hasAuth } = useAuth();
-
 const activeTab = ref<"operation" | "login">("operation");
 
 function handleIpSearch(ip: string) {
   activeTab.value = "operation";
   opSearchForm.value.request_ip = ip;
   opReplaceSearchParams(buildOpReplaceParams(opSearchForm.value));
-  opGetData();
+  void opGetData();
 }
 
 // ==================== 操作日志 ====================
@@ -330,15 +336,7 @@ const {
   },
 });
 
-const opCrudCols = computed(() =>
-  opColumns!.value.map((c: ColumnOption<OperationLogTable>) => ({
-    prop: c.prop,
-    label: c.label,
-    type:
-      (c as { type?: string }).type === "selection" ? ("selection" as const) : ("default" as const),
-    show: true,
-  }))
-);
+const opCrudCols = toCrudCols(opColumns);
 
 const opExportQueryParams = computed(() => {
   const sp = stripPaginationParams(opSearchParams as Record<string, unknown>);
@@ -379,7 +377,7 @@ const { exportVisible: opExportVisible, openExport: openOpExport } = useImportEx
 async function handleOpSearch(params: OpSearchForm) {
   await opSearchBarRef.value?.validate?.();
   opReplaceSearchParams(buildOpReplaceParams(params));
-  opGetData();
+  await opGetData();
 }
 
 function onOpResetSearch() {
@@ -436,7 +434,7 @@ function buildOpRowActions(row: OperationLogTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatOpActionCell(row: OperationLogTable) {
@@ -477,10 +475,10 @@ const loginShowSearchBar = ref(true);
 const loginSearchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const loginSearchBarRules: Record<string, unknown> = {};
 
-const loginStatusOptions = ref([
+const LOGIN_STATUS_OPTIONS = [
   { label: "成功", value: 1 },
   { label: "失败", value: 2 },
-]);
+] as const;
 
 const loginSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -495,7 +493,7 @@ const loginSearchItems = computed<SearchFormItem[]>(() => [
     label: "登录状态",
     key: "status",
     type: "select",
-    props: { placeholder: "请选择状态", options: loginStatusOptions.value, clearable: true },
+    props: { placeholder: "请选择状态", options: LOGIN_STATUS_OPTIONS, clearable: true },
     span: 6,
   },
   {
@@ -619,7 +617,7 @@ const { dialogVisible: loginDialogVisible, closeDialog: loginCloseDialog } = use
 async function handleLoginSearch(params: LoginSearchForm) {
   await loginSearchBarRef.value?.validate?.();
   loginReplaceSearchParams(buildLoginReplaceParams(params));
-  loginGetData();
+  await loginGetData();
 }
 
 function onLoginResetSearch() {
@@ -671,7 +669,7 @@ function buildLoginRowActions(row: LoginLogTable): TableOperationAction[] {
       },
     },
   ];
-  return all.filter((a) => a.perm != null && hasAuth(a.perm));
+  return all;
 }
 
 function formatLoginActionCell(row: LoginLogTable) {
@@ -707,7 +705,7 @@ watch(activeTab, (tab) => {
   if (tab === "login" && !loginTabLoaded.value) {
     loginTabLoaded.value = true;
     nextTick(() => {
-      loginGetData();
+      void loginGetData();
     });
   }
 });
@@ -730,24 +728,3 @@ function getMethodType(method?: string): StatusType {
   return "info";
 }
 </script>
-
-<style scoped lang="scss">
-:deep(.el-tabs) {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-:deep(.el-tabs__content) {
-  flex: 1;
-  min-height: 0;
-  overflow: visible;
-}
-
-:deep(.el-tab-pane) {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-</style>

@@ -161,14 +161,9 @@ class RoleService:
         # 设置角色菜单权限
         await RoleCRUD(self.auth, self.db).set_role_menus_crud(role_ids=data.role_ids, menu_ids=data.menu_ids)
 
-        # 设置数据权限范围
+        # 设置数据权限范围（自定义部门关联已废弃，直接清空）
         await RoleCRUD(self.auth, self.db).set(ids=data.role_ids, data_scope=data.data_scope)
-
-        # 设置自定义数据权限部门
-        if data.data_scope == 5 and data.dept_ids:
-            await RoleCRUD(self.auth, self.db).set_role_depts_crud(role_ids=data.role_ids, dept_ids=data.dept_ids)
-        else:
-            await RoleCRUD(self.auth, self.db).set_role_depts_crud(role_ids=data.role_ids, dept_ids=[])
+        await RoleCRUD(self.auth, self.db).set_role_depts_crud(role_ids=data.role_ids, dept_ids=[])
 
     async def set_available(self, data: BatchSetAvailable) -> None:
         """设置角色可用状态
@@ -213,10 +208,8 @@ class RoleService:
         # 数据权限映射
         data_scope_map = {
             1: "仅本人数据权限",
-            2: "本部门数据权限",
-            3: "本部门及以下数据权限",
-            4: "全部数据权限",
-            5: "自定义数据权限",
+            2: "本部门及以下数据权限",
+            3: "全部数据权限",
         }
 
         # 处理数据
