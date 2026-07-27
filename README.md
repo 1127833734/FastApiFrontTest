@@ -120,7 +120,7 @@ FastapiAdmin/            # Monorepo 全栈工程
 
 | 微信群 | 赞赏支持 |
 | ------ | -------- |
-| ![群组二维码](frontend/web/public/group.jpg) | ![微信支付](frontend/web/public/wechatPay.jpg) |
+| ![群组二维码](frontend/web/public/group.png) | ![微信支付](frontend/web/public/wechatPay.jpg) |
 
 ## 👥 贡献者
 

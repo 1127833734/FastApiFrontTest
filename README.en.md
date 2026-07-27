@@ -120,7 +120,7 @@ Issues and PRs are welcome! See [Contributing Guide](https://service.fastapiadmi
 
 | WeChat Group | Support |
 | ------------ | ------- |
-| ![Group QR](frontend/web/public/group.jpg) | ![WeChat Pay](frontend/web/public/wechatPay.jpg) |
+| ![Group QR](frontend/web/public/group.png) | ![WeChat Pay](frontend/web/public/wechatPay.jpg) |
 
 ## 👥 Contributors
 
