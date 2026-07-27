@@ -213,7 +213,7 @@ export class RouteTransformer {
       };
     }
     return {
-      path: route.path.replace(/^\//, ""),
+      path: this.routerPath(route.path, depth),
       name: route.name,
       component: this.loader.loadIframe(),
       meta: route.meta,
@@ -249,11 +249,6 @@ export class RouteTransformer {
    */
   private handleNormalRoute(route: AppRouteRecord, depth: number): Record<string, any> | null {
     if (!route.children?.length) {
-      return this.buildLeafRoute(route, depth);
-    }
-
-    const allLeaves = route.children.every((c) => !c.children?.length);
-    if (allLeaves && !route.component) {
       return this.buildLeafRoute(route, depth);
     }
 
