@@ -80,3 +80,5 @@ frontend/app/*
 CLAUDE.md
 AGENTS.md
 .codebuddy
+.agent
+.workbuddy
