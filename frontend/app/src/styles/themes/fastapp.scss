@@ -1,0 +1,130 @@
+@mixin fastapp-theme-vars {
+  /* ==============================================
+     FastApp 品牌主题 — 基于 #4F8CFF 淡蓝主色
+     所有变量值均为固定色值，不使用 var() 引用
+   ============================================== */
+
+  /* ---------- Primary 主色 10 阶 ---------- */
+  --u-primary-1: #F2F7FFFF;
+  --u-primary-2: #DBEAFFFF;
+  --u-primary-3: #B3D1FFFF;
+  --u-primary-4: #80B0FFFF;
+  --u-primary-5: #5E97F5FF;
+  --u-primary-6: #4F8CFFFF;
+  --u-primary-7: #2970FFFF;
+  --u-primary-8: #1A5CD6FF;
+  --u-primary-9: #0E45A5FF;
+  --u-primary-10: #062D73FF;
+
+  /* ---------- Danger 危险色 ---------- */
+  --u-danger-main: #EF4444FF;
+  --u-danger-hover: #F87171FF;
+  --u-danger-clicked: #DC2626FF;
+  --u-danger-disabled: #FECACAF;
+  --u-danger-particular: #FEE2E2FF;
+  --u-danger-surface: #FEF2F2FF;
+
+  /* ---------- Success 成功色 ---------- */
+  --u-success-main: #10B981FF;
+  --u-success-hover: #34D399FF;
+  --u-success-clicked: #059669FF;
+  --u-success-disabled: #A7F3D0FF;
+  --u-success-particular: #D1FAE5FF;
+  --u-success-surface: #ECFDF5FF;
+
+  /* ---------- Warning 警告色 ---------- */
+  --u-warning-main: #F59E0BFF;
+  --u-warning-hover: #FBBF24FF;
+  --u-warning-clicked: #D97706FF;
+  --u-warning-disabled: #FDE68AFF;
+  --u-warning-particular: #FEF3C7FF;
+  --u-warning-surface: #FFFBEBFF;
+
+  /* ---------- Text 文字 ---------- */
+  --u-text-main: #0A1628FF;
+  --u-text-secondary: #374151FF;
+  --u-text-auxiliary: #6B7280FF;
+  --u-text-disabled: #B0B0B0FF;
+  --u-text-placeholder: #B0B0B0FF;
+  --u-text-white: #FFFFFFFF;
+
+  /* ---------- Icon 图标 ---------- */
+  --u-icon-main: #0A1628FF;
+  --u-icon-secondary: #374151FF;
+  --u-icon-auxiliary: #6B7280FF;
+  --u-icon-disabled: #B0B0B0FF;
+  --u-icon-placeholder: #B0B0B0FF;
+  --u-icon-white: #FFFFFFFF;
+
+  /* ---------- Border 边框 ---------- */
+  --u-border-extra-strong: #6B7280FF;
+  --u-border-strong: #B0B0B0FF;
+  --u-border-main: #EAEAEAFF;
+  --u-border-light: #F3F4F6FF;
+  --u-border-white: #FFFFFFFF;
+  --u-border-zero: transparent;
+
+  /* ---------- Filled 填充 ---------- */
+  --u-filled-extra-strong: #B0B0B0FF;
+  --u-filled-strong: #EAEAEAFF;
+  --u-filled-content: #F3F4F6FF;
+  --u-filled-bottom: #F5F6F8FF;
+  --u-filled-oppo: #FFFFFFFF;
+  --u-filled-zero: transparent;
+
+  /* ---------- Divider 分割线 ---------- */
+  --u-divider-main: #00000014;
+  --u-divider-light: #0000000A;
+  --u-divider-strong: #00000026;
+  --u-divider-white: #FFFFFFFF;
+
+  /* ---------- Feedback 反馈 ---------- */
+  --u-feedback-hover: #0000000A;
+  --u-feedback-active: #00000014;
+  --u-feedback-accent: #4F8CFF14;
+
+  /* ---------- Opacity filled 透明填充 ---------- */
+  --u-opacfilled-tooltip-toast-cover: #000000BF;
+  --u-opacfilled-main-cover: #0000008C;
+  --u-opacfilled-light-cover: #0000004D;
+
+  /* ---------- Picker view mask ---------- */
+  --u-picker-view-mask-start-color: #FFFFFFD9;
+  --u-picker-view-mask-end-color: #FFFFFF33;
+
+  /* ---------- Classify application 分类色 ---------- */
+  --u-classifyapplication-yellow-background: #FFFAF1FF;
+  --u-classifyapplication-yellow-border: #FDD78CFF;
+  --u-classifyapplication-yellow-content: #F59E0BFF;
+  --u-classifyapplication-Cyan-background: #F4FBFDFF;
+  --u-classifyapplication-Cyan-border: #BDEAF1FF;
+  --u-classifyapplication-Cyan-content: #06B6D4FF;
+  --u-classifyapplication-Purple-background: #F9F8FFFF;
+  --u-classifyapplication-Purple-border: #D0BFFFFF;
+  --u-classifyapplication-Purple-content: #8B5CF6FF;
+  --u-classifyapplication-Grape-background: #FBF6FDFF;
+  --u-classifyapplication-Grape-border: #EEBEFAFF;
+  --u-classifyapplication-Grape-content: #A855F7FF;
+  --u-classifyapplication-Pink-background: #FFF0F6FF;
+  --u-classifyapplication-Pink-border: #FCC2D7FF;
+  --u-classifyapplication-Pink-content: #EC4899FF;
+}
+
+/* ===== 挂载选择器 ===== */
+page,
+.app-theme {
+  @include fastapp-theme-vars();
+}
+
+/* ===== 暗黑模式 ===== */
+.app-theme.theme-dark {
+  --up-bg-color: #1F2937;
+  --up-content-color: #D1D5DB;
+  --up-border-color: #374151;
+  --bg-color: #1F2937;
+  --text-color: #F9F9F9;
+  --bg-color-grey: #374151;
+  --bg-color-hover: #4B5563;
+  --border-color: #374151;
+  --page-bg-color: #111827;
+}

@@ -1,0 +1,510 @@
+{
+  "globalStyle": {
+    "navigationBarBackgroundColor": "@navBgColor",
+    "navigationBarTextStyle": "@navTxtStyle",
+    "navigationBarTitleText": "Wot Starter",
+    "backgroundColor": "@bgColor",
+    "backgroundTextStyle": "@bgTxtStyle",
+    "backgroundColorTop": "@bgColorTop",
+    "backgroundColorBottom": "@bgColorBottom",
+    "enablePullDownRefresh": false,
+    "onReachBottomDistance": 50,
+    "animationType": "pop-in",
+    "animationDuration": 300
+  },
+  "pages": [
+    // #ifdef APP || H5 || MP-WEIXIN
+    {
+      "path": "pages/index/index",
+      "type": "home",
+      "name": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    // #endif
+    // #ifdef APP || H5 || MP-WEIXIN
+    {
+      "path": "pages/about/index",
+      "type": "page",
+      "name": "about",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "关于"
+      }
+    },
+    // #endif
+    {
+      "path": "pages/index/index-bak",
+      "type": "page",
+      "name": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "工作台概览"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "type": "page",
+      "name": "login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/mine/index",
+      "type": "page",
+      "name": "mine",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/work/index",
+      "type": "page",
+      "name": "work",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "工作台"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "subPages",
+      "pages": [
+        // #ifdef APP || H5
+        {
+          "path": "ci/index",
+          "type": "page",
+          "name": "ci",
+          "style": {
+            "navigationBarTitleText": "CI 持续集成"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "create-uni/index",
+          "type": "page",
+          "name": "create-uni",
+          "style": {
+            "navigationBarTitleText": "CreateUni 脚手架"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "feedback/index",
+          "type": "page",
+          "name": "feedback",
+          "style": {
+            "navigationBarTitleText": "全局反馈"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "icon/index",
+          "type": "page",
+          "name": "icon",
+          "style": {
+            "navigationBarTitleText": "图标演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "pinia/index",
+          "type": "page",
+          "name": "pinia",
+          "style": {
+            "navigationBarTitleText": "Pinia 演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "request/index",
+          "type": "page",
+          "name": "request",
+          "style": {
+            "navigationBarTitleText": "网络请求"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-aftereach",
+          "type": "page",
+          "name": "demo-aftereach",
+          "style": {
+            "navigationBarTitleText": "afterEach 钩子演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-guard",
+          "type": "page",
+          "name": "demo-guard",
+          "style": {
+            "navigationBarTitleText": "导航守卫演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-object",
+          "type": "page",
+          "name": "demo-object",
+          "style": {
+            "navigationBarTitleText": "对象路径跳转"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-params",
+          "type": "page",
+          "name": "demo-params",
+          "style": {
+            "navigationBarTitleText": "参数接收演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-protected",
+          "type": "page",
+          "name": "demo-protected",
+          "style": {
+            "navigationBarTitleText": "受保护页面"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-query",
+          "type": "page",
+          "name": "demo-query",
+          "style": {
+            "navigationBarTitleText": "查询参数接收演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/demo-string",
+          "type": "page",
+          "name": "demo-string",
+          "style": {
+            "navigationBarTitleText": "字符串路径跳转"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "router/index",
+          "type": "page",
+          "name": "router",
+          "style": {
+            "navigationBarTitleText": "路由管理"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "styles/index",
+          "type": "page",
+          "name": "styles",
+          "style": {
+            "navigationBarTitleText": "UnoCSS 演示"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "uni-ku-root/index",
+          "type": "page",
+          "name": "root",
+          "style": {
+            "navigationBarTitleText": "uni-ku/root"
+          }
+        },
+        // #endif
+        // #ifdef APP || H5
+        {
+          "path": "skills/index",
+          "type": "page",
+          "name": "skills",
+          "layout": "default",
+          "style": {
+            "navigationBarTitleText": "Agent Skills",
+            "navigationBarBackgroundColor": "#f9fafb",
+            "navigationBarTextStyle": "black"
+          }
+        },
+        // #endif
+        {
+          "path": "biz/dashboard/index",
+          "type": "page",
+          "name": "dashboard",
+          "style": {
+            "navigationBarTitleText": "数据概览"
+          }
+        },
+        {
+          "path": "biz/dicts/index",
+          "type": "page",
+          "name": "work-dicts",
+          "style": {
+            "navigationBarTitleText": "字典管理"
+          }
+        },
+        {
+          "path": "biz/notices/index",
+          "type": "page",
+          "name": "work-notices",
+          "style": {
+            "navigationBarTitleText": "通知公告"
+          }
+        },
+        {
+          "path": "biz/params/index",
+          "type": "page",
+          "name": "work-params",
+          "style": {
+            "navigationBarTitleText": "参数管理"
+          }
+        },
+        {
+          "path": "biz/ticket-detail/index",
+          "type": "page",
+          "name": "work-ticket-detail",
+          "style": {
+            "navigationBarTitleText": "工单详情"
+          }
+        },
+        {
+          "path": "biz/tickets/index",
+          "type": "page",
+          "name": "work-tickets",
+          "style": {
+            "navigationBarTitleText": "工单管理"
+          }
+        },
+        {
+          "path": "biz/user-detail/index",
+          "type": "page",
+          "name": "work-user-detail",
+          "style": {
+            "navigationBarTitleText": "用户详情"
+          }
+        },
+        {
+          "path": "biz/versions/index",
+          "type": "page",
+          "name": "work-versions",
+          "style": {
+            "navigationBarTitleText": "版本管理"
+          }
+        },
+        {
+          "path": "dev/ai-models/index",
+          "type": "page",
+          "name": "work-ai-models",
+          "style": {
+            "navigationBarTitleText": "AI 模型配置"
+          }
+        },
+        {
+          "path": "dev/chat/index",
+          "type": "page",
+          "name": "work-chat",
+          "style": {
+            "navigationBarTitleText": "AI 助手"
+          }
+        },
+        {
+          "path": "dev/gencode/index",
+          "type": "page",
+          "name": "work-gencode",
+          "style": {
+            "navigationBarTitleText": "代码生成器"
+          }
+        },
+        {
+          "path": "dev/workflow/index",
+          "type": "page",
+          "name": "work-workflow",
+          "style": {
+            "navigationBarTitleText": "工作流管理"
+          }
+        },
+        {
+          "path": "monitor/cache/index",
+          "type": "page",
+          "name": "work-cache",
+          "style": {
+            "navigationBarTitleText": "缓存监控"
+          }
+        },
+        {
+          "path": "monitor/cronjob/index",
+          "type": "page",
+          "name": "work-cronjob",
+          "style": {
+            "navigationBarTitleText": "定时任务"
+          }
+        },
+        {
+          "path": "monitor/devices/index",
+          "type": "page",
+          "name": "work-devices",
+          "style": {
+            "navigationBarTitleText": "设备管理"
+          }
+        },
+        {
+          "path": "monitor/file_manager/index",
+          "type": "page",
+          "name": "work-file-manager",
+          "style": {
+            "navigationBarTitleText": "文件管理"
+          }
+        },
+        {
+          "path": "monitor/loginlogs/index",
+          "type": "page",
+          "name": "work-loginlogs",
+          "style": {
+            "navigationBarTitleText": "登录日志"
+          }
+        },
+        {
+          "path": "monitor/online/index",
+          "type": "page",
+          "name": "work-online",
+          "style": {
+            "navigationBarTitleText": "在线用户"
+          }
+        },
+        {
+          "path": "monitor/oplogs/index",
+          "type": "page",
+          "name": "work-oplogs",
+          "style": {
+            "navigationBarTitleText": "操作日志"
+          }
+        },
+        {
+          "path": "monitor/server/index",
+          "type": "page",
+          "name": "work-server",
+          "style": {
+            "navigationBarTitleText": "服务监控"
+          }
+        },
+        {
+          "path": "system/depts/index",
+          "type": "page",
+          "name": "work-depts",
+          "style": {
+            "navigationBarTitleText": "部门管理"
+          }
+        },
+        {
+          "path": "system/menus/index",
+          "type": "page",
+          "name": "work-menus",
+          "style": {
+            "navigationBarTitleText": "菜单管理"
+          }
+        },
+        {
+          "path": "system/positions/index",
+          "type": "page",
+          "name": "work-positions",
+          "style": {
+            "navigationBarTitleText": "岗位管理"
+          }
+        },
+        {
+          "path": "system/roles/index",
+          "type": "page",
+          "name": "work-roles",
+          "style": {
+            "navigationBarTitleText": "角色管理"
+          }
+        },
+        {
+          "path": "system/users/index",
+          "type": "page",
+          "name": "work-users",
+          "style": {
+            "navigationBarTitleText": "用户管理"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subEcharts",
+      "pages": [
+        // GENERATED BY UNI-PAGES, PLATFORM: APP || H5 || MP-WEIXIN
+        {
+          "path": "echarts/index",
+          "type": "page",
+          "name": "echarts",
+          "style": {
+            "navigationBarTitleText": "Echarts 演示"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subAsyncEcharts",
+      "pages": [
+        // GENERATED BY UNI-PAGES, PLATFORM: APP || H5 || MP-WEIXIN
+        {
+          "path": "asyncEcharts/index",
+          "type": "page",
+          "name": "echartsAsync",
+          "style": {
+            "navigationBarTitleText": "echarts 异步跨包示例"
+          }
+        }
+      ]
+    }
+  ],
+  "tabBar": {
+    "custom": true,
+    "customize": true,
+    "overlay": true,
+    "height": "0",
+    "color": "@tabColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBgColor",
+    "borderStyle": "@tabBorderStyle",
+    "list": [
+      // #ifdef APP || H5 || MP-WEIXIN
+      {
+        "pagePath": "pages/index/index"
+      },
+      // #endif
+      // #ifdef APP || H5 || MP-WEIXIN
+      {
+        "pagePath": "pages/about/index"
+      },
+      // #endif
+      {
+        "pagePath": "pages/work/index"
+      },
+      {
+        "pagePath": "pages/mine/index"
+      }
+    ]
+  }
+}

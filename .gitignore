@@ -73,8 +73,8 @@ frontend/src/types/components.d.ts
 frontend/docs/*
 !frontend/docs/.gitkeep
 
-frontend/app/*
-!frontend/app/.gitkeep
+# frontend/app/*
+# !frontend/app/.gitkeep
 
 .plan
 CLAUDE.md
