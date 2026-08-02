@@ -112,9 +112,9 @@ onLoad(() => loadData())
   <view class="page-wraper">
     <view class="search-bar">
       <view class="flex items-center gap-sm">
-        <u-input v-model="searchTitle" placeholder="搜索公告标题" clearable border="surround" class="flex-1" />
-        <u-button size="mini" type="primary" :plain="true" text="搜索" @click="onSearch" />
-        <u-button size="mini" :plain="true" text="重置" @click="onReset" />
+        <wd-input v-model="searchTitle" placeholder="搜索公告标题" clearable class="flex-1" />
+        <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
+        <wd-button size="small" plain @click="onReset">重置</wd-button>
       </view>
     </view>
     <view class="action-bar">

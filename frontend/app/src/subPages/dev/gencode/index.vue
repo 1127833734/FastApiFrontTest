@@ -103,45 +103,55 @@ onLoad(() => loadBizTables())
 <template>
   <view class="page-wraper">
     <!-- Tabs -->
-    <view class="flex items-center gap-sm p-md" style="background:var(--card-bg-color);border-bottom:1px solid var(--border-color);">
-      <u-button :type="activeTab === 'biztables' ? 'primary' : 'default'" size="mini" text="业务表" @click="activeTab = 'biztables'; loadBizTables()" />
-      <u-button :type="activeTab === 'dbtables' ? 'primary' : 'default'" size="mini" text="数据库表" @click="activeTab = 'dbtables'; loadDbTables()" />
+    <view class="p-md flex items-center gap-sm" style="background:var(--card-bg-color);border-bottom:1px solid var(--border-color);">
+      <wd-button :type="activeTab === 'biztables' ? 'primary' : 'info'" size="small" @click="activeTab = 'biztables'; loadBizTables()">
+        业务表
+      </wd-button>
+      <wd-button :type="activeTab === 'dbtables' ? 'primary' : 'info'" size="small" @click="activeTab = 'dbtables'; loadDbTables()">
+        数据库表
+      </wd-button>
     </view>
 
     <!-- Business Tables -->
     <template v-if="activeTab === 'biztables'">
       <view class="action-bar">
-        <text class="text-md font-bold text-muted">
+        <text class="text-md text-muted font-bold">
           共 {{ bizTotal }} 张表
         </text>
-        <u-button size="mini" type="primary" text="导入表" @click="showDbPicker = true" />
+        <wd-button size="small" type="primary" @click="showDbPicker = true">
+          导入表
+        </wd-button>
       </view>
       <SkeletonPage v-if="bizLoading" :rows="5" />
       <template v-else>
         <view class="px-sm">
           <view class="admin-card">
             <ListEmpty v-if="bizTables.length === 0" text="暂无业务表，请从数据库导入" />
-            <u-cell-group v-else>
-              <u-cell v-for="item in bizTables" :key="item.id || item.table_name">
+            <wd-cell-group v-else>
+              <wd-cell v-for="item in bizTables" :key="item.id || item.table_name">
                 <template #title>
                   <view class="flex items-center gap-sm">
-                    <u-icon name="list" size="18" color="var(--primary-color)" />
+                    <wd-icon name="list" size="18px" color="var(--primary-color)" />
                     <view>
-                      <text class="font-medium text-md">
+                      <text class="text-md font-medium">
                         {{ item.table_name || '-' }}
                       </text>
-                      <text class="text-xs text-muted block">
+                      <text class="text-muted block text-xs">
                         {{ item.table_comment || '' }}
                       </text>
                     </view>
                   </view>
                 </template>
-                <template #right>
-                  <u-button size="mini" type="primary" :plain="true" text="生成" @click="batchGenerate([item.id])" />
-                  <u-button size="mini" :plain="true" text="预览" @click="previewCode(item.id)" />
+                <template #suffix>
+                  <wd-button size="small" type="primary" variant="plain" @click="batchGenerate([item.id])">
+                    生成
+                  </wd-button>
+                  <wd-button size="small" variant="plain" @click="previewCode(item.id)">
+                    预览
+                  </wd-button>
                 </template>
-              </u-cell>
-            </u-cell-group>
+              </wd-cell>
+            </wd-cell-group>
           </view>
         </view>
         <PaginationBar :current="bizPageParams.page_no" :page-size="bizPageParams.page_size" :total="bizTotal" @prev="bizLoadPrev" @next="bizLoadNext" />
@@ -151,36 +161,40 @@ onLoad(() => loadBizTables())
     <!-- Database Tables -->
     <template v-else>
       <view class="action-bar">
-        <text class="text-md font-bold text-muted">
+        <text class="text-md text-muted font-bold">
           数据库表列表
         </text>
-        <u-button size="mini" type="primary" :loading="dbLoading" text="刷新" @click="loadDbTables" />
+        <wd-button size="small" type="primary" :loading="dbLoading" @click="loadDbTables">
+          刷新
+        </wd-button>
       </view>
       <SkeletonPage v-if="dbLoading" :rows="5" />
       <template v-else>
         <view class="px-sm">
           <view class="admin-card">
             <ListEmpty v-if="dbTables.length === 0" text="暂无数据库表" />
-            <u-cell-group v-else>
-              <u-cell v-for="item in dbTables" :key="item.table_name">
+            <wd-cell-group v-else>
+              <wd-cell v-for="item in dbTables" :key="item.table_name">
                 <template #title>
                   <view class="flex items-center gap-sm">
-                    <u-icon name="list" size="18" color="var(--success-color)" />
+                    <wd-icon name="list" size="18px" color="var(--success-color)" />
                     <view>
-                      <text class="font-medium text-md font-mono">
+                      <text class="text-md font-medium font-mono">
                         {{ item.table_name || item.name || '-' }}
                       </text>
-                      <text class="text-xs text-muted block">
+                      <text class="text-muted block text-xs">
                         {{ item.table_comment || item.comment || '' }}
                       </text>
                     </view>
                   </view>
                 </template>
-                <template #right>
-                  <u-button size="mini" type="success" :plain="true" text="导入" @click="importTable(item.table_name || '')" />
+                <template #suffix>
+                  <wd-button size="small" type="success" variant="plain" @click="importTable(item.table_name || '')">
+                    导入
+                  </wd-button>
                 </template>
-              </u-cell>
-            </u-cell-group>
+              </wd-cell>
+            </wd-cell-group>
           </view>
         </view>
         <PaginationBar :current="dbPageParams.page_no" :page-size="dbPageParams.page_size" :total="dbTotal" @prev="dbLoadPrev" @next="dbLoadNext" />
@@ -188,36 +202,42 @@ onLoad(() => loadBizTables())
     </template>
 
     <!-- Preview Popup -->
-    <u-popup :show="showPreview" mode="bottom" custom-style="max-height:80vh;overflow-y:auto;" :round="10" @close="showPreview = false">
+    <wd-popup v-model="showPreview" position="bottom" custom-style="max-height:80vh;overflow-y:auto;" round @close="showPreview = false">
       <view class="p-xl">
-        <u-navbar title="代码预览" left-icon="arrow-left" @left-click="showPreview = false" />
-        <view class="flex items-center justify-between mt-lg mb-md">
-          <text class="font-bold text-md">
+        <wd-navbar title="代码预览" left-arrow @click-left="showPreview = false" />
+        <view class="mb-md mt-lg flex items-center justify-between">
+          <text class="text-md font-bold">
             预览 ID: {{ previewId }}
           </text>
           <view class="flex gap-sm">
-            <u-button size="mini" type="primary" text="生成下载" @click="batchGenerate([previewId])" />
-            <u-button size="mini" type="success" text="同步数据库" @click="syncDb(bizTables.find(t => t.id === previewId)?.table_name || '')" />
+            <wd-button size="small" type="primary" @click="batchGenerate([previewId])">
+              生成下载
+            </wd-button>
+            <wd-button size="small" type="success" @click="syncDb(bizTables.find(t => t.id === previewId)?.table_name || '')">
+              同步数据库
+            </wd-button>
           </view>
         </view>
         <view class="code-block" style="background:var(--bg-color-3);border-radius:12rpx;padding:24rpx;font-family:monospace;font-size:22rpx;white-space:pre-wrap;overflow-x:auto;max-height:50vh;">
           <text>{{ previewContent || '暂无预览内容' }}</text>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
 
     <!-- Import DB Table Picker -->
-    <u-popup :show="showDbPicker" mode="bottom" custom-style="max-height:70vh;overflow-y:auto;" :round="10" @close="showDbPicker = false">
+    <wd-popup v-model="showDbPicker" position="bottom" custom-style="max-height:70vh;overflow-y:auto;" round @close="showDbPicker = false">
       <view class="p-xl">
-        <u-navbar title="选择数据库表" left-icon="arrow-left" @left-click="showDbPicker = false" />
+        <wd-navbar title="选择数据库表" left-arrow @click-left="showDbPicker = false" />
         <view class="mt-lg">
-          <u-cell-group :border="true">
-            <u-cell v-for="item in dbTables" :key="item.table_name" :title="item.table_name || item.name" :label="item.table_comment || item.comment || ''" center>
-              <template #right>
-                <u-button size="mini" type="success" :plain="true" text="导入" @click="importTable(item.table_name || '')" />
+          <wd-cell-group border>
+            <wd-cell v-for="item in dbTables" :key="item.table_name" :title="item.table_name || item.name" :label="item.table_comment || item.comment || ''" center>
+              <template #suffix>
+                <wd-button size="small" type="success" variant="plain" @click="importTable(item.table_name || '')">
+                  导入
+                </wd-button>
               </template>
-            </u-cell>
-          </u-cell-group>
+            </wd-cell>
+          </wd-cell-group>
           <view v-if="dbTables.length === 0" class="empty-state mt-xl">
             <text class="empty-state__text">
               点击"数据库表"Tab 刷新表列表
@@ -225,6 +245,6 @@ onLoad(() => loadBizTables())
           </view>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>

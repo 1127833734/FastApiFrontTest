@@ -177,15 +177,21 @@ onLoad(() => loadData())
       <view class="search-bar">
         <view class="flex items-center gap-sm">
           <wd-input v-model="searchName" placeholder="搜索字典名称" clearable class="flex-1" />
-          <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
-          <wd-button size="small" plain @click="onReset">重置</wd-button>
+          <wd-button size="small" type="primary" plain @click="onSearch">
+            搜索
+          </wd-button>
+          <wd-button size="small" plain @click="onReset">
+            重置
+          </wd-button>
         </view>
       </view>
       <view class="action-bar">
-        <text class="text-md font-bold text-muted">
+        <text class="text-md text-muted font-bold">
           共 {{ total }} 条
         </text>
-        <wd-button size="small" type="primary" @click="openCreate">+ 新增</wd-button>
+        <wd-button size="small" type="primary" @click="openCreate">
+          + 新增
+        </wd-button>
       </view>
       <view class="px-sm">
         <view class="admin-card">
@@ -195,9 +201,9 @@ onLoad(() => loadData())
             <wd-cell v-for="item in list" :key="item.id" is-link @click="loadDictData(item)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.dict_name }}
-                  </text><text class="text-xs text-muted block mt-xs">
+                  </text><text class="text-muted mt-xs block text-xs">
                     类型: {{ item.dict_type }}
                   </text>
                 </view>
@@ -216,15 +222,17 @@ onLoad(() => loadData())
     <view v-else>
       <view class="search-bar">
         <view class="flex items-center gap-sm">
-          <u-icon name="arrow-left" size="20" @click="closeDataSection" /><text class="font-bold text-md">
+          <wd-icon name="arrow-left" size="20px" @click="closeDataSection" /><text class="text-md font-bold">
             {{ currentTypeCode }} - 字典项
           </text>
         </view>
       </view>
       <view class="action-bar">
-        <text class="text-md font-bold text-muted">
+        <text class="text-md text-muted font-bold">
           共 {{ dataTotal }} 项
-        </text><wd-button size="small" type="primary" @click="openCreateData">+ 新增</wd-button>
+        </text><wd-button size="small" type="primary" @click="openCreateData">
+          + 新增
+        </wd-button>
       </view>
       <view class="px-sm">
         <view class="admin-card">
@@ -232,9 +240,9 @@ onLoad(() => loadData())
             <wd-cell v-for="item in dataList" :key="item.id" is-link @click="openEditData(item.id!)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.dict_label }}
-                  </text><text class="text-xs text-muted block mt-xs">
+                  </text><text class="text-muted mt-xs block text-xs">
                     值: {{ item.dict_value }}
                   </text>
                 </view>
@@ -268,34 +276,43 @@ onLoad(() => loadData())
             </wd-form-item><wd-form-item label="备注" border>
               <wd-textarea v-model="dataFormData.description" placeholder="请输入" />
             </wd-form-item>
-          </wd-form><view class="flex gap-md mt-xl">
-            <wd-button block plain @click="showDataForm = false">取消</wd-button><wd-button block type="primary" :loading="dataLoading" @click="handleSubmitData">保存</wd-button>
+          </wd-form><view class="gap-md mt-xl flex">
+            <wd-button plain block @click="showDataForm = false">
+              取消
+            </wd-button><wd-button block type="primary" :loading="dataLoading" @click="handleSubmitData">
+              保存
+            </wd-button>
           </view>
         </view>
       </wd-popup>
     </view>
 
     <!-- Type form (shared, outside v-if/v-else) -->
-    <u-popup :show="showForm" mode="bottom" :round="10" custom-style="max-height: 60vh; overflow-y: auto;" @close="showForm = false">
+    <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 60vh; overflow-y: auto;" @close="showForm = false">
       <view class="p-xl">
-        <u-navbar :title="formTitle" left-icon="arrow-left" @left-click="showForm = false" /><u-form :model="formData" class="mt-lg">
-          <u-form-item label="字典名称" prop="dict_name" :border-bottom="true">
-            <u-input v-model="formData.dict_name" border="none" placeholder="请输入" />
-          </u-form-item><u-form-item label="字典类型" prop="dict_type" :border-bottom="true">
-            <u-input v-model="formData.dict_type" border="none" placeholder="请输入" />
-          </u-form-item><u-form-item label="状态" :border-bottom="true">
-            <u-radio-group v-model="formData.status">
-              <u-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :name="opt.value" :label="opt.value">
+        <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" /><wd-form :model="formData" class="mt-lg">
+          <wd-form-item label="字典名称" prop="dict_name" border>
+            <wd-input v-model="formData.dict_name" placeholder="请输入" />
+          </wd-form-item><wd-form-item label="字典类型" prop="dict_type" border>
+            <wd-input v-model="formData.dict_type" placeholder="请输入" />
+          </wd-form-item><wd-form-item label="状态" border>
+            <wd-radio-group v-model="formData.status">
+              <wd-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
-              </u-radio>
-            </u-radio-group>
-          </u-form-item><u-form-item label="备注" :border-bottom="true">
-            <u-textarea v-model="formData.description" border="none" placeholder="请输入" />
-          </u-form-item>
-        </u-form><view class="flex gap-md mt-xl">
-          <u-button :block="true" :plain="true" text="取消" @click="showForm = false" /><u-button :block="true" type="primary" :loading="loading" text="保存" @click="handleSubmit" />
+              </wd-radio>
+            </wd-radio-group>
+          </wd-form-item><wd-form-item label="备注" border>
+            <wd-textarea v-model="formData.description" placeholder="请输入" />
+          </wd-form-item>
+        </wd-form><view class="gap-md mt-xl flex">
+          <wd-button plain block @click="showForm = false">
+            取消
+          </wd-button>
+          <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+            保存
+          </wd-button>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>

@@ -95,67 +95,75 @@ onLoad(() => loadData())
   <view class="page-wraper">
     <view class="search-bar">
       <view class="flex items-center gap-sm">
-        <u-input v-model="searchName" placeholder="搜索名称" clearable border="surround" class="flex-1" />
-        <u-button size="mini" type="primary" :plain="true" text="搜索" @click="onSearch" />
-        <u-button size="mini" :plain="true" text="重置" @click="onReset" />
+        <wd-input v-model="searchName" placeholder="搜索名称" clearable class="flex-1" />
+        <wd-button size="small" type="primary" plain @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" plain @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
-      <u-button size="mini" type="primary" text="+ 新增" @click="openCreate" />
+      <wd-button size="small" type="primary" @click="openCreate">
+        + 新增
+      </wd-button>
     </view>
     <SkeletonPage v-if="loading" :rows="5" search />
     <template v-else>
       <view class="px-sm">
         <view class="admin-card">
           <ListEmpty v-if="!loading && list.length === 0" text="暂无数据" />
-          <u-cell-group v-else>
-            <u-cell v-for="item in list" :key="item.id" :is-link="true" @click="openEdit(item.id!)">
+          <wd-cell-group v-else>
+            <wd-cell v-for="item in list" :key="item.id" is-link @click="openEdit(item.id!)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.name }}
-                  </text><text class="text-xs text-muted block mt-xs">
+                  </text><text class="text-muted mt-xs block text-xs">
                     {{ `编码: ${item.code || '-'}` }}
                   </text>
                 </view>
               </template>
-              <template #value>
+              <template #default>
                 <StatusBadge :status="item.status" />
+                <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id!)" />
               </template>
-              <template #right>
-                <u-icon name="trash" size="18" color="var(--danger-color)" @click.stop="handleDelete(item.id!)" />
-              </template>
-            </u-cell>
-          </u-cell-group>
+            </wd-cell>
+          </wd-cell-group>
         </view>
       </view>
       <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
-      <u-popup :show="showForm" mode="bottom" :round="10" custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
+      <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
         <view class="p-xl">
-          <u-navbar :title="formTitle" left-icon="arrow-left" @left-click="showForm = false" />
-          <u-form :model="formData" class="mt-lg">
-            <u-form-item label="岗位名称" prop="name" :border-bottom="true">
-              <u-input v-model="formData.name" border="none" placeholder="请输入" />
-            </u-form-item>
-            <u-form-item label="岗位编码" prop="code" :border-bottom="true">
-              <u-input v-model="formData.code" border="none" placeholder="请输入" />
-            </u-form-item>
-            <u-form-item label="排序" :border-bottom="true">
-              <u-input v-model="formData.order" border="none" type="number" placeholder="请输入" />
-            </u-form-item>
-            <u-form-item label="备注" :border-bottom="true">
-              <u-textarea v-model="formData.description" border="none" placeholder="请输入" />
-            </u-form-item>
-          </u-form>
-          <view class="flex gap-md mt-xl">
-            <u-button :block="true" :plain="true" text="取消" @click="showForm = false" />
-            <u-button :block="true" type="primary" :loading="loading" text="保存" @click="handleSubmit" />
+          <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
+          <wd-form :model="formData" class="mt-lg">
+            <wd-form-item label="岗位名称" prop="name" border>
+              <wd-input v-model="formData.name" placeholder="请输入" />
+            </wd-form-item>
+            <wd-form-item label="岗位编码" prop="code" border>
+              <wd-input v-model="formData.code" placeholder="请输入" />
+            </wd-form-item>
+            <wd-form-item label="排序" border>
+              <wd-input v-model="formData.order" type="number" placeholder="请输入" />
+            </wd-form-item>
+            <wd-form-item label="备注" border>
+              <wd-textarea v-model="formData.description" placeholder="请输入" />
+            </wd-form-item>
+          </wd-form>
+          <view class="gap-md mt-xl flex">
+            <wd-button plain block @click="showForm = false">
+              取消
+            </wd-button>
+            <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+              保存
+            </wd-button>
           </view>
         </view>
-      </u-popup>
+      </wd-popup>
     </template>
   </view>
 </template>

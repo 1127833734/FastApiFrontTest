@@ -87,69 +87,75 @@ onLoad(() => loadTree())
 <template>
   <view class="page-wraper">
     <view class="action-bar">
-      <text class="font-bold text-lg">
+      <text class="text-lg font-bold">
         部门列表
       </text>
-      <u-button size="mini" type="primary" text="+ 新增" @click="openCreate()" />
+      <wd-button size="small" type="primary" @click="openCreate()">
+        + 新增
+      </wd-button>
     </view>
     <view class="px-sm">
       <view class="admin-card">
         <SkeletonPage v-if="loading" />
         <ListEmpty v-else-if="flatList.length === 0" text="暂无部门" />
-        <u-cell-group v-else>
-          <u-cell v-for="item in flatList" :key="item.id">
+        <wd-cell-group v-else>
+          <wd-cell v-for="item in flatList" :key="item.id">
             <template #title>
               <view class="flex items-center gap-xs" :style="{ marginLeft: `${(item._depth || 0) * 36}rpx` }">
                 <text v-if="item._depth > 0" class="text-muted" style="font-size: 20rpx;">
                   └─
                 </text>
                 <StatusBadge :status="item.status" dot />
-                <text class="font-medium text-md">
+                <text class="text-md font-medium">
                   {{ item.name }}
                 </text>
-                <text class="text-xs text-muted">
+                <text class="text-muted text-xs">
                   [{{ item.code }}]
                 </text>
               </view>
             </template>
-            <template #right>
-              <u-icon name="plus" size="18" color="var(--success-color)" @click.stop="openCreate(item.id)" />
-              <u-icon name="trash" size="18" color="var(--danger-color)" @click.stop="handleDelete(item.id)" />
+            <template #default>
+              <wd-icon name="plus" size="18px" color="var(--success-color)" @click.stop="openCreate(item.id)" />
+              <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id)" />
             </template>
-          </u-cell>
-        </u-cell-group>
+          </wd-cell>
+        </wd-cell-group>
       </view>
     </view>
-    <u-popup :show="showForm" mode="bottom" :round="10" custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
+    <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
       <view class="p-xl">
-        <u-navbar :title="formTitle" left-icon="arrow-left" @left-click="showForm = false" />
-        <u-form :model="formData" class="mt-lg">
-          <u-form-item label="部门名称" prop="name" :border-bottom="true">
-            <u-input v-model="formData.name" border="none" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="部门编码" prop="code" :border-bottom="true">
-            <u-input v-model="formData.code" border="none" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="排序" :border-bottom="true">
-            <u-input v-model="formData.order" border="none" type="number" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="负责人" :border-bottom="true">
-            <u-input v-model="formData.leader" border="none" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="联系电话" :border-bottom="true">
-            <u-input v-model="formData.phone" border="none" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="邮箱" :border-bottom="true">
-            <u-input v-model="formData.email" border="none" placeholder="请输入" />
-          </u-form-item>
-          <u-form-item label="备注" :border-bottom="true">
-            <u-textarea v-model="formData.description" border="none" placeholder="请输入" />
-          </u-form-item>
-        </u-form>
-        <view class="flex gap-md mt-xl">
-          <u-button :block="true" :plain="true" text="取消" @click="showForm = false" /><u-button :block="true" type="primary" :loading="loading" text="保存" @click="handleSubmit" />
+        <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
+        <wd-form :model="formData" class="mt-lg">
+          <wd-form-item label="部门名称" prop="name" border>
+            <wd-input v-model="formData.name" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="部门编码" prop="code" border>
+            <wd-input v-model="formData.code" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="排序" border>
+            <wd-input v-model="formData.order" type="number" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="负责人" border>
+            <wd-input v-model="formData.leader" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="联系电话" border>
+            <wd-input v-model="formData.phone" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="邮箱" border>
+            <wd-input v-model="formData.email" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="备注" border>
+            <wd-textarea v-model="formData.description" placeholder="请输入" />
+          </wd-form-item>
+        </wd-form>
+        <view class="gap-md mt-xl flex">
+          <wd-button plain block @click="showForm = false">
+            取消
+          </wd-button><wd-button block type="primary" :loading="loading" @click="handleSubmit">
+            保存
+          </wd-button>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>

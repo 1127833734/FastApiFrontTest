@@ -42,21 +42,21 @@ const showPickerDept = ref(false)
 const showPickerRole = ref(false)
 const showPickerPosition = ref(false)
 
-interface PickerConfirmEvent { indexs: number[] }
+interface PickerConfirmEvent { value: Array<string | number>, selectedOptions: any[] }
 function handleDeptConfirm(e: PickerConfirmEvent) {
-  const item = deptOptions.value[e.indexs[0]]
+  const item = deptOptions.value.find(o => o.value === e.value[0])
   if (item)
     formData.dept_id = item.value
   showPickerDept.value = false
 }
 function handleRoleConfirm(e: PickerConfirmEvent) {
-  const item = roleOptions.value[e.indexs[0]]
+  const item = roleOptions.value.find(o => o.value === e.value[0])
   if (item)
     formData.role_ids = [item.value]
   showPickerRole.value = false
 }
 function handlePositionConfirm(e: PickerConfirmEvent) {
-  const item = positionOptions.value[e.indexs[0]]
+  const item = positionOptions.value.find(o => o.value === e.value[0])
   if (item)
     formData.position_ids = [item.value]
   showPickerPosition.value = false
@@ -171,11 +171,10 @@ onLoad(() => loadData())
         <text class="list-search__icon">
           🔍
         </text>
-        <u-input
+        <wd-input
           v-model="searchName"
           placeholder="搜索姓名或用户名"
           clearable
-          border="none"
           @confirm="onSearch"
         />
       </view>
@@ -227,67 +226,71 @@ onLoad(() => loadData())
     </template>
 
     <!-- Form popup -->
-    <u-popup :show="showForm" mode="bottom" :round="10" custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
+    <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
       <view class="p-xl">
-        <u-navbar :title="formTitle" left-icon="arrow-left" @left-click="showForm = false" />
-        <u-form :model="formData" class="mt-lg">
-          <u-form-item label="用户名">
-            <u-input v-model="formData.username" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="姓名">
-            <u-input v-model="formData.name" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item v-if="!currentId" label="密码">
-            <u-input v-model="formData.password" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="部门">
+        <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
+        <wd-form :model="formData" class="mt-lg">
+          <wd-form-item label="用户名">
+            <wd-input v-model="formData.username" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="姓名">
+            <wd-input v-model="formData.name" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item v-if="!currentId" label="密码">
+            <wd-input v-model="formData.password" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="部门">
             <view @click="showPickerDept = true">
-              <u-cell title="部门" :value="deptOptions.find(o => o.value === formData.dept_id)?.label || '请选择部门'" :is-link="true" :border="false" />
+              <wd-cell title="部门" :value="deptOptions.find(o => o.value === formData.dept_id)?.label || '请选择部门'" is-link :border="false" />
             </view>
-            <u-picker :show="showPickerDept" :columns="[deptOptions.map(o => o.label)]" key-name="label" @confirm="handleDeptConfirm" @cancel="showPickerDept = false" />
-          </u-form-item>
-          <u-form-item label="角色">
+            <wd-picker :visible="showPickerDept" :columns="[deptOptions]" @confirm="handleDeptConfirm" @cancel="showPickerDept = false" />
+          </wd-form-item>
+          <wd-form-item label="角色">
             <view @click="showPickerRole = true">
-              <u-cell title="角色" :value="roleOptions.find(o => o.value === formData.role_ids?.[0])?.label || '请选择角色'" :is-link="true" :border="false" />
+              <wd-cell title="角色" :value="roleOptions.find(o => o.value === formData.role_ids?.[0])?.label || '请选择角色'" is-link :border="false" />
             </view>
-            <u-picker :show="showPickerRole" :columns="[roleOptions.map(o => o.label)]" key-name="label" @confirm="handleRoleConfirm" @cancel="showPickerRole = false" />
-          </u-form-item>
-          <u-form-item label="岗位">
+            <wd-picker :visible="showPickerRole" :columns="[roleOptions]" @confirm="handleRoleConfirm" @cancel="showPickerRole = false" />
+          </wd-form-item>
+          <wd-form-item label="岗位">
             <view @click="showPickerPosition = true">
-              <u-cell title="岗位" :value="positionOptions.find(o => o.value === formData.position_ids?.[0])?.label || '请选择岗位'" :is-link="true" :border="false" />
+              <wd-cell title="岗位" :value="positionOptions.find(o => o.value === formData.position_ids?.[0])?.label || '请选择岗位'" is-link :border="false" />
             </view>
-            <u-picker :show="showPickerPosition" :columns="[positionOptions.map(o => o.label)]" key-name="label" @confirm="handlePositionConfirm" @cancel="showPickerPosition = false" />
-          </u-form-item>
-          <u-form-item label="性别">
-            <u-radio-group v-model="formData.gender">
-              <u-radio v-for="opt in GENDER_OPTIONS" :key="opt.value" :name="opt.value">
+            <wd-picker :visible="showPickerPosition" :columns="[positionOptions]" @confirm="handlePositionConfirm" @cancel="showPickerPosition = false" />
+          </wd-form-item>
+          <wd-form-item label="性别">
+            <wd-radio-group v-model="formData.gender">
+              <wd-radio v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
-              </u-radio>
-            </u-radio-group>
-          </u-form-item>
-          <u-form-item label="状态">
-            <u-radio-group v-model="formData.status">
-              <u-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :name="opt.value">
+              </wd-radio>
+            </wd-radio-group>
+          </wd-form-item>
+          <wd-form-item label="状态">
+            <wd-radio-group v-model="formData.status">
+              <wd-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
-              </u-radio>
-            </u-radio-group>
-          </u-form-item>
-          <u-form-item label="邮箱">
-            <u-input v-model="formData.email" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="手机号">
-            <u-input v-model="formData.mobile" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="备注">
-            <u-textarea v-model="formData.description" placeholder="请输入" />
-          </u-form-item>
-        </u-form>
-        <view class="flex gap-md mt-xl">
-          <u-button :block="true" :plain="true" text="取消" @click="showForm = false" />
-          <u-button :block="true" type="primary" :loading="loading" text="保存" @click="handleSubmit" />
+              </wd-radio>
+            </wd-radio-group>
+          </wd-form-item>
+          <wd-form-item label="邮箱">
+            <wd-input v-model="formData.email" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="手机号">
+            <wd-input v-model="formData.mobile" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="备注">
+            <wd-textarea v-model="formData.description" placeholder="请输入" />
+          </wd-form-item>
+        </wd-form>
+        <view class="gap-md mt-xl flex">
+          <wd-button plain block @click="showForm = false">
+            取消
+          </wd-button>
+          <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+            保存
+          </wd-button>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>
 

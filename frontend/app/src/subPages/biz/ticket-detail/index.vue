@@ -249,21 +249,21 @@ onLoad((options) => {
 
     <!-- Comment Input -->
     <view v-if="ticket" class="comment-bar">
-      <u-input
+      <wd-input
         v-model="commentText"
         placeholder="写下你的评论..."
         clearable
-        border="surround"
         style="flex:1"
       />
-      <u-button
-        size="mini"
+      <wd-button
+        size="small"
         type="primary"
         :loading="submitting"
         :disabled="!commentText.trim()"
-        text="发送"
         @click="submitComment"
-      />
+      >
+        发送
+      </wd-button>
     </view>
   </view>
 </template>

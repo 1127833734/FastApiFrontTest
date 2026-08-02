@@ -82,17 +82,19 @@ onLoad(() => loadTree())
 <template>
   <view class="page-wraper">
     <view class="action-bar">
-      <text class="font-bold text-lg">
+      <text class="text-lg font-bold">
         菜单列表
       </text>
-      <u-button size="mini" type="primary" text="+ 新增" @click="openCreate()" />
+      <wd-button size="small" type="primary" @click="openCreate()">
+        + 新增
+      </wd-button>
     </view>
     <view class="px-sm">
       <view class="admin-card">
         <SkeletonPage v-if="loading" />
         <ListEmpty v-else-if="flatList.length === 0" text="暂无菜单" />
-        <u-cell-group v-else>
-          <u-cell v-for="item in flatList" :key="item.id">
+        <wd-cell-group v-else>
+          <wd-cell v-for="item in flatList" :key="item.id">
             <template #title>
               <view class="flex items-center gap-xs" :style="{ marginLeft: `${(item._depth || 0) * 36}rpx` }">
                 <text v-if="item._depth > 0" class="text-muted" style="font-size: 20rpx;">
@@ -101,7 +103,7 @@ onLoad(() => loadTree())
                 <text v-if="item.icon" class="text-primary" style="font-size: 24rpx;">
                   {{ item.icon }}
                 </text>
-                <text class="font-medium text-md">
+                <text class="text-md font-medium">
                   {{ item.name }}
                 </text>
                 <span class="status-badge" :class="`status-badge--${typeColors[item.type] || 'disabled'}`" style="font-size: 18rpx; padding: 0 10rpx;">
@@ -109,48 +111,52 @@ onLoad(() => loadTree())
                 </span>
               </view>
             </template>
-            <template #right-icon>
+            <template #default>
               <StatusBadge :status="item.status" />
-              <u-icon name="plus" size="18" color="var(--success-color)" @click.stop="openCreate(item.id)" />
-              <u-icon name="trash" size="18" color="var(--danger-color)" @click.stop="handleDelete(item.id)" />
+              <wd-icon name="plus" size="18px" color="var(--success-color)" @click.stop="openCreate(item.id)" />
+              <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id)" />
             </template>
-          </u-cell>
-        </u-cell-group>
+          </wd-cell>
+        </wd-cell-group>
       </view>
     </view>
-    <u-popup :show="showForm" mode="bottom" :round="10" custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
+    <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
       <view class="p-xl">
-        <u-navbar :title="formTitle" left-icon="arrow-left" @left-click="showForm = false" />
-        <u-form :model="formData" class="mt-lg">
-          <u-form-item label="菜单名称">
-            <u-input v-model="formData.name" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="类型(1-4)">
-            <u-input v-model="formData.type" type="number" placeholder="目录/菜单/按钮/外链" border="surround" />
-          </u-form-item>
-          <u-form-item label="排序">
-            <u-input v-model="formData.order" type="number" placeholder="请输入" border="surround" />
-          </u-form-item>
-          <u-form-item label="权限标识">
-            <u-input v-model="formData.permission" placeholder="如 sys:user:query" border="surround" />
-          </u-form-item>
-          <u-form-item label="路由地址">
-            <u-input v-model="formData.route_path" placeholder="如 /system/user" border="surround" />
-          </u-form-item>
-          <u-form-item label="组件路径">
-            <u-input v-model="formData.component_path" placeholder="system/user/index" border="surround" />
-          </u-form-item>
-          <u-form-item label="图标">
-            <u-input v-model="formData.icon" placeholder="图标名称" border="surround" />
-          </u-form-item>
-          <u-form-item label="备注">
-            <u-textarea v-model="formData.description" placeholder="请输入" />
-          </u-form-item>
-        </u-form>
-        <view class="flex gap-md mt-xl">
-          <u-button :block="true" :plain="true" text="取消" @click="showForm = false" /><u-button :block="true" type="primary" :loading="loading" text="保存" @click="handleSubmit" />
+        <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
+        <wd-form :model="formData" class="mt-lg">
+          <wd-form-item label="菜单名称">
+            <wd-input v-model="formData.name" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="类型(1-4)">
+            <wd-input v-model="formData.type" type="number" placeholder="目录/菜单/按钮/外链" />
+          </wd-form-item>
+          <wd-form-item label="排序">
+            <wd-input v-model="formData.order" type="number" placeholder="请输入" />
+          </wd-form-item>
+          <wd-form-item label="权限标识">
+            <wd-input v-model="formData.permission" placeholder="如 sys:user:query" />
+          </wd-form-item>
+          <wd-form-item label="路由地址">
+            <wd-input v-model="formData.route_path" placeholder="如 /system/user" />
+          </wd-form-item>
+          <wd-form-item label="组件路径">
+            <wd-input v-model="formData.component_path" placeholder="system/user/index" />
+          </wd-form-item>
+          <wd-form-item label="图标">
+            <wd-input v-model="formData.icon" placeholder="图标名称" />
+          </wd-form-item>
+          <wd-form-item label="备注">
+            <wd-textarea v-model="formData.description" placeholder="请输入" />
+          </wd-form-item>
+        </wd-form>
+        <view class="gap-md mt-xl flex">
+          <wd-button plain block @click="showForm = false">
+            取消
+          </wd-button><wd-button block type="primary" :loading="loading" @click="handleSubmit">
+            保存
+          </wd-button>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>

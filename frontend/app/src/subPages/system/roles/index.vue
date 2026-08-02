@@ -101,16 +101,22 @@ onLoad(() => loadData())
   <view class="page-wraper">
     <view class="search-bar">
       <view class="flex items-center gap-sm">
-        <u-input v-model="searchName" placeholder="搜索角色名称" clearable border="surround" class="flex-1" />
-        <u-button size="mini" type="primary" :plain="true" text="搜索" @click="onSearch" />
-        <u-button size="mini" :plain="true" text="重置" @click="onReset" />
+        <wd-input v-model="searchName" placeholder="搜索角色名称" clearable class="flex-1" />
+        <wd-button size="small" type="primary" plain @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" plain @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
-      <wd-button size="small" type="primary" @click="openCreate">+ 新增</wd-button>
+      <wd-button size="small" type="primary" @click="openCreate">
+        + 新增
+      </wd-button>
     </view>
     <SkeletonPage v-if="loading" :rows="5" search />
     <template v-else>
@@ -121,10 +127,10 @@ onLoad(() => loadData())
             <wd-cell v-for="item in list" :key="item.id" is-link @click="openEdit(item.id!)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.name }}
                   </text>
-                  <text class="text-xs text-muted block">
+                  <text class="text-muted block text-xs">
                     {{ item.code }}{{ item.description ? ` · ${item.description}` : '' }}
                   </text>
                 </view>
@@ -155,9 +161,13 @@ onLoad(() => loadData())
               <wd-textarea v-model="formData.description" placeholder="请输入" />
             </wd-form-item>
           </wd-form>
-          <view class="flex gap-md mt-xl">
-            <wd-button block plain @click="showForm = false">取消</wd-button>
-            <wd-button block type="primary" :loading="loading" @click="handleSubmit">保存</wd-button>
+          <view class="gap-md mt-xl flex">
+            <wd-button plain block @click="showForm = false">
+              取消
+            </wd-button>
+            <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+              保存
+            </wd-button>
           </view>
         </view>
       </wd-popup>
