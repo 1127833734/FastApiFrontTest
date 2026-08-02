@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { TicketAPI } from '@/api/module_system/ticket'
+import { useUserStore } from '@/store/userStore'
+
 definePage({
   name: 'mine',
   layout: 'tabbar',
@@ -25,10 +28,30 @@ function handleLogout() {
   })
 }
 
+/** 工单统计（真实数据：待处理 / 处理中 / 已完成） */
+const pendingTickets = ref<number | null>(null)
+const processingTickets = ref<number | null>(null)
+const doneTickets = ref<number | null>(null)
+
+async function loadTicketStats() {
+  const [pending, processing, done] = await Promise.allSettled([
+    TicketAPI.getPage({ page_no: 1, page_size: 1, status: '0' }),
+    TicketAPI.getPage({ page_no: 1, page_size: 1, status: '1' }),
+    TicketAPI.getPage({ page_no: 1, page_size: 1, status: '2' }),
+  ])
+  if (pending.status === 'fulfilled')
+    pendingTickets.value = pending.value.total || 0
+  if (processing.status === 'fulfilled')
+    processingTickets.value = processing.value.total || 0
+  if (done.status === 'fulfilled')
+    doneTickets.value = done.value.total || 0
+}
+
 onShow(() => {
   const pages = getCurrentPages()
   if (pages.length > 0 && pages[pages.length - 1].route === 'pages/mine/index') {
     uni.$emit('updateTabbar', 'mine')
+    loadTicketStats()
   }
 })
 
@@ -49,9 +72,6 @@ const quickLinks = [
   { title: '字典管理', name: 'work-dicts', icon: 'tags', color: '#F59E0B' },
   { title: '通知公告', name: 'work-notices', icon: 'notification', color: '#10B981' },
   { title: '参数管理', name: 'work-params', icon: 'settings', color: '#8B5CF6' },
-  { title: '定时任务', name: 'work-cronjob', icon: 'clock-circle', color: '#EC4899' },
-  { title: '工作流', name: 'work-workflow', icon: 'play-arrow', color: '#8B5CF6' },
-  { title: '设备管理', name: 'work-devices', icon: 'phone', color: '#10B981' },
   { title: 'AI 模型', name: 'work-ai-models', icon: 'robot', color: '#8B5CF6' },
 ]
 </script>
@@ -73,22 +93,30 @@ const quickLinks = [
       </text>
     </view>
 
-    <!-- Stats -->
+    <!-- Stats（真实工单数据） -->
     <view class="mine-stats fade-in-up-1">
-      <view class="mine-stat-item card-pressable">
-        <text class="mine-stat-item__value">
-          1,024
+      <view class="mine-stat-item card-pressable" @click="navigateTo('work-tickets')">
+        <text class="mine-stat-item__value" style="color: var(--warning-color, #F59E0B);">
+          {{ pendingTickets ?? '-' }}
         </text>
         <text class="mine-stat-item__label">
-          操作次数
+          待处理工单
         </text>
       </view>
-      <view class="mine-stat-item card-pressable">
-        <text class="mine-stat-item__value">
-          365
+      <view class="mine-stat-item card-pressable" @click="navigateTo('work-tickets')">
+        <text class="mine-stat-item__value" style="color: var(--primary-color, #4F8CFF);">
+          {{ processingTickets ?? '-' }}
         </text>
         <text class="mine-stat-item__label">
-          登录天数
+          处理中工单
+        </text>
+      </view>
+      <view class="mine-stat-item card-pressable" @click="navigateTo('work-tickets')">
+        <text class="mine-stat-item__value" style="color: var(--success-color, #10B981);">
+          {{ doneTickets ?? '-' }}
+        </text>
+        <text class="mine-stat-item__label">
+          已完成工单
         </text>
       </view>
     </view>
@@ -246,7 +274,7 @@ const quickLinks = [
 /* ===== Quick grid ===== */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16rpx;
 }
 

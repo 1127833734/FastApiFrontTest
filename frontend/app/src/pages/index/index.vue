@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import type { SwiperItem } from '@wot-ui/ui/components/wd-swiper/types'
 import type { DashboardStats } from '@/api/module_monitor/dashboard'
 import type { NoticeItem } from '@/api/module_system/notice'
 import { onPullDownRefresh, onReady, onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { DashboardAPI } from '@/api/module_monitor/dashboard'
 import { NoticeAPI } from '@/api/module_system/notice'
 import { TicketAPI } from '@/api/module_system/ticket'
+import { useUserStore } from '@/store/userStore'
 
 definePage({
   name: 'home',
@@ -20,21 +22,71 @@ function getRouter() {
       _router = useRouter()
     }
     catch {}
-    return _router
   }
+  return _router
 }
 
 const loading = ref(false)
 const dashboardStats = ref<DashboardStats | null>(null)
 const pendingTickets = ref(0)
 const recentNotices = ref<NoticeItem[]>([])
+const userStore = useUserStore()
 
 const NAV_LIST = [
-  { icon: '/static/icons/user.png', title: '用户管理', name: 'work-users' },
-  { icon: '/static/icons/role.png', title: '角色管理', name: 'work-roles' },
-  { icon: '/static/icons/notice.png', title: '通知公告', name: 'work-notices' },
-  { icon: '/static/icons/setting.png', title: '系统配置', name: 'work-params' },
+  { icon: '/static/icons/user.svg', title: '用户管理', name: 'work-users', color: '#4F8CFF', bg: 'rgba(79, 140, 255, 0.12)' },
+  { icon: '/static/icons/role.svg', title: '角色管理', name: 'work-roles', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)' },
+  { icon: '/static/icons/notice.svg', title: '通知公告', name: 'work-notices', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
+  { icon: '/static/icons/setting.svg', title: '系统配置', name: 'work-params', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.12)' },
 ]
+
+/** 轮播 Banner 条目 */
+interface BannerItem extends SwiperItem {
+  key: string
+  tag: string
+  cls: string
+  title: string
+  subtitle: string
+  desc: string
+  cta: string
+  onClick: () => void
+}
+
+/**
+ * 顶部轮播 Banner（轮播图风格首页核心）：
+ * 1. 今日问候  2. 待办工单  3. 数据概览
+ */
+const banners = computed<BannerItem[]>(() => [
+  {
+    key: 'greet',
+    tag: '今日',
+    cls: 'banner-slide--greet',
+    title: `${getGreeting()}，${userStore.userInfo?.name || '管理员'}`,
+    subtitle: getDateString(),
+    desc: '欢迎回来，开启高效的一天',
+    cta: '数据概览',
+    onClick: () => navigateTo('dashboard'),
+  },
+  {
+    key: 'ticket',
+    tag: '待办',
+    cls: pendingTickets.value > 0 ? 'banner-slide--ticket' : 'banner-slide--ticket-empty',
+    title: pendingTickets.value > 0 ? `${pendingTickets.value} 个待处理工单` : '工单已全部处理',
+    subtitle: pendingTickets.value > 0 ? '点击立即处理，避免影响业务' : '处理及时，继续保持',
+    desc: '点击进入工单列表',
+    cta: pendingTickets.value > 0 ? '去处理' : '查看工单',
+    onClick: () => navigateTo('work-tickets'),
+  },
+  {
+    key: 'stats',
+    tag: '数据',
+    cls: 'banner-slide--stats',
+    title: '数据概览',
+    subtitle: '系统运行状态与趋势分析',
+    desc: `总用户 ${dashboardStats.value?.total_users ?? '-'} · 在线 ${dashboardStats.value?.online_users ?? '-'} · 今日登录 ${dashboardStats.value?.today_login_count ?? '-'}`,
+    cta: '查看详情',
+    onClick: () => navigateTo('dashboard'),
+  },
+])
 
 function navigateTo(name: string) {
   const r = getRouter()
@@ -107,54 +159,80 @@ function getGreeting() {
 
 <template>
   <view class="home-page">
-    <!-- Navigation bar -->
+    <!-- 顶部导航 -->
     <view class="home-nav">
       <text class="home-nav__title">
         工作台概览
       </text>
-      <view class="home-nav__bell">
-        <text class="home-nav__bell-icon" @click="navigateTo('work-notices')">
-          🔔
-        </text>
+      <view class="home-nav__bell" @click="navigateTo('work-notices')">
+        <wd-icon name="notification" size="18px" color="var(--text-color-2)" />
         <view v-if="pendingTickets > 0" class="home-nav__badge" />
       </view>
     </view>
 
-    <!-- Greeting card -->
-    <view class="greeting-card fade-in-up">
-      <text class="greeting-card__text">
-        {{ getGreeting() }}，管理员
-      </text>
-      <text class="greeting-card__date">
-        {{ getDateString() }}
-      </text>
+    <!-- 轮播 Banner -->
+    <view class="home-banner fade-in-up">
+      <wd-swiper
+        :list="banners"
+        height="340"
+        radius="28"
+        :interval="4500"
+        :autoplay="true"
+        :loop="true"
+      >
+        <template #default="{ index }">
+          <view class="banner-slide" :class="banners[index].cls" @click="banners[index].onClick">
+            <view class="banner-slide__body">
+              <text class="banner-slide__tag">
+                {{ banners[index].tag }}
+              </text>
+              <text class="banner-slide__title">
+                {{ banners[index].title }}
+              </text>
+              <text class="banner-slide__subtitle">
+                {{ banners[index].subtitle }}
+              </text>
+              <text class="banner-slide__desc">
+                {{ banners[index].desc }}
+              </text>
+            </view>
+            <view class="banner-slide__cta">
+              <text class="banner-slide__cta-text">
+                {{ banners[index].cta }}
+              </text>
+              <text class="banner-slide__cta-arrow">
+                ›
+              </text>
+            </view>
+          </view>
+        </template>
+        <template #indicator="{ current, total }">
+          <view class="banner-dots">
+            <view
+              v-for="i in total"
+              :key="i"
+              class="banner-dots__dot"
+              :class="{ 'is-active': i === current + 1 }"
+            />
+          </view>
+        </template>
+      </wd-swiper>
     </view>
 
-    <!-- Dashboard entry -->
-    <view class="dashboard-entry card-pressable fade-in-up-1" @click="navigateTo('dashboard')">
-      <view class="dashboard-entry__icon">
-        <text class="dashboard-entry__icon-text">
-          📊
-        </text>
-      </view>
-      <view class="dashboard-entry__info">
-        <text class="dashboard-entry__title">
-          数据概览
-        </text>
-        <text class="dashboard-entry__sub">
-          查看系统运行状态与趋势分析
-        </text>
-      </view>
-      <text class="dashboard-entry__arrow">
-        ›
-      </text>
-    </view>
-
-    <!-- Quick nav -->
-    <view class="home-grid home-grid--nav">
-      <wd-grid :column="4" clickable>
-        <wd-grid-item v-for="(item, i) in NAV_LIST" :key="i" @click="navigateTo(item.name)">
-          <image class="home-nav-icon" :src="item.icon" mode="aspectFit" />
+    <!-- 快捷入口 -->
+    <view class="home-grid fade-in-up-1">
+      <wd-grid :column="4">
+        <wd-grid-item v-for="item in NAV_LIST" :key="item.name" @click="navigateTo(item.name)">
+          <view class="nav-item__icon" :style="{ background: item.bg }">
+            <view
+              class="nav-item__svg"
+              :style="{
+                backgroundColor: item.color,
+                maskImage: `url(${item.icon})`,
+                WebkitMaskImage: `url(${item.icon})`,
+              }"
+            />
+          </view>
           <text class="home-grid__label">
             {{ item.title }}
           </text>
@@ -162,8 +240,8 @@ function getGreeting() {
       </wd-grid>
     </view>
 
-    <!-- Stats -->
-    <view class="section-header">
+    <!-- 运营概览 -->
+    <view class="section-header fade-in-up-2">
       <text class="section-header__title">
         运营概览
       </text>
@@ -206,16 +284,8 @@ function getGreeting() {
         </view>
       </view>
 
-      <!-- Pending ticket alert -->
-      <view v-if="pendingTickets > 0" class="alert-bar btn-press fade-in-up-4" @click="navigateTo('work-tickets')">
-        <view class="alert-bar__dot" />
-        <text class="alert-bar__text">
-          您有 {{ pendingTickets }} 个待处理工单，点击查看 →
-        </text>
-      </view>
-
-      <!-- Recent notices -->
-      <view v-if="recentNotices.length > 0" class="home-section">
+      <!-- 最新公告 -->
+      <view v-if="recentNotices.length > 0" class="home-section fade-in-up-3">
         <view class="section-header">
           <text class="section-header__title">
             最新公告
@@ -237,8 +307,8 @@ function getGreeting() {
         </view>
       </view>
 
-      <!-- Recent logins -->
-      <view v-if="dashboardStats?.recent_logins?.length" class="home-section">
+      <!-- 最近登录 -->
+      <view v-if="dashboardStats?.recent_logins?.length" class="home-section fade-in-up-4">
         <view class="section-header">
           <text class="section-header__title">
             最近登录
@@ -272,7 +342,7 @@ function getGreeting() {
   min-height: 100vh;
 }
 
-/* ===== Navigation ===== */
+/* ===== 顶部导航 ===== */
 .home-nav {
   display: flex;
   align-items: center;
@@ -295,7 +365,7 @@ function getGreeting() {
     align-items: center;
     justify-content: center;
 
-    &-icon { font-size: var(--font-lg, 32rpx); }
+    &:active { opacity: 0.7; }
   }
 
   &__badge {
@@ -310,88 +380,152 @@ function getGreeting() {
   }
 }
 
-/* ===== Greeting ===== */
-.greeting-card {
-  background: var(--gradient-primary, linear-gradient(135deg, #4F8CFF, #2563EB));
-  border-radius: 32rpx;
-  padding: 40rpx 32rpx;
+/* ===== 轮播 Banner ===== */
+.home-banner {
   margin-bottom: 32rpx;
-  box-shadow: var(--shadow-lg, 0 12rpx 40rpx rgba(1, 77, 178, 0.15));
-
-  &__text {
-    display: block;
-    font-size: var(--font-2xl, 40rpx);
-    font-weight: 600;
-    color: #FFFFFF;
-    margin-bottom: 8rpx;
-  }
-
-  &__date {
-    font-size: var(--font-sm, 24rpx);
-    color: rgba(255, 255, 255, 0.80);
-  }
 }
 
-/* ===== Dashboard entry ===== */
-.dashboard-entry {
+.banner-slide {
+  position: relative;
+  height: 340rpx;
+  padding: 36rpx 40rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  background: linear-gradient(135deg, #F0F5FF, #E8F0FE);
-  border: 2rpx solid rgba(1, 77, 178, 0.08);
-  border-radius: 24rpx;
-  padding: 28rpx;
-  margin-bottom: 32rpx;
-  transition: all 0.15s ease;
+  justify-content: space-between;
+  color: #FFFFFF;
+  overflow: hidden;
 
-  &__icon {
-    width: 80rpx;
-    height: 80rpx;
-    border-radius: 20rpx;
-    background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    &-text { font-size: var(--font-xl, 36rpx); }
+  /* 装饰圆环 */
+  &::before {
+    content: '';
+    position: absolute;
+    right: -80rpx;
+    top: -80rpx;
+    width: 300rpx;
+    height: 300rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
   }
 
-  &__info {
-    flex: 1;
+  &::after {
+    content: '';
+    position: absolute;
+    right: 40rpx;
+    bottom: -120rpx;
+    width: 240rpx;
+    height: 240rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &--greet { background: linear-gradient(135deg, #4F8CFF, #2563EB); }
+  &--ticket { background: linear-gradient(135deg, #F59E0B, #D97706); }
+  &--ticket-empty { background: linear-gradient(135deg, #10B981, #059669); }
+  &--stats { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
+
+  &__body {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 4rpx;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tag {
+    align-self: flex-start;
+    font-size: var(--font-xs, 20rpx);
+    line-height: 1;
+    padding: 8rpx 16rpx;
+    border-radius: var(--radius-full, 9999rpx);
+    background: rgba(255, 255, 255, 0.22);
+    margin-bottom: 20rpx;
   }
 
   &__title {
-    font-size: var(--font-lg, 32rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__sub {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-
-  &__arrow {
     font-size: var(--font-2xl, 40rpx);
-    font-weight: 300;
-    color: var(--primary-color, #4F8CFF);
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 8rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__subtitle {
+    font-size: var(--font-sm, 24rpx);
+    color: rgba(255, 255, 255, 0.88);
+    margin-bottom: 8rpx;
+  }
+
+  &__desc {
+    font-size: var(--font-xs, 20rpx);
+    color: rgba(255, 255, 255, 0.68);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__cta {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    margin-left: 24rpx;
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 16rpx 24rpx;
+    border-radius: var(--radius-full, 9999rpx);
+    background: rgba(255, 255, 255, 0.22);
+    border: 2rpx solid rgba(255, 255, 255, 0.35);
+
+    &-text {
+      font-size: var(--font-sm, 24rpx);
+      font-weight: 500;
+      color: #FFFFFF;
+      white-space: nowrap;
+    }
+
+    &-arrow {
+      font-size: var(--font-md, 28rpx);
+      font-weight: 400;
+      color: #FFFFFF;
+      line-height: 1;
+    }
   }
 }
 
-/* ===== Quick nav grid ===== */
-.home-grid {
-  &--nav {
-    background: var(--card-bg-color, #FFFFFF);
-    border-radius: 24rpx;
-    padding: 16rpx 0;
-    margin-bottom: 32rpx;
-    box-shadow: var(--shadow-xs, 0 3rpx 8rpx rgba(1, 77, 178, 0.03));
+.banner-dots {
+  position: absolute;
+  right: 24rpx;
+  bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+
+  &__dot {
+    width: 10rpx;
+    height: 10rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    transition: all 0.3s ease;
+
+    &.is-active {
+      width: 28rpx;
+      border-radius: var(--radius-full, 9999rpx);
+      background: #FFFFFF;
+    }
   }
+}
+
+/* ===== 快捷入口 ===== */
+.home-grid {
+  background: var(--card-bg-color, #FFFFFF);
+  border-radius: 24rpx;
+  padding: 20rpx 0;
+  margin-bottom: 32rpx;
+  box-shadow: var(--shadow-xs, 0 3rpx 8rpx rgba(1, 77, 178, 0.03));
 
   &__label {
     font-size: var(--font-sm, 24rpx);
@@ -399,7 +533,27 @@ function getGreeting() {
   }
 }
 
-.home-nav-icon { width: 64rpx; height: 64rpx; border-radius: 12rpx; }
+.nav-item__icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+
+/* SVG 图标：以 mask 蒙版取形，background-color 着色（currentColor 方案） */
+.nav-item__svg {
+  width: 40rpx;
+  height: 40rpx;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
 
 /* ===== Section header ===== */
 .section-header {
@@ -424,7 +578,7 @@ function getGreeting() {
 .stats-row {
   display: flex;
   gap: 24rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 32rpx;
 }
 
 .stat-item {
@@ -459,30 +613,6 @@ function getGreeting() {
   &__sub {
     font-size: var(--font-xs, 20rpx);
     color: var(--text-color-4, #B0B0B0);
-  }
-}
-
-/* ===== Alert bar ===== */
-.alert-bar {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  background: var(--warning-color-light, #FFF8E6);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 32rpx;
-
-  &__dot {
-    width: 12rpx;
-    height: 12rpx;
-    border-radius: 50%;
-    background: var(--warning-color, #F59E0B);
-    flex-shrink: 0;
-  }
-
-  &__text {
-    font-size: var(--font-md, 28rpx);
-    color: var(--warning-color, #F59E0B);
   }
 }
 

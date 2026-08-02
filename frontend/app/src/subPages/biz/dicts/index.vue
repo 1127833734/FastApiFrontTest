@@ -18,7 +18,7 @@ const STATUS_OPTIONS = [{ value: 0, label: '正常' }, { value: 1, label: '禁�
 /* ===== Type list ===== */
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<DictTypeItem>({
   fetcher: p => DictAPI.getTypePage({ ...p, dict_name: searchName.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 function onSearch() {
   toFirst()
@@ -52,7 +52,7 @@ async function handleSubmit() {
     showForm.value = false
     loadData()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 function handleDelete(id: number) {
@@ -63,7 +63,7 @@ function handleDelete(id: number) {
         toast.success('删除成功')
         loadData()
       }
-      catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+      catch { toast.error('删除失败') }
     }
   } })
 }
@@ -88,7 +88,7 @@ const {
   loadNext: dataLoadNext,
 } = useListPage<DictDataItem>({
   fetcher: p => DictAPI.getDataPage({ ...p, dict_type_id: currentTypeId.value }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function loadDictData(item: DictTypeItem) {
@@ -126,7 +126,7 @@ async function openEditData(id: number) {
     })
     showDataForm.value = true
   }
-  catch (e) { toast.error(getErrorMessage(e, '获取详情失败')) }
+  catch { toast.error('获取详情失败') }
 }
 async function handleSubmitData() {
   dataLoading.value = true
@@ -142,7 +142,7 @@ async function handleSubmitData() {
     showDataForm.value = false
     loadDataList()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { dataLoading.value = false }
 }
 function handleDeleteData(id: number) {
@@ -153,7 +153,7 @@ function handleDeleteData(id: number) {
         toast.success('删除成功')
         loadDataList()
       }
-      catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+      catch { toast.error('删除失败') }
     }
   } })
 }
@@ -177,10 +177,10 @@ onLoad(() => loadData())
       <view class="search-bar">
         <view class="flex items-center gap-sm">
           <wd-input v-model="searchName" placeholder="搜索字典名称" clearable class="flex-1" />
-          <wd-button size="small" type="primary" plain @click="onSearch">
+          <wd-button size="small" type="primary" variant="plain" @click="onSearch">
             搜索
           </wd-button>
-          <wd-button size="small" plain @click="onReset">
+          <wd-button size="small" variant="plain" @click="onReset">
             重置
           </wd-button>
         </view>
@@ -277,7 +277,7 @@ onLoad(() => loadData())
               <wd-textarea v-model="dataFormData.description" placeholder="请输入" />
             </wd-form-item>
           </wd-form><view class="gap-md mt-xl flex">
-            <wd-button plain block @click="showDataForm = false">
+            <wd-button variant="plain" block @click="showDataForm = false">
               取消
             </wd-button><wd-button block type="primary" :loading="dataLoading" @click="handleSubmitData">
               保存
@@ -305,7 +305,7 @@ onLoad(() => loadData())
             <wd-textarea v-model="formData.description" placeholder="请输入" />
           </wd-form-item>
         </wd-form><view class="gap-md mt-xl flex">
-          <wd-button plain block @click="showForm = false">
+          <wd-button variant="plain" block @click="showForm = false">
             取消
           </wd-button>
           <wd-button block type="primary" :loading="loading" @click="handleSubmit">

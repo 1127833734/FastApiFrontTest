@@ -86,34 +86,70 @@ const alovaInstance = createAlova({
     method.config.headers.Authorization = `Bearer ${token}`
   }),
 
-  responded: onResponseRefreshToken((response, method) => {
-    const { config } = method
-    const { requestType } = config
+  responded: onResponseRefreshToken({
+    // 成功响应拦截：统一处理 HTTP 状态码与业务码，错误统一提示并抛出
+    onSuccess: (response, method) => {
+      const { config } = method
+      const { requestType } = config
 
-    // 处理特殊请求类型（上传/下载）：原样返回，不解构业务数据
-    if (requestType === 'upload' || requestType === 'download')
-      return response
+      // 处理特殊请求类型（上传/下载）：原样返回，不解构业务数据
+      if (requestType === 'upload' || requestType === 'download')
+        return response
 
-    // 普通请求：uniapp adapter 响应结构为 { statusCode, data }（上传/下载已提前返回，此处必为普通请求）
-    const { statusCode, data: rawData } = response as unknown as UniappNormalResponse
+      // 普通请求：uniapp adapter 响应结构为 { statusCode, data }（上传/下载已提前返回，此处必为普通请求）
+      const { statusCode, data: rawData } = response as unknown as UniappNormalResponse
 
-    // 处理 HTTP 状态码错误
-    if (statusCode !== 200) {
-      const errorMessage
-        = rawData?.msg || rawData?.message || rawData?.error || ShowMessage(statusCode) || `HTTP请求错误[${statusCode}]`
-      throw new Error(errorMessage)
-    }
+      // 处理 HTTP 状态码错误
+      if (statusCode !== 200) {
+        const errorMessage
+          = rawData?.msg || rawData?.message || rawData?.error || ShowMessage(statusCode) || `HTTP请求错误[${statusCode}]`
+        return throwApiError(errorMessage, config)
+      }
 
-    // 处理业务逻辑错误
-    const { code, message, msg, data } = rawData
-    // 0 为成功，见 ResultEnum
-    if (code !== ResultEnum.SUCCESS) {
-      const errorMessage = msg || message || '请求错误'
-      throw new Error(errorMessage)
-    }
-    // 处理成功响应，返回业务数据
-    return data
+      // 处理业务逻辑错误
+      const { code, message, msg, data } = rawData
+      // 0 为成功，见 ResultEnum
+      if (code !== ResultEnum.SUCCESS) {
+        const errorMessage = msg || message || '请求错误'
+        return throwApiError(errorMessage, config)
+      }
+      // 处理成功响应，返回业务数据
+      return data
+    },
+
+    // 错误响应拦截：覆盖网络/超时等未在 onSuccess 提示过的错误
+    onError: (error, method) => {
+      const { config } = method
+      // 已标记提示过的错误（onSuccess 抛出）不再重复提示
+      if (!(error as Error & { __toasted?: boolean })?.__toasted && !config.meta?.silent) {
+        if (error.name === 'NetworkError')
+          notifyError('网络错误，请检查您的网络连接')
+        else if (error.name === 'TimeoutError')
+          notifyError('请求超时，请重试')
+        else
+          notifyError((error as Error)?.message || '请求错误')
+      }
+      throw error
+    },
   }),
 })
+
+/** 统一错误提示：非组件上下文使用原生 toast，保证 H5/小程序/App 跨端可靠显示 */
+function notifyError(message: string) {
+  uni.showToast({ title: message || '请求错误', icon: 'none', duration: 2000 })
+}
+
+/**
+ * 抛出接口错误并统一全局提示
+ * 页面无需再单独提取/展示错误信息；meta.silent 可用于内联处理场景（如聊天内联展示）
+ */
+function throwApiError(message: string, config: { meta?: Record<string, any> }) {
+  const err = new Error(message) as Error & { __toasted?: boolean }
+  if (!config.meta?.silent) {
+    err.__toasted = true
+    notifyError(message)
+  }
+  throw err
+}
 
 export const http = alovaInstance

@@ -55,11 +55,6 @@ const groups = [
       { icon: 'file', text: '操作日志', name: 'work-oplogs' },
       { icon: 'eye-fill', text: '登录日志', name: 'work-loginlogs' },
       { icon: 'user', text: '在线用户', name: 'work-online' },
-      { icon: 'dashboard', text: '服务监控', name: 'work-server' },
-      { icon: 'refresh', text: '缓存管理', name: 'work-cache' },
-      { icon: 'folder', text: '文件管理', name: 'work-file-manager' },
-      { icon: 'clock-circle-fill', text: '定时任务', name: 'work-cronjob' },
-      { icon: 'phone', text: '设备管理', name: 'work-devices' },
     ],
   },
   {
@@ -69,8 +64,6 @@ const groups = [
     items: [
       { icon: 'message', text: 'AI 助手', name: 'work-chat' },
       { icon: 'robot', text: 'AI 模型', name: 'work-ai-models' },
-      { icon: 'file', text: '代码生成', name: 'work-gencode' },
-      { icon: 'play-arrow', text: '工作流', name: 'work-workflow' },
     ],
   },
 ]
@@ -109,9 +102,10 @@ const groups = [
 
     <!-- Module groups -->
     <view v-for="(group, gi) in groups" :key="gi" class="module-group" :class="[`fade-in-up-${gi + 1}`]">
-      <text class="module-group__title">
-        {{ group.title }}
-      </text>
+      <view class="module-group__title">
+        <view class="module-group__dot" :style="{ background: group.color }" />
+        <text>{{ group.title }}</text>
+      </view>
       <view class="module-grid">
         <view
           v-for="item in group.items"
@@ -173,22 +167,22 @@ const groups = [
   }
 }
 
-/* ===== User card ===== */
+/* ===== User card（渐变欢迎卡，与 mine/login 设计语言一致） ===== */
 .user-card {
   display: flex;
   align-items: center;
   gap: 24rpx;
-  background: var(--card-bg-color, #FFFFFF);
+  background: var(--gradient-primary, linear-gradient(135deg, #4F8CFF, #2563EB));
   border-radius: 32rpx;
   padding: 32rpx;
   margin-bottom: 40rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
+  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.18);
 
   &__avatar {
     width: 96rpx;
     height: 96rpx;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
+    background: rgba(255, 255, 255, 0.20);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -210,12 +204,12 @@ const groups = [
   &__name {
     font-size: var(--font-xl, 36rpx);
     font-weight: 600;
-    color: var(--text-color, #0A1628);
+    color: #FFFFFF;
   }
 
   &__role {
     font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
+    color: rgba(255, 255, 255, 0.85);
   }
 }
 
@@ -224,11 +218,20 @@ const groups = [
   margin-bottom: 40rpx;
 
   &__title {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
     font-size: var(--font-lg, 32rpx);
     font-weight: 600;
     color: var(--text-color, #0A1628);
     margin-bottom: 20rpx;
+  }
+
+  &__dot {
+    width: 12rpx;
+    height: 12rpx;
+    border-radius: 4rpx;
+    flex-shrink: 0;
   }
 }
 

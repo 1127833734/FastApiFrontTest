@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import type { DashboardStats } from '@/api/module_monitor/dashboard'
-import type { ServerInfo } from '@/api/module_monitor/server'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { DashboardAPI } from '@/api/module_monitor/dashboard'
-import { ServerAPI } from '@/api/module_monitor/server'
 import SkeletonPage from '@/components/SkeletonPage.vue'
 
 definePage({
@@ -15,7 +13,6 @@ definePage({
 const toast = useToast()
 const loading = ref(false)
 const stats = ref<DashboardStats | null>(null)
-const serverInfo = ref<ServerInfo | null>(null)
 
 // 7-day mock login trend data
 const loginTrend = ref([
@@ -34,31 +31,13 @@ const alerts = ref([
   { id: 3, level: 'info', text: '新用户注册量异常增长', time: '1小时前' },
 ])
 
-const cpuPercent = computed(() => serverInfo.value?.cpu?.used_percent ?? 0)
-const memPercent = computed(() => serverInfo.value?.memory?.used_percent ?? 0)
-
-function healthColor(percent: number) {
-  if (percent < 50)
-    return 'var(--success-color, #10B981)'
-  if (percent < 80)
-    return 'var(--warning-color, #F59E0B)'
-  return 'var(--danger-color, #EF4444)'
-}
-
 async function loadData() {
   loading.value = true
   try {
-    const [dashRes, serverRes] = await Promise.all([
-      DashboardAPI.getStats().catch(() => null),
-      ServerAPI.getInfo().catch(() => null),
-    ])
-    if (dashRes)
-      stats.value = dashRes
-    if (serverRes)
-      serverInfo.value = serverRes
+    stats.value = await DashboardAPI.getStats()
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '加载失败'))
+  catch {
+    toast.error('加载失败')
   }
   finally {
     loading.value = false
@@ -111,14 +90,6 @@ onPullDownRefresh(() => loadData())
             今日活跃
           </text>
         </view>
-        <view class="stat-card card-pressable">
-          <text class="stat-card__value" style="color: var(--warning-color);">
-            {{ cpuPercent }}%
-          </text>
-          <text class="stat-card__label">
-            系统负载
-          </text>
-        </view>
       </view>
 
       <!-- Chart section -->
@@ -142,32 +113,6 @@ onPullDownRefresh(() => loadData())
               {{ item.day }}
             </text>
           </view>
-        </view>
-      </view>
-
-      <!-- System health -->
-      <view class="health-row">
-        <view class="health-card card-pressable">
-          <view class="health-card__info">
-            <text class="health-card__label">
-              CPU
-            </text>
-            <text class="health-card__value" :style="{ color: healthColor(cpuPercent) }">
-              {{ cpuPercent }}%
-            </text>
-          </view>
-          <view class="health-card__dot" :style="{ background: healthColor(cpuPercent) }" />
-        </view>
-        <view class="health-card card-pressable">
-          <view class="health-card__info">
-            <text class="health-card__label">
-              内存
-            </text>
-            <text class="health-card__value" :style="{ color: healthColor(memPercent) }">
-              {{ memPercent }}%
-            </text>
-          </view>
-          <view class="health-card__dot" :style="{ background: healthColor(memPercent) }" />
         </view>
       </view>
 
@@ -329,46 +274,6 @@ onPullDownRefresh(() => loadData())
   &__label {
     font-size: var(--font-xs, 20rpx);
     color: var(--text-color-3, #6B7280);
-  }
-}
-
-.health-row {
-  display: flex;
-  gap: var(--spacing-md, 16rpx);
-  margin-bottom: var(--spacing-lg, 20rpx);
-}
-
-.health-card {
-  flex: 1;
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: var(--radius-md, 16rpx);
-  padding: var(--spacing-md, 16rpx);
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178, 0.06));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  &__info {
-    display: flex;
-    flex-direction: column;
-    gap: 4rpx;
-  }
-
-  &__label {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-
-  &__value {
-    font-size: var(--font-xl, 36rpx);
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-  }
-
-  &__dot {
-    width: 16rpx;
-    height: 16rpx;
-    border-radius: 50%;
   }
 }
 

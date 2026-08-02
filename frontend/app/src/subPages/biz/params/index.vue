@@ -42,7 +42,7 @@ async function loadData() {
     const res = await ParamsAPI.getInfo()
     list.value = res || []
   }
-  catch (e) { toast.error(getErrorMessage(e, '加载失败')) }
+  catch { toast.error('加载失败') }
   finally {
     loading.value = false
     uni.stopPullDownRefresh()
@@ -72,7 +72,7 @@ async function handleSubmit() {
     showForm.value = false
     loadData()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 
@@ -87,12 +87,16 @@ onLoad(() => loadData())
     <view class="search-bar">
       <view class="flex items-center gap-sm">
         <wd-input v-model="searchName" placeholder="搜索参数名称/键名" clearable class="flex-1" />
-        <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
-        <wd-button size="small" plain @click="onReset">重置</wd-button>
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" variant="plain" @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ filteredList.length }} 条
       </text>
     </view>
@@ -105,15 +109,15 @@ onLoad(() => loadData())
             <wd-cell v-for="item in filteredList" :key="item.id" is-link @click="openEdit(item)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ displayName(item) }}
-                  </text><text class="text-xs text-muted block mt-xs">
+                  </text><text class="text-muted mt-xs block text-xs">
                     {{ `键: ${displayKey(item)}` }}
                   </text>
                 </view>
               </template>
               <template #label>
-                <text class="text-xs text-muted">
+                <text class="text-muted text-xs">
                   {{ displayValue(item) || '-' }}
                 </text>
               </template>
@@ -146,9 +150,13 @@ onLoad(() => loadData())
               <wd-textarea v-model="formData.description" placeholder="请输入" />
             </wd-form-item>
           </wd-form>
-          <view class="flex gap-md mt-xl">
-            <wd-button block plain @click="showForm = false">取消</wd-button>
-            <wd-button block type="primary" :loading="loading" @click="handleSubmit">保存</wd-button>
+          <view class="gap-md mt-xl flex">
+            <wd-button block variant="plain" @click="showForm = false">
+              取消
+            </wd-button>
+            <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+              保存
+            </wd-button>
           </view>
         </view>
       </wd-popup>

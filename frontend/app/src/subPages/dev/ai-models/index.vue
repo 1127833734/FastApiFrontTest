@@ -32,9 +32,7 @@ async function loadModels() {
     const res = await ChatAPI.getModels()
     models.value = res || []
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '加载模型列表失败'))
-  }
+  catch { toast.error('加载模型列表失败') }
   finally {
     loading.value = false
     uni.stopPullDownRefresh()
@@ -81,9 +79,7 @@ async function submitForm() {
     showForm.value = false
     loadModels()
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '保存失败'))
-  }
+  catch { toast.error('保存失败') }
   finally {
     submitting.value = false
   }
@@ -101,7 +97,7 @@ async function handleDelete(configId: number) {
         toast.success('删除成功')
         loadModels()
       }
-      catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+      catch { toast.error('删除失败') }
     },
   })
 }
@@ -118,7 +114,7 @@ async function handleActivate(configId: number) {
         toast.success('已切换激活模型')
         loadModels()
       }
-      catch (e) { toast.error(getErrorMessage(e, '切换失败')) }
+      catch { toast.error('切换失败') }
     },
   })
 }
@@ -202,9 +198,9 @@ onLoad(() => {
     <view style="height: 120rpx;" />
 
     <!-- Form Popup -->
-    <u-popup
-      :show="showForm"
-      mode="bottom"
+    <wd-popup
+      v-model="showForm"
+      position="bottom"
       custom-style="border-radius: 32rpx 32rpx 0 0; padding-bottom: 40rpx;"
       @close="showForm = false"
     >
@@ -222,42 +218,44 @@ onLoad(() => {
           <text class="form-group__label">
             配置名称 *
           </text>
-          <u-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable border="surround" />
+          <wd-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable />
         </view>
 
         <view class="form-group">
           <text class="form-group__label">
             模型 ID *
           </text>
-          <u-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable border="surround" />
+          <wd-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable />
         </view>
 
         <view class="form-group">
           <text class="form-group__label">
             API 地址 *
           </text>
-          <u-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable border="surround" />
+          <wd-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable />
         </view>
 
         <view class="form-group">
           <text class="form-group__label">
             API Key *
           </text>
-          <u-input v-model="form.api_key" placeholder="sk-..." password clearable border="surround" />
+          <wd-input v-model="form.api_key" placeholder="sk-..." show-password clearable />
         </view>
 
         <view class="form-group">
           <text class="form-group__label">
             温度 (0-2)
           </text>
-          <u-input v-model="form.temperature" type="number" placeholder="0.7" border="surround" />
+          <wd-input v-model="form.temperature" type="number" placeholder="0.7" />
         </view>
 
         <view class="form-actions">
-          <u-button :block="true" type="primary" :loading="submitting" :text="editingId ? '更新' : '创建'" @click="submitForm" />
+          <wd-button block type="primary" :loading="submitting" @click="submitForm">
+            {{ editingId ? '更新' : '创建' }}
+          </wd-button>
         </view>
       </view>
-    </u-popup>
+    </wd-popup>
   </view>
 </template>
 

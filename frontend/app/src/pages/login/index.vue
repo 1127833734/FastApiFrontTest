@@ -1,18 +1,18 @@
 <script lang="ts" setup>
-import type { CaptchaInfo, LoginFormData, OAuthProvider } from '@/api/module_system/auth'
 import type { FormSchema } from '@wot-ui/ui/components/wd-form/types'
+import type { SlideVerifyInstance } from '@wot-ui/ui/components/wd-slide-verify/types'
+import type { CaptchaInfo, LoginFormData, OAuthProvider } from '@/api/module_system/auth'
 import { onLoad } from '@dcloudio/uni-app'
 import { reactive, ref } from 'vue'
 import AuthAPI from '@/api/module_system/auth'
 import { REMEMBER_ME_KEY } from '@/constants'
 import { useUserStore } from '@/store/userStore'
-import { logger } from '@/utils/logger'
 import { Storage } from '@/utils/storage'
 
 definePage({ name: 'login', style: { navigationBarTitleText: '登录' } })
 
 const loginFormRef = ref()
-const sliderCaptchaRef = ref()
+const sliderCaptchaRef = ref<SlideVerifyInstance>()
 const loading = ref(false)
 const userStore = useUserStore()
 const redirect = ref('/pages/index/index')
@@ -46,14 +46,8 @@ const loginFormData = reactive<LoginFormData>({
 
 const captchaState = reactive<CaptchaInfo>({ enable: false, key: '', img_base: '' })
 
-/**
- * 滑块验证状态：
- * - idle    待验证（初始/重置后）
- * - pending 验证中（已拖动到终点，正在请求后端）
- * - success 验证成功（后端返回 verified=true）
- * - fail    验证失败（后端返回错误或网络异常）
- */
-const sliderStatus = ref<'idle' | 'pending' | 'success' | 'fail'>('idle')
+/** 滑块验证是否已通过（后端返回 verified=true 后置位） */
+const sliderPassed = ref(false)
 
 /** 从本地存储恢复记住的用户名（仅用户名，不存储密码） */
 function restoreRememberedUser() {
@@ -74,8 +68,7 @@ async function getLoginCaptcha() {
       if (captchaState.enable) {
         loginFormData.captcha_key = captchaState.key
         // 重置滑块到初始状态
-        sliderStatus.value = 'idle'
-        sliderCaptchaRef.value?.reset?.()
+        resetSliderCaptcha()
       }
     }
     else {
@@ -83,47 +76,48 @@ async function getLoginCaptcha() {
     }
   }
   catch (e) {
-    logger.error('验证码获取失败', e)
+    console.error('验证码获取失败', e)
     captchaState.enable = false
   }
 }
 
 /**
- * 滑块拖动到终点时触发 — 调用后端 slider_complete 接口标记验证完成
+ * wd-slide-verify 拖动到终点触发 success — 调用后端 slider_complete 接口标记验证完成
  * 后端仅标记 captcha_key 状态为 verified，不校验 x 坐标
  */
-async function handleSliderVerify() {
+async function handleSliderSuccess() {
   if (!captchaState.key) {
-    sliderStatus.value = 'fail'
     uni.showToast({ title: '验证码已过期，请刷新', icon: 'none' })
+    sliderCaptchaRef.value?.reset()
     return
   }
 
-  sliderStatus.value = 'pending'
   try {
     const result = await AuthAPI.completeSliderCaptcha({
       captcha_key: captchaState.key,
       x: 100, // 占位值，后端未使用
     })
     if (result?.verified) {
-      sliderStatus.value = 'success'
+      sliderPassed.value = true
       loginFormData.captcha = 'verified' // 占位值，后端只校验 captcha_key 状态
     }
     else {
-      sliderStatus.value = 'fail'
       uni.showToast({ title: '验证失败，请重试', icon: 'none' })
+      sliderCaptchaRef.value?.reset()
     }
   }
   catch (e) {
-    logger.error('滑块验证失败', e)
-    sliderStatus.value = 'fail'
-    uni.showToast({ title: getErrorMessage(e, '验证失败，请重试'), icon: 'none' })
+    console.error('滑块验证失败', e)
+    uni.showToast({ title: '验证失败，请重试', icon: 'none' })
+    sliderCaptchaRef.value?.reset()
   }
 }
 
-/** 滑块重置时清空占位验证值 */
-function handleSliderReset() {
+/** 重置滑块验证状态并清空占位验证值（验证码刷新 / 拖动未到终点触发 fail 时） */
+function resetSliderCaptcha() {
+  sliderPassed.value = false
   loginFormData.captcha = ''
+  sliderCaptchaRef.value?.reset()
 }
 
 onLoad((options) => {
@@ -142,7 +136,7 @@ async function handleSubmit() {
     return
 
   // 滑块验证前置校验
-  if (captchaState.enable && sliderStatus.value !== 'success') {
+  if (captchaState.enable && !sliderPassed.value) {
     uni.showToast({ title: '请先完成滑块验证', icon: 'none' })
     return
   }
@@ -164,10 +158,8 @@ async function handleSubmit() {
     }
     uni.reLaunch({ url: redirect.value })
   }
-  catch (e) {
-    // 全局错误提示 — 优先使用后端返回的具体错误信息（兼容 Error / 对象 data.message）
-    const errMsg = getErrorMessage(e) || (e as { data?: { message?: string } })?.data?.message || '登录失败，请检查账号密码'
-    uni.showToast({ title: errMsg, icon: 'none', duration: 2500 })
+  catch {
+    uni.showToast({ title: '登录失败，请检查账号密码', icon: 'none', duration: 2500 })
     // 登录失败后自动刷新验证码并重置滑块
     if (captchaState.enable)
       getLoginCaptcha()
@@ -195,8 +187,8 @@ async function handleOAuth(provider: OAuthProvider) {
       // #endif
     }
   }
-  catch (e) {
-    uni.showToast({ title: getErrorMessage(e, 'OAuth登录失败'), icon: 'none' })
+  catch {
+    uni.showToast({ title: 'OAuth登录失败', icon: 'none' })
   }
 }
 </script>
@@ -256,13 +248,14 @@ async function handleOAuth(provider: OAuthProvider) {
           </view>
         </wd-form-item>
 
-        <!-- Slider Captcha — 滑块拖动验证（条件显示） -->
+        <!-- Slider Captcha — wd-slide-verify 滑块拖动验证（条件显示） -->
         <wd-form-item v-if="captchaState.enable">
-          <SliderCaptcha
+          <wd-slide-verify
             ref="sliderCaptchaRef"
-            :status="sliderStatus"
-            @verify="handleSliderVerify"
-            @reset="handleSliderReset"
+            text="向右滑动滑块验证"
+            success-text="验证成功"
+            @success="handleSliderSuccess"
+            @fail="resetSliderCaptcha"
           />
         </wd-form-item>
 
@@ -286,9 +279,9 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- Submit -->
         <wd-button
           type="primary"
-          block
           :loading="loading"
           round
+          block
           @click="handleSubmit"
         >
           {{ loading ? '登录中...' : '登 录' }}
@@ -309,7 +302,7 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- WeChat -->
         <view class="oauth-btn" @click="handleOAuth('wechat')">
           <view class="oauth-btn__icon" style="background: #07C160">
-            <image class="oauth-btn__iconify" src="/static/icons/oauth/wechat.svg" />
+            <image class="oauth-btn__iconify" src="/static/icons/wechat.svg" />
           </view>
           <text class="oauth-btn__label">
             微信
@@ -319,7 +312,7 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- GitHub -->
         <view class="oauth-btn" @click="handleOAuth('github')">
           <view class="oauth-btn__icon" style="background: #24292F">
-            <image class="oauth-btn__iconify" src="/static/icons/oauth/github.svg" />
+            <image class="oauth-btn__iconify" src="/static/icons/github.svg" />
           </view>
           <text class="oauth-btn__label">
             GitHub
@@ -329,7 +322,7 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- Gitee -->
         <view class="oauth-btn" @click="handleOAuth('gitee')">
           <view class="oauth-btn__icon" style="background: #C71D23">
-            <image class="oauth-btn__iconify" src="/static/icons/oauth/gitee.svg" />
+            <image class="oauth-btn__iconify" src="/static/icons/gitee.svg" />
           </view>
           <text class="oauth-btn__label">
             Gitee
@@ -339,7 +332,7 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- QQ -->
         <view class="oauth-btn" @click="handleOAuth('qq')">
           <view class="oauth-btn__icon" style="background: #12B7F5">
-            <image class="oauth-btn__iconify" src="/static/icons/oauth/qq.svg" />
+            <image class="oauth-btn__iconify" src="/static/icons/qq.svg" />
           </view>
           <text class="oauth-btn__label">
             QQ
@@ -481,6 +474,13 @@ async function handleOAuth(provider: OAuthProvider) {
 .theme-dark .login-field {
   background: var(--bg-color-3, #2C2C2E);
   border-color: var(--border-color, #2C2C2E);
+}
+
+/* 暗黑模式适配（wot-ui 滑块主题变量 + 深色层级体系） */
+.theme-dark :deep(.wd-slide-verify) {
+  --wot-slide-verify-bg: var(--bg-color-2, #1C1C1E);
+  --wot-slide-verify-button-bg: var(--bg-color-3, #2C2C2E);
+  --wot-slide-verify-text-color: var(--text-color-3, #9CA3AF);
 }
 
 /* ===== 记住密码 + 忘记密码 ===== */

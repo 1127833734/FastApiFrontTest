@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { GlobalMessageOptions } from '@/composables/useGlobalMessage'
+import { useGlobalMessage } from '@/composables/useGlobalMessage'
 
 const { messageOptions, currentPage } = storeToRefs(useGlobalMessage())
 const currentPath = getCurrentPath()

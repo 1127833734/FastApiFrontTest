@@ -28,7 +28,8 @@ export const ChatAPI = {
   },
   /** 发送消息 (非流式) */
   sendMessage(sessionId: number, content: string): Promise<ChatMessage> {
-    return http.Post(`${AI_BASE}/ai-chat`, { session_id: sessionId, content })
+    // silent：聊天页将错误内联展示为 AI 消息，避免与全局 toast 重复提示
+    return http.Post(`${AI_BASE}/ai-chat`, { session_id: sessionId, content }, { meta: { silent: true } })
   },
   /** 获取 AI 模型配置列表 */
   getModels(): Promise<AIModelConfig[]> {

@@ -8,7 +8,6 @@ import {
   REFRESH_TOKEN_KEY,
   USER_INFO_KEY,
 } from '@/constants'
-import { logger } from '@/utils/logger'
 import { Storage } from '@/utils/storage'
 
 export const useUserStore = defineStore('appUserInfo', {
@@ -91,7 +90,7 @@ export const useUserStore = defineStore('appUserInfo', {
         return result
       }
       catch (error) {
-        logger.error(`${loginType}登录失败`, error)
+        console.error(`${loginType}登录失败`, error)
         throw error
       }
       finally {
@@ -114,7 +113,7 @@ export const useUserStore = defineStore('appUserInfo', {
         return userInfoData
       }
       catch (error) {
-        logger.error('获取用户信息失败', error)
+        console.error('获取用户信息失败', error)
         return null
       }
     },
@@ -128,7 +127,7 @@ export const useUserStore = defineStore('appUserInfo', {
         await AuthAPI.logout(logoutBody) // 调用后台注销接口
       }
       catch (error) {
-        logger.error('登出失败', error)
+        console.error('登出失败', error)
       }
       finally {
         this.clearAll() // 清除本地的 token

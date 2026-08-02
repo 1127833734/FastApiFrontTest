@@ -27,7 +27,7 @@ function getStatusLabel(status: number | string | undefined) {
 
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<VersionItem>({
   fetcher: p => VersionAPI.getPage({ ...p, title: searchName.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function onSearch() {
@@ -64,7 +64,7 @@ async function openEdit(id: number) {
     })
     showForm.value = true
   }
-  catch (e) { toast.error(getErrorMessage(e, '获取详情失败')) }
+  catch { toast.error('获取详情失败') }
 }
 async function handleSubmit() {
   loading.value = true
@@ -80,7 +80,7 @@ async function handleSubmit() {
     showForm.value = false
     loadData()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 function handleDelete(id: number) {
@@ -94,7 +94,7 @@ function handleDelete(id: number) {
           toast.success('删除成功')
           loadData()
         }
-        catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+        catch { toast.error('删除失败') }
       }
     },
   })
@@ -115,15 +115,21 @@ onLoad(() => loadData())
     <view class="search-bar">
       <view class="flex items-center gap-sm">
         <wd-input v-model="searchName" placeholder="搜索版本标题" clearable class="flex-1" />
-        <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
-        <wd-button size="small" plain @click="onReset">重置</wd-button>
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" variant="plain" @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
-      <wd-button size="small" type="primary" @click="openCreate">+ 新增</wd-button>
+      <wd-button size="small" type="primary" @click="openCreate">
+        + 新增
+      </wd-button>
     </view>
     <SkeletonPage v-if="loading" :rows="5" search />
     <template v-else>
@@ -134,15 +140,15 @@ onLoad(() => loadData())
             <wd-cell v-for="item in list" :key="item.id" is-link @click="openEdit(item.id!)">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.title || '未命名' }}
-                  </text><text class="text-xs text-muted block mt-xs">
+                  </text><text class="text-muted mt-xs block text-xs">
                     v{{ item.version || '-' }}{{ item.date ? ` · ${item.date}` : '' }}
                   </text>
                 </view>
               </template>
               <template #label>
-                <text class="text-xs text-muted">
+                <text class="text-muted text-xs">
                   {{ getStatusLabel(item.status) }}
                 </text>
               </template>
@@ -185,9 +191,13 @@ onLoad(() => loadData())
               <wd-textarea v-model="formData.description" placeholder="请输入" />
             </wd-form-item>
           </wd-form>
-          <view class="flex gap-md mt-xl">
-            <wd-button block plain @click="showForm = false">取消</wd-button>
-            <wd-button block type="primary" :loading="loading" @click="handleSubmit">保存</wd-button>
+          <view class="gap-md mt-xl flex">
+            <wd-button block variant="plain" @click="showForm = false">
+              取消
+            </wd-button>
+            <wd-button block type="primary" :loading="loading" @click="handleSubmit">
+              保存
+            </wd-button>
           </view>
         </view>
       </wd-popup>

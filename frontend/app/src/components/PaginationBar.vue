@@ -18,14 +18,14 @@ const hasNext = computed(() => props.current < totalPages.value)
 </script>
 
 <template>
-  <view v-if="show" class="flex justify-center py-sm items-center gap-sm">
-    <wd-button size="small" plain :disabled="!hasPrev" @click="emit('prev')">
+  <view v-if="show" class="flex items-center justify-center gap-sm py-sm">
+    <wd-button size="small" variant="plain" :disabled="!hasPrev" @click="emit('prev')">
       上一页
     </wd-button>
-    <text class="text-sm mx-sm">
+    <text class="mx-sm text-sm">
       {{ current }} / {{ totalPages }}
     </text>
-    <wd-button size="small" plain :disabled="!hasNext" @click="emit('next')">
+    <wd-button size="small" variant="plain" :disabled="!hasNext" @click="emit('next')">
       下一页
     </wd-button>
   </view>

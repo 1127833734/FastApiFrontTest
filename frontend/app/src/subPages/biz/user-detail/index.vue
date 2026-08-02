@@ -89,8 +89,8 @@ async function loadUser() {
     const res = await UserAPI.getUserDetail(userId.value)
     user.value = res
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '加载用户详情失败'))
+  catch {
+    toast.error('加载用户详情失败')
   }
   finally {
     loading.value = false
@@ -106,8 +106,8 @@ async function handleSave() {
     toast.success('保存成功')
     isEdit.value = false
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '保存失败'))
+  catch {
+    toast.error('保存失败')
   }
   finally {
     saving.value = false
@@ -127,8 +127,8 @@ function handleToggleStatus() {
           await UserAPI.updateUser(user.value)
           toast.success(`${action}成功`)
         }
-        catch (e) {
-          toast.error(getErrorMessage(e, '操作失败'))
+        catch {
+          toast.error('操作失败')
         }
       }
     },

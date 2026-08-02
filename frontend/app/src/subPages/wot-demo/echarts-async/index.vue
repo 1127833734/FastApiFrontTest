@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import BarChart from '@/subEcharts/echarts/components/BarChart.vue'
-import DonutChart from '@/subEcharts/echarts/components/DonutChart.vue'
-import FunnelChart from '@/subEcharts/echarts/components/FunnelChart.vue'
-import GaugeChart from '@/subEcharts/echarts/components/GaugeChart.vue'
-import LineChart from '@/subEcharts/echarts/components/LineChart.vue'
-import LiquidFillChart from '@/subEcharts/echarts/components/LiquidFillChart.vue'
-import MiniLineChart from '@/subEcharts/echarts/components/MiniLineChart.vue'
-import PieChart from '@/subEcharts/echarts/components/PieChart.vue'
-import RadarChart from '@/subEcharts/echarts/components/RadarChart.vue'
-import ScatterChart from '@/subEcharts/echarts/components/ScatterChart.vue'
-import StackedBarChart from '@/subEcharts/echarts/components/StackedBarChart.vue'
+import BarChart from '@/subPages/wot-demo/echarts/components/BarChart.vue'
+import DonutChart from '@/subPages/wot-demo/echarts/components/DonutChart.vue'
+import FunnelChart from '@/subPages/wot-demo/echarts/components/FunnelChart.vue'
+import GaugeChart from '@/subPages/wot-demo/echarts/components/GaugeChart.vue'
+import LineChart from '@/subPages/wot-demo/echarts/components/LineChart.vue'
+import LiquidFillChart from '@/subPages/wot-demo/echarts/components/LiquidFillChart.vue'
+import MiniLineChart from '@/subPages/wot-demo/echarts/components/MiniLineChart.vue'
+import PieChart from '@/subPages/wot-demo/echarts/components/PieChart.vue'
+import RadarChart from '@/subPages/wot-demo/echarts/components/RadarChart.vue'
+import ScatterChart from '@/subPages/wot-demo/echarts/components/ScatterChart.vue'
+import StackedBarChart from '@/subPages/wot-demo/echarts/components/StackedBarChart.vue'
 
 defineOptions({
   componentPlaceholder: {
@@ -30,7 +30,7 @@ defineOptions({
 definePage({
   name: 'echartsAsync',
   style: {
-    navigationBarTitleText: 'echarts 异步跨包示例',
+    navigationBarTitleText: 'echarts 异步加载示例',
   },
 })
 </script>

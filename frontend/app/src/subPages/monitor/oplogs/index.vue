@@ -13,7 +13,7 @@ const detailItem = ref<OplogItem>()
 
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<OplogItem>({
   fetcher: p => OperationLogAPI.getPage({ ...p, request_path: searchPath.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function onSearch() {
@@ -40,7 +40,7 @@ function handleDelete(id: number) {
           toast.success('删除成功')
           loadData()
         }
-        catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+        catch { toast.error('删除失败') }
       }
     },
   })
@@ -62,12 +62,16 @@ onLoad(() => loadData())
     <view class="search-bar">
       <view class="flex items-center gap-sm">
         <wd-input v-model="searchPath" placeholder="搜索请求路径" clearable class="flex-1" />
-        <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
-        <wd-button size="small" plain @click="onReset">重置</wd-button>
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" variant="plain" @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
     </view>
@@ -79,16 +83,16 @@ onLoad(() => loadData())
           <wd-cell-group v-else border>
             <wd-cell v-for="item in list" :key="item.id" is-link @click="viewDetail(item)">
               <template #title>
-                <view class="flex items-center gap-sm flex-wrap">
+                <view class="flex flex-wrap items-center gap-sm">
                   <StatusBadge :status="(item.response_code || 0) < 300 ? 'success' : 'failed'" dot />
-                  <text class="font-mono text-sm font-medium">
+                  <text class="text-sm font-medium font-mono">
                     {{ item.request_method }}
                   </text>
-                  <text class="text-sm text-muted truncate" style="max-width: 300rpx;">
+                  <text class="text-muted truncate text-sm" style="max-width: 300rpx;">
                     {{ item.request_path }}
                   </text>
                 </view>
-                <text class="text-xs text-muted block">
+                <text class="text-muted block text-xs">
                   {{ item.description || '-' }} · {{ item.request_ip }} · {{ item.process_time }}
                 </text>
               </template>
@@ -116,13 +120,15 @@ onLoad(() => loadData())
               <wd-cell title="操作说明" :value="detailItem.description || '-'" />
             </wd-cell-group>
           </view>
-          <view class="mt-sm px-sm py-sm bg-light rounded-md">
-            <text class="text-xs text-muted">
+          <view class="mt-sm rounded-md bg-light px-sm py-sm">
+            <text class="text-muted text-xs">
               请求参数：{{ detailItem.request_payload || '无' }}
             </text>
           </view>
           <view class="mt-lg">
-            <wd-button block @click="showDetail = false">关闭</wd-button>
+            <wd-button block @click="showDetail = false">
+              关闭
+            </wd-button>
           </view>
         </view>
       </wd-popup>

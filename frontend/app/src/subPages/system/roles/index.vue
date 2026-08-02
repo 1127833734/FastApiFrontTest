@@ -16,7 +16,7 @@ const formData = reactive<RoleForm>({ name: '', code: '', order: 1, data_scope: 
 
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<RoleItem>({
   fetcher: p => RoleAPI.getPage({ ...p, name: searchName.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function onSearch() {
@@ -50,7 +50,7 @@ async function openEdit(id: number) {
     Object.assign(formData, { name: detail.name, code: detail.code, order: detail.order || 1, data_scope: detail.data_scope || 4, status: detail.status ?? 0, description: detail.description || '' })
     showForm.value = true
   }
-  catch (e) { toast.error(getErrorMessage(e, '获取详情失败')) }
+  catch { toast.error('获取详情失败') }
 }
 async function handleSubmit() {
   loading.value = true
@@ -66,7 +66,7 @@ async function handleSubmit() {
     showForm.value = false
     loadData()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 function handleDelete(id: number) {
@@ -80,7 +80,7 @@ function handleDelete(id: number) {
           toast.success('删除成功')
           loadData()
         }
-        catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+        catch { toast.error('删除失败') }
       }
     },
   })
@@ -102,10 +102,10 @@ onLoad(() => loadData())
     <view class="search-bar">
       <view class="flex items-center gap-sm">
         <wd-input v-model="searchName" placeholder="搜索角色名称" clearable class="flex-1" />
-        <wd-button size="small" type="primary" plain @click="onSearch">
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
           搜索
         </wd-button>
-        <wd-button size="small" plain @click="onReset">
+        <wd-button size="small" variant="plain" @click="onReset">
           重置
         </wd-button>
       </view>
@@ -162,7 +162,7 @@ onLoad(() => loadData())
             </wd-form-item>
           </wd-form>
           <view class="gap-md mt-xl flex">
-            <wd-button plain block @click="showForm = false">
+            <wd-button variant="plain" block @click="showForm = false">
               取消
             </wd-button>
             <wd-button block type="primary" :loading="loading" @click="handleSubmit">

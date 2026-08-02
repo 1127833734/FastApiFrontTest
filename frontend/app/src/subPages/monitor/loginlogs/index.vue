@@ -11,7 +11,7 @@ const searchName = ref('')
 
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<LoginLogItem>({
   fetcher: p => LoginLogAPI.getPage({ ...p, username: searchName.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function onSearch() {
@@ -34,7 +34,7 @@ function handleDelete(id: number) {
           toast.success('删除成功')
           loadData()
         }
-        catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+        catch { toast.error('删除失败') }
       }
     },
   })
@@ -56,12 +56,16 @@ onLoad(() => loadData())
     <view class="search-bar">
       <view class="flex items-center gap-sm">
         <wd-input v-model="searchName" placeholder="搜索用户名" clearable class="flex-1" />
-        <wd-button size="small" type="primary" plain @click="onSearch">搜索</wd-button>
-        <wd-button size="small" plain @click="onReset">重置</wd-button>
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" variant="plain" @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
     </view>
@@ -74,16 +78,16 @@ onLoad(() => loadData())
             <wd-cell v-for="item in list" :key="item.id">
               <template #title>
                 <view>
-                  <text class="font-medium text-md">
+                  <text class="text-md font-medium">
                     {{ item.username || '-' }}
                   </text>
-                  <text class="text-xs text-muted block mt-xs">
+                  <text class="text-muted mt-xs block text-xs">
                     IP: {{ item.login_ip || '-' }} · {{ item.login_location || '-' }}
                   </text>
                 </view>
               </template>
               <template #label>
-                <text class="text-xs text-muted">
+                <text class="text-muted text-xs">
                   {{ item.request_browser || '' }}{{ item.request_browser && item.request_os ? ' / ' : '' }}{{ item.request_os || '' }}{{ item.msg ? ` · ${item.msg}` : '' }}
                 </text>
               </template>

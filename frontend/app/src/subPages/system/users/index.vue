@@ -92,7 +92,7 @@ async function loadOptions() {
 
 const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<UserInfo>({
   fetcher: p => UserAPI.getUserPage({ ...p, name: searchName.value || undefined }),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function onSearch() {
@@ -111,7 +111,7 @@ function openCreate() {
   showForm.value = true
 }
 function openEdit(id: number) {
-  router.push({ name: 'work-user-detail', query: { id } })
+  router.push({ name: 'work-user-detail', query: { id: String(id) } })
 }
 async function handleSubmit() {
   loading.value = true
@@ -128,7 +128,7 @@ async function handleSubmit() {
     showForm.value = false
     loadData()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 function handleDelete(id: number) {
@@ -139,7 +139,7 @@ function handleDelete(id: number) {
         toast.success('删除成功')
         loadData()
       }
-      catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+      catch { toast.error('删除失败') }
     }
   } })
 }
@@ -282,7 +282,7 @@ onLoad(() => loadData())
           </wd-form-item>
         </wd-form>
         <view class="gap-md mt-xl flex">
-          <wd-button plain block @click="showForm = false">
+          <wd-button variant="plain" block @click="showForm = false">
             取消
           </wd-button>
           <wd-button block type="primary" :loading="loading" @click="handleSubmit">

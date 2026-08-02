@@ -4,7 +4,6 @@ import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { reactive, ref } from 'vue'
 import { TicketAPI } from '@/api/module_system/ticket'
 import SkeletonPage from '@/components/SkeletonPage.vue'
-import { logger } from '@/utils/logger'
 
 definePage({
   name: 'work-ticket-detail',
@@ -28,8 +27,8 @@ async function loadTicket() {
   try {
     ticket.value = await TicketAPI.getDetail(ticketId.value)
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '加载工单详情失败'))
+  catch {
+    toast.error('加载工单详情失败')
   }
   finally {
     loading.value = false
@@ -45,7 +44,7 @@ async function loadComments() {
     commentTotal.value = res.total || 0
   }
   catch (e) {
-    logger.error('加载评论失败', e)
+    console.error('加载评论失败', e)
   }
 }
 
@@ -59,8 +58,8 @@ async function submitComment() {
     toast.success('评论成功')
     loadComments()
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '评论失败'))
+  catch {
+    toast.error('评论失败')
   }
   finally {
     submitting.value = false

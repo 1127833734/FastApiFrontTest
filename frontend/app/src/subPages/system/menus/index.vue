@@ -34,7 +34,7 @@ async function loadTree() {
     treeList.value = await MenuAPI.getTree() || []
     flatList.value = flatten(treeList.value)
   }
-  catch (e) { toast.error(getErrorMessage(e, '加载失败')) }
+  catch { toast.error('加载失败') }
   finally { loading.value = false }
 }
 function resetForm() {
@@ -61,7 +61,7 @@ async function handleSubmit() {
     showForm.value = false
     loadTree()
   }
-  catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+  catch { toast.error('操作失败') }
   finally { loading.value = false }
 }
 function handleDelete(id: number) {
@@ -72,7 +72,7 @@ function handleDelete(id: number) {
         toast.success('删除成功')
         loadTree()
       }
-      catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+      catch { toast.error('删除失败') }
     }
   } })
 }
@@ -150,7 +150,7 @@ onLoad(() => loadTree())
           </wd-form-item>
         </wd-form>
         <view class="gap-md mt-xl flex">
-          <wd-button plain block @click="showForm = false">
+          <wd-button variant="plain" block @click="showForm = false">
             取消
           </wd-button><wd-button block type="primary" :loading="loading" @click="handleSubmit">
             保存

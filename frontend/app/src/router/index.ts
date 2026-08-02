@@ -1,5 +1,6 @@
 /// <reference types="@uni-helper/vite-plugin-uni-pages/client" />
 import { pages, subPackages } from 'virtual:uni-pages'
+import { useUserStore } from '@/store/userStore'
 
 function generateRoutes() {
   const routes = pages.map((page) => {
@@ -23,6 +24,22 @@ const router = createRouter({
 })
 router.beforeEach((to, from, next) => {
   console.log('🚀 beforeEach 守卫触发:', { to, from })
+
+  // 鉴权守卫：未登录访问受保护页面 → 重定向到登录页（启动无 token 时也会被拦截）
+  const userStore = useUserStore()
+  const isLoginPage = to.name === 'login'
+  if (!isLoginPage && !userStore.isLoggedIn()) {
+    next({
+      path: '/pages/login/index',
+      query: to.fullPath && to.fullPath !== '/' ? { redirect: to.fullPath } : {},
+    })
+    return
+  }
+  // 已登录访问登录页 → 回到首页
+  if (isLoginPage && userStore.isLoggedIn()) {
+    next('/pages/index/index')
+    return
+  }
 
   // 演示：基本的导航日志记录
   if (to.path && from.path) {

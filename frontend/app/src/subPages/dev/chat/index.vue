@@ -45,9 +45,9 @@ async function loadSessions() {
     const res = await ChatAPI.getSessions()
     sessions.value = res.list || []
   }
-  catch (e) {
+  catch {
     sessions.value = []
-    toast.error(getErrorMessage(e, '加载会话列表失败'))
+    toast.error('加载会话列表失败')
   }
   finally { loading.value = false }
 }
@@ -63,9 +63,7 @@ async function createSession() {
     }
     toast.success('新会话已创建')
   }
-  catch (e) {
-    toast.error(getErrorMessage(e, '创建会话失败'))
-  }
+  catch { toast.error('创建会话失败') }
 }
 
 async function selectSession(id: number, title?: string) {
@@ -81,9 +79,9 @@ async function selectSession(id: number, title?: string) {
     resetWindow()
     messages.value = msgs.map(m => ({ role: m.role || 'ai', content: m.content || '', time: String(m.created_at || m.time || '') }))
   }
-  catch (e) {
+  catch {
     messages.value = []
-    toast.error(getErrorMessage(e, '加载会话消息失败'))
+    toast.error('加载会话消息失败')
   }
   finally { loading.value = false }
 }
@@ -104,7 +102,7 @@ async function deleteSession(id: number) {
           }
           toast.success('已删除')
         }
-        catch (e) { toast.error(getErrorMessage(e, '删除失败')) }
+        catch { toast.error('删除失败') }
       }
     },
   })
@@ -135,8 +133,9 @@ async function sendMessage() {
     const reply = replyRes?.content || replyRes?.reply || replyRes?.data?.content || '已收到您的消息。'
     messages.value.push({ role: 'ai', content: reply, time: new Date().toLocaleTimeString() })
   }
-  catch (e) {
-    messages.value.push({ role: 'ai', content: getErrorMessage(e, '请求失败，请稍后重试。'), time: new Date().toLocaleTimeString() })
+  catch {
+    // 错误内联展示为 AI 消息
+    messages.value.push({ role: 'ai', content: '请求失败，请稍后重试。', time: new Date().toLocaleTimeString() })
   }
   finally {
     loading.value = false
@@ -153,33 +152,35 @@ onLoad(() => {
   <view class="chat-page" style="display:flex;flex-direction:column;height:100vh;background:var(--bg-color);">
     <!-- Header -->
     <view style="display:flex;align-items:center;gap:var(--spacing-sm,12rpx);padding:var(--spacing-md,16rpx);border-bottom:1px solid var(--border-color);background:var(--card-bg-color);">
-      <u-button size="mini" :plain="true" @click="showSessions = !showSessions">
-        <u-icon name="list-dot" size="16" />
-      </u-button>
-      <text class="font-bold text-md flex-1 text-center truncate">
+      <wd-button size="small" variant="plain" @click="showSessions = !showSessions">
+        <wd-icon name="menu" size="16px" />
+      </wd-button>
+      <text class="text-md flex-1 truncate text-center font-bold">
         {{ currentTitle }}
       </text>
-      <u-button size="mini" type="primary" :plain="true" @click="createSession">
-        <u-icon name="plus" size="16" />
-      </u-button>
+      <wd-button size="small" type="primary" variant="plain" @click="createSession">
+        <wd-icon name="plus" size="16px" />
+      </wd-button>
     </view>
 
     <!-- Session panel overlay -->
     <view v-if="showSessions" class="session-overlay" style="position:absolute;top:88rpx;left:0;right:0;bottom:0;background:var(--bg-color);z-index:100;overflow-y:auto;">
       <view class="p-sm">
-        <view class="flex items-center justify-between mb-md px-xs">
-          <text class="font-bold text-lg">
+        <view class="mb-md flex items-center justify-between px-xs">
+          <text class="text-lg font-bold">
             会话列表
           </text>
-          <u-button size="mini" type="primary" text="新建" @click="createSession" />
+          <wd-button size="small" type="primary" @click="createSession">
+            新建
+          </wd-button>
         </view>
         <SkeletonPage v-if="loading && sessions.length === 0" />
         <view v-for="s in sessions" v-else :key="s.id" class="admin-card">
-          <u-cell :title="s.title" :label="s.created_at ? String(s.created_at) : ''" :is-link="true" @click="selectSession(s.id, s.title)">
-            <template #right>
-              <u-icon name="trash" size="18" color="var(--danger-color)" @click.stop="deleteSession(s.id)" />
+          <wd-cell :title="s.title" :label="s.created_at ? String(s.created_at) : ''" is-link @click="selectSession(s.id, s.title)">
+            <template #default>
+              <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="deleteSession(s.id)" />
             </template>
-          </u-cell>
+          </wd-cell>
         </view>
         <ListEmpty v-if="!loading && sessions.length === 0" text="暂无会话，点击右上角新建" />
       </view>
@@ -195,11 +196,16 @@ onLoad(() => {
     >
       <!-- 窗口化渲染：仅渲染最近 N 条消息，支持加载更早消息 -->
       <view v-if="hasOlderMessages" style="padding:16rpx 0;text-align:center;">
-        <u-button size="mini" :plain="true" :text="`加载更早消息（${messages.length - visibleMessages.length} 条）`" @click="loadOlderMessages" />
+        <wd-button size="small" variant="plain" @click="loadOlderMessages">
+          加载更早消息（{{ messages.length - visibleMessages.length }} 条）
+        </wd-button>
       </view>
       <view v-for="(msg, i) in visibleMessages" :id="`msg-${i}`" :key="i" style="margin-bottom:24rpx;">
         <view class="flex items-start gap-sm" :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
-          <u-avatar :size="32" shape="round" :src="msg.role === 'user' ? '/static/images/default-avatar.png' : '/static/logo.png'" />
+          <view v-if="msg.role === 'user'" class="user-avatar">
+            <wd-icon name="user" size="18px" color="#FFFFFF" />
+          </view>
+          <wd-avatar v-else size="32px" shape="round" src="/static/logo.png" />
           <view
             class="chat-bubble"
             :style="{
@@ -221,9 +227,9 @@ onLoad(() => {
       <!-- Loading indicator -->
       <view v-if="loading" style="margin-bottom:24rpx;">
         <view class="flex items-start gap-sm">
-          <u-avatar :size="32" shape="round" src="/static/logo.png" />
+          <wd-avatar size="32px" shape="round" src="/static/logo.png" />
           <view class="chat-bubble" style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:16rpx 16rpx 16rpx 4rpx;">
-            <u-loading-icon />
+            <wd-loading />
           </view>
         </view>
       </view>
@@ -232,14 +238,27 @@ onLoad(() => {
     <!-- Input -->
     <view style="border-top:1px solid var(--border-color);padding:var(--spacing-md,16rpx);background:var(--card-bg-color);padding-bottom:calc(var(--spacing-md) + env(safe-area-inset-bottom));">
       <view class="flex items-center gap-sm">
-        <u-input v-model="inputText" placeholder="输入消息..." :disabled="loading" class="flex-1" confirm-type="send" border="surround" @confirm="sendMessage" />
-        <u-button :loading="loading" :disabled="!inputText.trim() || !currentSession" type="primary" text="发送" @click="sendMessage" />
+        <wd-input v-model="inputText" placeholder="输入消息..." :disabled="loading" class="flex-1" confirm-type="send" @confirm="sendMessage" />
+        <wd-button :loading="loading" :disabled="!inputText.trim() || !currentSession" type="primary" @click="sendMessage">
+          发送
+        </wd-button>
       </view>
     </view>
   </view>
 </template>
 
 <style scoped>
+.user-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .chat-bubble {
   padding: 16rpx 24rpx;
   max-width: 72%;

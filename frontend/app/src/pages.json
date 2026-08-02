@@ -13,7 +13,7 @@
     "animationDuration": 300
   },
   "pages": [
-    // #ifdef APP || H5 || MP-WEIXIN
+    // #ifdef APP
     {
       "path": "pages/index/index",
       "type": "home",
@@ -24,7 +24,18 @@
       }
     },
     // #endif
-    // #ifdef APP || H5 || MP-WEIXIN
+    // #ifdef H5 || MP-WEIXIN
+    {
+      "path": "pages/index/index",
+      "type": "home",
+      "name": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "工作台概览"
+      }
+    },
+    // #endif
+    // #ifdef APP
     {
       "path": "pages/about/index",
       "type": "page",
@@ -35,15 +46,6 @@
       }
     },
     // #endif
-    {
-      "path": "pages/index/index-bak",
-      "type": "page",
-      "name": "home",
-      "layout": "tabbar",
-      "style": {
-        "navigationBarTitleText": "工作台概览"
-      }
-    },
     {
       "path": "pages/login/index",
       "type": "page",
@@ -75,7 +77,7 @@
     {
       "root": "subPages",
       "pages": [
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "ci/index",
           "type": "page",
@@ -85,7 +87,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "create-uni/index",
           "type": "page",
@@ -95,7 +97,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "feedback/index",
           "type": "page",
@@ -105,7 +107,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "icon/index",
           "type": "page",
@@ -115,7 +117,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "pinia/index",
           "type": "page",
@@ -125,7 +127,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "request/index",
           "type": "page",
@@ -135,7 +137,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-aftereach",
           "type": "page",
@@ -145,7 +147,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-guard",
           "type": "page",
@@ -155,7 +157,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-object",
           "type": "page",
@@ -165,7 +167,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-params",
           "type": "page",
@@ -175,7 +177,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-protected",
           "type": "page",
@@ -185,7 +187,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-query",
           "type": "page",
@@ -195,7 +197,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/demo-string",
           "type": "page",
@@ -205,7 +207,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "router/index",
           "type": "page",
@@ -215,7 +217,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "styles/index",
           "type": "page",
@@ -225,7 +227,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "uni-ku-root/index",
           "type": "page",
@@ -235,7 +237,7 @@
           }
         },
         // #endif
-        // #ifdef APP || H5
+        // #ifdef APP
         {
           "path": "skills/index",
           "type": "page",
@@ -248,6 +250,23 @@
           }
         },
         // #endif
+        {
+          "path": "about/index",
+          "type": "page",
+          "name": "about",
+          "style": {
+            "navigationBarTitleText": "关于"
+          }
+        },
+        {
+          "path": "wot-demo/index",
+          "type": "page",
+          "name": "home-demo",
+          "layout": "default",
+          "style": {
+            "navigationBarTitleText": "wot示例"
+          }
+        },
         {
           "path": "biz/dashboard/index",
           "type": "page",
@@ -329,54 +348,6 @@
           }
         },
         {
-          "path": "dev/gencode/index",
-          "type": "page",
-          "name": "work-gencode",
-          "style": {
-            "navigationBarTitleText": "代码生成器"
-          }
-        },
-        {
-          "path": "dev/workflow/index",
-          "type": "page",
-          "name": "work-workflow",
-          "style": {
-            "navigationBarTitleText": "工作流管理"
-          }
-        },
-        {
-          "path": "monitor/cache/index",
-          "type": "page",
-          "name": "work-cache",
-          "style": {
-            "navigationBarTitleText": "缓存监控"
-          }
-        },
-        {
-          "path": "monitor/cronjob/index",
-          "type": "page",
-          "name": "work-cronjob",
-          "style": {
-            "navigationBarTitleText": "定时任务"
-          }
-        },
-        {
-          "path": "monitor/devices/index",
-          "type": "page",
-          "name": "work-devices",
-          "style": {
-            "navigationBarTitleText": "设备管理"
-          }
-        },
-        {
-          "path": "monitor/file_manager/index",
-          "type": "page",
-          "name": "work-file-manager",
-          "style": {
-            "navigationBarTitleText": "文件管理"
-          }
-        },
-        {
           "path": "monitor/loginlogs/index",
           "type": "page",
           "name": "work-loginlogs",
@@ -398,14 +369,6 @@
           "name": "work-oplogs",
           "style": {
             "navigationBarTitleText": "操作日志"
-          }
-        },
-        {
-          "path": "monitor/server/index",
-          "type": "page",
-          "name": "work-server",
-          "style": {
-            "navigationBarTitleText": "服务监控"
           }
         },
         {
@@ -447,33 +410,160 @@
           "style": {
             "navigationBarTitleText": "用户管理"
           }
-        }
-      ]
-    },
-    {
-      "root": "subEcharts",
-      "pages": [
-        // GENERATED BY UNI-PAGES, PLATFORM: APP || H5 || MP-WEIXIN
+        },
         {
-          "path": "echarts/index",
+          "path": "wot-demo/ci/index",
+          "type": "page",
+          "name": "ci",
+          "style": {
+            "navigationBarTitleText": "CI 持续集成"
+          }
+        },
+        {
+          "path": "wot-demo/create-uni/index",
+          "type": "page",
+          "name": "create-uni",
+          "style": {
+            "navigationBarTitleText": "CreateUni 脚手架"
+          }
+        },
+        {
+          "path": "wot-demo/echarts/index",
           "type": "page",
           "name": "echarts",
           "style": {
             "navigationBarTitleText": "Echarts 演示"
           }
-        }
-      ]
-    },
-    {
-      "root": "subAsyncEcharts",
-      "pages": [
-        // GENERATED BY UNI-PAGES, PLATFORM: APP || H5 || MP-WEIXIN
+        },
         {
-          "path": "asyncEcharts/index",
+          "path": "wot-demo/echarts-async/index",
           "type": "page",
           "name": "echartsAsync",
           "style": {
-            "navigationBarTitleText": "echarts 异步跨包示例"
+            "navigationBarTitleText": "echarts 异步加载示例"
+          }
+        },
+        {
+          "path": "wot-demo/feedback/index",
+          "type": "page",
+          "name": "feedback",
+          "style": {
+            "navigationBarTitleText": "全局反馈"
+          }
+        },
+        {
+          "path": "wot-demo/icon/index",
+          "type": "page",
+          "name": "icon",
+          "style": {
+            "navigationBarTitleText": "图标演示"
+          }
+        },
+        {
+          "path": "wot-demo/pinia/index",
+          "type": "page",
+          "name": "pinia",
+          "style": {
+            "navigationBarTitleText": "Pinia 演示"
+          }
+        },
+        {
+          "path": "wot-demo/request/index",
+          "type": "page",
+          "name": "request",
+          "style": {
+            "navigationBarTitleText": "网络请求"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-aftereach",
+          "type": "page",
+          "name": "demo-aftereach",
+          "style": {
+            "navigationBarTitleText": "afterEach 钩子演示"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-guard",
+          "type": "page",
+          "name": "demo-guard",
+          "style": {
+            "navigationBarTitleText": "导航守卫演示"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-object",
+          "type": "page",
+          "name": "demo-object",
+          "style": {
+            "navigationBarTitleText": "对象路径跳转"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-params",
+          "type": "page",
+          "name": "demo-params",
+          "style": {
+            "navigationBarTitleText": "参数接收演示"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-protected",
+          "type": "page",
+          "name": "demo-protected",
+          "style": {
+            "navigationBarTitleText": "受保护页面"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-query",
+          "type": "page",
+          "name": "demo-query",
+          "style": {
+            "navigationBarTitleText": "查询参数接收演示"
+          }
+        },
+        {
+          "path": "wot-demo/router/demo-string",
+          "type": "page",
+          "name": "demo-string",
+          "style": {
+            "navigationBarTitleText": "字符串路径跳转"
+          }
+        },
+        {
+          "path": "wot-demo/router/index",
+          "type": "page",
+          "name": "router",
+          "style": {
+            "navigationBarTitleText": "路由管理"
+          }
+        },
+        {
+          "path": "wot-demo/skills/index",
+          "type": "page",
+          "name": "skills",
+          "layout": "default",
+          "style": {
+            "navigationBarTitleText": "Agent Skills",
+            "navigationBarBackgroundColor": "#f9fafb",
+            "navigationBarTextStyle": "black"
+          }
+        },
+        {
+          "path": "wot-demo/styles/index",
+          "type": "page",
+          "name": "styles",
+          "style": {
+            "navigationBarTitleText": "UnoCSS 演示"
+          }
+        },
+        {
+          "path": "wot-demo/uni-ku-root/index",
+          "type": "page",
+          "name": "root",
+          "style": {
+            "navigationBarTitleText": "uni-ku/root"
           }
         }
       ]
@@ -494,7 +584,7 @@
         "pagePath": "pages/index/index"
       },
       // #endif
-      // #ifdef APP || H5 || MP-WEIXIN
+      // #ifdef APP
       {
         "pagePath": "pages/about/index"
       },

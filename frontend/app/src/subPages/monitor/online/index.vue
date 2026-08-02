@@ -9,7 +9,7 @@ const toast = useToast()
 
 const { list, total, loading, pageParams, loadData, loadPrev, loadNext } = useListPage<OnlineUserItem>({
   fetcher: p => OnlineAPI.getPage(p),
-  onError: e => toast.error(getErrorMessage(e, '加载失败')),
+  onError: () => toast.error('加载失败'),
 })
 
 function forceLogout(sessionId: string) {
@@ -23,7 +23,7 @@ function forceLogout(sessionId: string) {
           toast.success('已强制下线')
           loadData()
         }
-        catch (e) { toast.error(getErrorMessage(e, '操作失败')) }
+        catch { toast.error('操作失败') }
       }
     },
   })
@@ -42,7 +42,7 @@ onLoad(() => loadData())
 <template>
   <view class="page-wraper">
     <view class="action-bar">
-      <text class="text-md font-bold text-muted">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 在线
       </text>
     </view>
@@ -53,23 +53,25 @@ onLoad(() => loadData())
           <wd-cell v-for="item in list" :key="item.session_id || item.user_id">
             <template #title>
               <view>
-                <text class="font-medium text-md">
+                <text class="text-md font-medium">
                   {{ item.user_name || item.name || '-' }}
                 </text>
-                <text class="text-xs text-muted block mt-xs">
+                <text class="text-muted mt-xs block text-xs">
                   IP: {{ item.ipaddr || '-' }} · {{ item.login_location || '' }}
                 </text>
               </view>
             </template>
             <template #label>
-              <text class="text-xs text-muted">
+              <text class="text-muted text-xs">
                 {{ item.browser || '' }}{{ item.browser && item.os ? ' / ' : '' }}{{ item.os || '' }}
               </text>
             </template>
             <template #default>
               <view class="flex items-center gap-sm">
                 <StatusBadge status="active" />
-                <wd-button size="small" type="danger" plain @click="forceLogout(item.session_id!)">下线</wd-button>
+                <wd-button size="small" type="danger" variant="plain" @click="forceLogout(item.session_id!)">
+                  下线
+                </wd-button>
               </view>
             </template>
           </wd-cell>

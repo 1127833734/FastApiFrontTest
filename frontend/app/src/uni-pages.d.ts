@@ -5,28 +5,11 @@
 
 type _LocationUrl =
   "/pages/index/index" |
-  "/pages/about/index" |
-  "/pages/index/index-bak" |
   "/pages/login/index" |
   "/pages/mine/index" |
   "/pages/work/index" |
-  "/subPages/ci/index" |
-  "/subPages/create-uni/index" |
-  "/subPages/feedback/index" |
-  "/subPages/icon/index" |
-  "/subPages/pinia/index" |
-  "/subPages/request/index" |
-  "/subPages/router/demo-aftereach" |
-  "/subPages/router/demo-guard" |
-  "/subPages/router/demo-object" |
-  "/subPages/router/demo-params" |
-  "/subPages/router/demo-protected" |
-  "/subPages/router/demo-query" |
-  "/subPages/router/demo-string" |
-  "/subPages/router/index" |
-  "/subPages/skills/index" |
-  "/subPages/styles/index" |
-  "/subPages/uni-ku-root/index" |
+  "/subPages/about/index" |
+  "/subPages/wot-demo/index" |
   "/subPages/biz/dashboard/index" |
   "/subPages/biz/dicts/index" |
   "/subPages/biz/notices/index" |
@@ -37,23 +20,33 @@ type _LocationUrl =
   "/subPages/biz/versions/index" |
   "/subPages/dev/ai-models/index" |
   "/subPages/dev/chat/index" |
-  "/subPages/dev/gencode/index" |
-  "/subPages/dev/workflow/index" |
-  "/subPages/monitor/cache/index" |
-  "/subPages/monitor/cronjob/index" |
-  "/subPages/monitor/devices/index" |
-  "/subPages/monitor/file_manager/index" |
   "/subPages/monitor/loginlogs/index" |
   "/subPages/monitor/online/index" |
   "/subPages/monitor/oplogs/index" |
-  "/subPages/monitor/server/index" |
   "/subPages/system/depts/index" |
   "/subPages/system/menus/index" |
   "/subPages/system/positions/index" |
   "/subPages/system/roles/index" |
   "/subPages/system/users/index" |
-  "/subEcharts/echarts/index" |
-  "/subAsyncEcharts/asyncEcharts/index";
+  "/subPages/wot-demo/ci/index" |
+  "/subPages/wot-demo/create-uni/index" |
+  "/subPages/wot-demo/echarts/index" |
+  "/subPages/wot-demo/echarts-async/index" |
+  "/subPages/wot-demo/feedback/index" |
+  "/subPages/wot-demo/icon/index" |
+  "/subPages/wot-demo/pinia/index" |
+  "/subPages/wot-demo/request/index" |
+  "/subPages/wot-demo/router/demo-aftereach" |
+  "/subPages/wot-demo/router/demo-guard" |
+  "/subPages/wot-demo/router/demo-object" |
+  "/subPages/wot-demo/router/demo-params" |
+  "/subPages/wot-demo/router/demo-protected" |
+  "/subPages/wot-demo/router/demo-query" |
+  "/subPages/wot-demo/router/demo-string" |
+  "/subPages/wot-demo/router/index" |
+  "/subPages/wot-demo/skills/index" |
+  "/subPages/wot-demo/styles/index" |
+  "/subPages/wot-demo/uni-ku-root/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;
@@ -61,7 +54,7 @@ interface NavigateToOptions {
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/index/index" | "/pages/work/index" | "/pages/mine/index" | "/pages/about/index"
+  url: "/pages/index/index" | "/pages/work/index" | "/pages/mine/index"
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;

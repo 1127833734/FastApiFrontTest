@@ -23,7 +23,7 @@ withDefaults(defineProps<{
     </view>
     <!-- 多行列表骨架 -->
     <view class="admin-card p-sm">
-      <view v-for="i in rows" :key="i" class="flex items-center gap-md p-md" :style="{ borderBottom: i < rows ? '1px solid var(--border-color)' : 'none' }">
+      <view v-for="i in rows" :key="i" class="gap-md p-md flex items-center" :style="{ borderBottom: i < rows ? '1px solid var(--border-color)' : 'none' }">
         <view class="skeleton-block" style="width: 64rpx; height: 64rpx; border-radius: 50%; flex-shrink: 0;" />
         <view class="flex-1">
           <view class="skeleton-block" style="height: 28rpx; width: 40%; border-radius: var(--radius-sm);" />

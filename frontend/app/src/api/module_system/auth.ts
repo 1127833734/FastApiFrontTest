@@ -31,7 +31,8 @@ const AuthAPI = {
    * @returns 新的访问令牌
    */
   refreshToken(body: RefreshToekenBody): Promise<LoginResult> {
-    return http.Post(`${AUTH_BASE_URL}/token/refresh`, body, { meta: { ignoreAuth: true } })
+    // silent：刷新失败由 onAuthRequired 的刷新处理器统一跳转登录，无需全局 toast
+    return http.Post(`${AUTH_BASE_URL}/token/refresh`, body, { meta: { ignoreAuth: true, silent: true } })
   },
 
   /**
