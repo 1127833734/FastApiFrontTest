@@ -259,12 +259,12 @@
           }
         },
         {
-          "path": "wot-demo/index",
+          "path": "setting/index",
           "type": "page",
-          "name": "home-demo",
+          "name": "setting",
           "layout": "default",
           "style": {
-            "navigationBarTitleText": "wot示例"
+            "navigationBarTitleText": "设置"
           }
         },
         {
@@ -372,6 +372,161 @@
           }
         },
         {
+          "path": "setting/ci/index",
+          "type": "page",
+          "name": "ci",
+          "style": {
+            "navigationBarTitleText": "CI 持续集成"
+          }
+        },
+        {
+          "path": "setting/create-uni/index",
+          "type": "page",
+          "name": "create-uni",
+          "style": {
+            "navigationBarTitleText": "CreateUni 脚手架"
+          }
+        },
+        {
+          "path": "setting/echarts/index",
+          "type": "page",
+          "name": "echarts",
+          "style": {
+            "navigationBarTitleText": "Echarts 演示"
+          }
+        },
+        {
+          "path": "setting/echarts-async/index",
+          "type": "page",
+          "name": "echartsAsync",
+          "style": {
+            "navigationBarTitleText": "echarts 异步加载示例"
+          }
+        },
+        {
+          "path": "setting/feedback/index",
+          "type": "page",
+          "name": "feedback",
+          "style": {
+            "navigationBarTitleText": "全局反馈"
+          }
+        },
+        {
+          "path": "setting/icon/index",
+          "type": "page",
+          "name": "icon",
+          "style": {
+            "navigationBarTitleText": "图标演示"
+          }
+        },
+        {
+          "path": "setting/pinia/index",
+          "type": "page",
+          "name": "pinia",
+          "style": {
+            "navigationBarTitleText": "Pinia 演示"
+          }
+        },
+        {
+          "path": "setting/request/index",
+          "type": "page",
+          "name": "request",
+          "style": {
+            "navigationBarTitleText": "网络请求"
+          }
+        },
+        {
+          "path": "setting/router/demo-aftereach",
+          "type": "page",
+          "name": "demo-aftereach",
+          "style": {
+            "navigationBarTitleText": "afterEach 钩子演示"
+          }
+        },
+        {
+          "path": "setting/router/demo-guard",
+          "type": "page",
+          "name": "demo-guard",
+          "style": {
+            "navigationBarTitleText": "导航守卫演示"
+          }
+        },
+        {
+          "path": "setting/router/demo-object",
+          "type": "page",
+          "name": "demo-object",
+          "style": {
+            "navigationBarTitleText": "对象路径跳转"
+          }
+        },
+        {
+          "path": "setting/router/demo-params",
+          "type": "page",
+          "name": "demo-params",
+          "style": {
+            "navigationBarTitleText": "参数接收演示"
+          }
+        },
+        {
+          "path": "setting/router/demo-protected",
+          "type": "page",
+          "name": "demo-protected",
+          "style": {
+            "navigationBarTitleText": "受保护页面"
+          }
+        },
+        {
+          "path": "setting/router/demo-query",
+          "type": "page",
+          "name": "demo-query",
+          "style": {
+            "navigationBarTitleText": "查询参数接收演示"
+          }
+        },
+        {
+          "path": "setting/router/demo-string",
+          "type": "page",
+          "name": "demo-string",
+          "style": {
+            "navigationBarTitleText": "字符串路径跳转"
+          }
+        },
+        {
+          "path": "setting/router/index",
+          "type": "page",
+          "name": "router",
+          "style": {
+            "navigationBarTitleText": "路由管理"
+          }
+        },
+        {
+          "path": "setting/skills/index",
+          "type": "page",
+          "name": "skills",
+          "layout": "default",
+          "style": {
+            "navigationBarTitleText": "Agent Skills",
+            "navigationBarBackgroundColor": "#f9fafb",
+            "navigationBarTextStyle": "black"
+          }
+        },
+        {
+          "path": "setting/styles/index",
+          "type": "page",
+          "name": "styles",
+          "style": {
+            "navigationBarTitleText": "UnoCSS 演示"
+          }
+        },
+        {
+          "path": "setting/uni-ku-root/index",
+          "type": "page",
+          "name": "root",
+          "style": {
+            "navigationBarTitleText": "uni-ku/root"
+          }
+        },
+        {
           "path": "system/depts/index",
           "type": "page",
           "name": "work-depts",
@@ -409,161 +564,6 @@
           "name": "work-users",
           "style": {
             "navigationBarTitleText": "用户管理"
-          }
-        },
-        {
-          "path": "wot-demo/ci/index",
-          "type": "page",
-          "name": "ci",
-          "style": {
-            "navigationBarTitleText": "CI 持续集成"
-          }
-        },
-        {
-          "path": "wot-demo/create-uni/index",
-          "type": "page",
-          "name": "create-uni",
-          "style": {
-            "navigationBarTitleText": "CreateUni 脚手架"
-          }
-        },
-        {
-          "path": "wot-demo/echarts/index",
-          "type": "page",
-          "name": "echarts",
-          "style": {
-            "navigationBarTitleText": "Echarts 演示"
-          }
-        },
-        {
-          "path": "wot-demo/echarts-async/index",
-          "type": "page",
-          "name": "echartsAsync",
-          "style": {
-            "navigationBarTitleText": "echarts 异步加载示例"
-          }
-        },
-        {
-          "path": "wot-demo/feedback/index",
-          "type": "page",
-          "name": "feedback",
-          "style": {
-            "navigationBarTitleText": "全局反馈"
-          }
-        },
-        {
-          "path": "wot-demo/icon/index",
-          "type": "page",
-          "name": "icon",
-          "style": {
-            "navigationBarTitleText": "图标演示"
-          }
-        },
-        {
-          "path": "wot-demo/pinia/index",
-          "type": "page",
-          "name": "pinia",
-          "style": {
-            "navigationBarTitleText": "Pinia 演示"
-          }
-        },
-        {
-          "path": "wot-demo/request/index",
-          "type": "page",
-          "name": "request",
-          "style": {
-            "navigationBarTitleText": "网络请求"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-aftereach",
-          "type": "page",
-          "name": "demo-aftereach",
-          "style": {
-            "navigationBarTitleText": "afterEach 钩子演示"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-guard",
-          "type": "page",
-          "name": "demo-guard",
-          "style": {
-            "navigationBarTitleText": "导航守卫演示"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-object",
-          "type": "page",
-          "name": "demo-object",
-          "style": {
-            "navigationBarTitleText": "对象路径跳转"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-params",
-          "type": "page",
-          "name": "demo-params",
-          "style": {
-            "navigationBarTitleText": "参数接收演示"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-protected",
-          "type": "page",
-          "name": "demo-protected",
-          "style": {
-            "navigationBarTitleText": "受保护页面"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-query",
-          "type": "page",
-          "name": "demo-query",
-          "style": {
-            "navigationBarTitleText": "查询参数接收演示"
-          }
-        },
-        {
-          "path": "wot-demo/router/demo-string",
-          "type": "page",
-          "name": "demo-string",
-          "style": {
-            "navigationBarTitleText": "字符串路径跳转"
-          }
-        },
-        {
-          "path": "wot-demo/router/index",
-          "type": "page",
-          "name": "router",
-          "style": {
-            "navigationBarTitleText": "路由管理"
-          }
-        },
-        {
-          "path": "wot-demo/skills/index",
-          "type": "page",
-          "name": "skills",
-          "layout": "default",
-          "style": {
-            "navigationBarTitleText": "Agent Skills",
-            "navigationBarBackgroundColor": "#f9fafb",
-            "navigationBarTextStyle": "black"
-          }
-        },
-        {
-          "path": "wot-demo/styles/index",
-          "type": "page",
-          "name": "styles",
-          "style": {
-            "navigationBarTitleText": "UnoCSS 演示"
-          }
-        },
-        {
-          "path": "wot-demo/uni-ku-root/index",
-          "type": "page",
-          "name": "root",
-          "style": {
-            "navigationBarTitleText": "uni-ku/root"
           }
         }
       ]

@@ -9,7 +9,7 @@ type _LocationUrl =
   "/pages/mine/index" |
   "/pages/work/index" |
   "/subPages/about/index" |
-  "/subPages/wot-demo/index" |
+  "/subPages/setting/index" |
   "/subPages/biz/dashboard/index" |
   "/subPages/biz/dicts/index" |
   "/subPages/biz/notices/index" |
@@ -23,30 +23,30 @@ type _LocationUrl =
   "/subPages/monitor/loginlogs/index" |
   "/subPages/monitor/online/index" |
   "/subPages/monitor/oplogs/index" |
+  "/subPages/setting/ci/index" |
+  "/subPages/setting/create-uni/index" |
+  "/subPages/setting/echarts/index" |
+  "/subPages/setting/echarts-async/index" |
+  "/subPages/setting/feedback/index" |
+  "/subPages/setting/icon/index" |
+  "/subPages/setting/pinia/index" |
+  "/subPages/setting/request/index" |
+  "/subPages/setting/router/demo-aftereach" |
+  "/subPages/setting/router/demo-guard" |
+  "/subPages/setting/router/demo-object" |
+  "/subPages/setting/router/demo-params" |
+  "/subPages/setting/router/demo-protected" |
+  "/subPages/setting/router/demo-query" |
+  "/subPages/setting/router/demo-string" |
+  "/subPages/setting/router/index" |
+  "/subPages/setting/skills/index" |
+  "/subPages/setting/styles/index" |
+  "/subPages/setting/uni-ku-root/index" |
   "/subPages/system/depts/index" |
   "/subPages/system/menus/index" |
   "/subPages/system/positions/index" |
   "/subPages/system/roles/index" |
-  "/subPages/system/users/index" |
-  "/subPages/wot-demo/ci/index" |
-  "/subPages/wot-demo/create-uni/index" |
-  "/subPages/wot-demo/echarts/index" |
-  "/subPages/wot-demo/echarts-async/index" |
-  "/subPages/wot-demo/feedback/index" |
-  "/subPages/wot-demo/icon/index" |
-  "/subPages/wot-demo/pinia/index" |
-  "/subPages/wot-demo/request/index" |
-  "/subPages/wot-demo/router/demo-aftereach" |
-  "/subPages/wot-demo/router/demo-guard" |
-  "/subPages/wot-demo/router/demo-object" |
-  "/subPages/wot-demo/router/demo-params" |
-  "/subPages/wot-demo/router/demo-protected" |
-  "/subPages/wot-demo/router/demo-query" |
-  "/subPages/wot-demo/router/demo-string" |
-  "/subPages/wot-demo/router/index" |
-  "/subPages/wot-demo/skills/index" |
-  "/subPages/wot-demo/styles/index" |
-  "/subPages/wot-demo/uni-ku-root/index";
+  "/subPages/system/users/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;

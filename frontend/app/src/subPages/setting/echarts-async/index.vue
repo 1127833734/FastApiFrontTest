@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import BarChart from '@/subPages/wot-demo/echarts/components/BarChart.vue'
-import DonutChart from '@/subPages/wot-demo/echarts/components/DonutChart.vue'
-import FunnelChart from '@/subPages/wot-demo/echarts/components/FunnelChart.vue'
-import GaugeChart from '@/subPages/wot-demo/echarts/components/GaugeChart.vue'
-import LineChart from '@/subPages/wot-demo/echarts/components/LineChart.vue'
-import LiquidFillChart from '@/subPages/wot-demo/echarts/components/LiquidFillChart.vue'
-import MiniLineChart from '@/subPages/wot-demo/echarts/components/MiniLineChart.vue'
-import PieChart from '@/subPages/wot-demo/echarts/components/PieChart.vue'
-import RadarChart from '@/subPages/wot-demo/echarts/components/RadarChart.vue'
-import ScatterChart from '@/subPages/wot-demo/echarts/components/ScatterChart.vue'
-import StackedBarChart from '@/subPages/wot-demo/echarts/components/StackedBarChart.vue'
+import BarChart from '@/subPages/setting/echarts/components/BarChart.vue'
+import DonutChart from '@/subPages/setting/echarts/components/DonutChart.vue'
+import FunnelChart from '@/subPages/setting/echarts/components/FunnelChart.vue'
+import GaugeChart from '@/subPages/setting/echarts/components/GaugeChart.vue'
+import LineChart from '@/subPages/setting/echarts/components/LineChart.vue'
+import LiquidFillChart from '@/subPages/setting/echarts/components/LiquidFillChart.vue'
+import MiniLineChart from '@/subPages/setting/echarts/components/MiniLineChart.vue'
+import PieChart from '@/subPages/setting/echarts/components/PieChart.vue'
+import RadarChart from '@/subPages/setting/echarts/components/RadarChart.vue'
+import ScatterChart from '@/subPages/setting/echarts/components/ScatterChart.vue'
+import StackedBarChart from '@/subPages/setting/echarts/components/StackedBarChart.vue'
 
 defineOptions({
   componentPlaceholder: {

@@ -26,18 +26,21 @@ router.beforeEach((to, from, next) => {
   console.log('🚀 beforeEach 守卫触发:', { to, from })
 
   // 鉴权守卫：未登录访问受保护页面 → 重定向到登录页（启动无 token 时也会被拦截）
+  // 注意：wot-ui router 重定向会沿用原导航类型（如 pushTab），
+  // 因此必须通过 navType 显式指定跳转方式，否则会对非 tabBar 页执行 switchTab 而报错。
   const userStore = useUserStore()
   const isLoginPage = to.name === 'login'
   if (!isLoginPage && !userStore.isLoggedIn()) {
     next({
       path: '/pages/login/index',
+      navType: 'replace',
       query: to.fullPath && to.fullPath !== '/' ? { redirect: to.fullPath } : {},
     })
     return
   }
   // 已登录访问登录页 → 回到首页
   if (isLoginPage && userStore.isLoggedIn()) {
-    next('/pages/index/index')
+    next({ path: '/pages/index/index', navType: 'pushTab' })
     return
   }
 

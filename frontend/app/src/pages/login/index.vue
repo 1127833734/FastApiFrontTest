@@ -3,7 +3,7 @@ import type { FormSchema } from '@wot-ui/ui/components/wd-form/types'
 import type { SlideVerifyInstance } from '@wot-ui/ui/components/wd-slide-verify/types'
 import type { CaptchaInfo, LoginFormData, OAuthProvider } from '@/api/module_system/auth'
 import { onLoad } from '@dcloudio/uni-app'
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref, watch } from 'vue'
 import AuthAPI from '@/api/module_system/auth'
 import { REMEMBER_ME_KEY } from '@/constants'
 import { useUserStore } from '@/store/userStore'
@@ -45,6 +45,28 @@ const loginFormData = reactive<LoginFormData>({
 })
 
 const captchaState = reactive<CaptchaInfo>({ enable: false, key: '', img_base: '' })
+
+/**
+ * wd-slide-verify 在小程序端 onMounted 时容器可能尚未完成布局，
+ * getRect 测量到 0 宽高 → maxPosition=0 → 滑块无法拖动。
+ * 渲染完成后延迟重试 init()，直至组件实例就绪并重新测量。
+ */
+watch(() => captchaState.enable, async (enabled) => {
+  if (!enabled)
+    return
+  await nextTick()
+  retrySliderInit()
+})
+
+function retrySliderInit(retry = 0) {
+  const verify = sliderCaptchaRef.value
+  if (!verify) {
+    if (retry < 5)
+      setTimeout(() => retrySliderInit(retry + 1), 120)
+    return
+  }
+  verify.init()
+}
 
 /** 滑块验证是否已通过（后端返回 verified=true 后置位） */
 const sliderPassed = ref(false)
@@ -196,7 +218,7 @@ async function handleOAuth(provider: OAuthProvider) {
 <template>
   <view class="login-page">
     <!-- Brand area -->
-    <view class="login-brand fade-in-up">
+    <view class="login-brand">
       <image class="brand-logo" src="/static/logo.png" mode="aspectFit" />
       <text class="brand-title">
         FastapiAdmin
@@ -207,45 +229,37 @@ async function handleOAuth(provider: OAuthProvider) {
     </view>
 
     <!-- Form card -->
-    <view class="login-card bounce-in">
+    <view class="login-card">
       <text class="login-card__title">
         账号登录
       </text>
 
       <wd-form ref="loginFormRef" :model="loginFormData" :schema="loginSchema">
-        <!-- Username -->
+        <!-- Username — wot 原生 wd-input，前缀图标走 prefix-icon 属性 -->
         <wd-form-item prop="username">
-          <view class="login-field">
-            <wd-input
-              v-model="loginFormData.username"
-              placeholder="请输入用户名"
-              clearable
-              confirm-type="next"
-              @confirm="handleSubmit"
-            >
-              <template #prefix>
-                <wd-icon name="user" size="20rpx" color="#9CA3AF" />
-              </template>
-            </wd-input>
-          </view>
+          <wd-input
+            v-model="loginFormData.username"
+            placeholder="请输入用户名"
+            clearable
+            confirm-type="next"
+            :compact="false"
+            prefix-icon="user"
+            @confirm="handleSubmit"
+          />
         </wd-form-item>
 
         <!-- Password — show-password 自动启用密码可见性切换 -->
         <wd-form-item prop="password">
-          <view class="login-field">
-            <wd-input
-              v-model="loginFormData.password"
-              placeholder="请输入密码"
-              show-password
-              clearable
-              confirm-type="go"
-              @confirm="handleSubmit"
-            >
-              <template #prefix>
-                <wd-icon name="lock" size="20rpx" color="#9CA3AF" />
-              </template>
-            </wd-input>
-          </view>
+          <wd-input
+            v-model="loginFormData.password"
+            placeholder="请输入密码"
+            show-password
+            clearable
+            confirm-type="go"
+            :compact="false"
+            prefix-icon="lock"
+            @confirm="handleSubmit"
+          />
         </wd-form-item>
 
         <!-- Slider Captcha — wd-slide-verify 滑块拖动验证（条件显示） -->
@@ -261,17 +275,10 @@ async function handleOAuth(provider: OAuthProvider) {
 
         <!-- 记住密码 + 忘记密码 -->
         <view class="login-options">
-          <view class="remember-check" @click="loginFormData.remember = !loginFormData.remember">
-            <view class="remember-check__box" :class="{ 'is-checked': loginFormData.remember }">
-              <text v-if="loginFormData.remember" class="remember-check__tick">
-                ✓
-              </text>
-            </view>
-            <text class="remember-check__label">
-              记住密码
-            </text>
-          </view>
-          <text class="forgot-link">
+          <wd-checkbox v-model="loginFormData.remember" size="18px">
+            记住密码
+          </wd-checkbox>
+          <text class="forgot-link wot-text-primary">
             忘记密码？
           </text>
         </view>
@@ -290,7 +297,7 @@ async function handleOAuth(provider: OAuthProvider) {
     </view>
 
     <!-- OAuth Login -->
-    <view class="oauth-section fade-in-up-3">
+    <view class="oauth-section">
       <view class="oauth-divider">
         <view class="oauth-divider__line" />
         <text class="oauth-divider__text">
@@ -369,10 +376,8 @@ async function handleOAuth(provider: OAuthProvider) {
   box-sizing: border-box;
 }
 
-/* 暗黑模式下整页背景 + 所有子元素继承深色，消除白色断层 */
-:deep(.theme-dark) .login-page,
-.login-page:has(.theme-dark),
-.theme-dark .login-page {
+/* 暗黑模式下整页背景变深，消除白色断层（wot 根类为 wot-theme-dark） */
+.wot-theme-dark .login-page {
   background: var(--bg-color-1, #0F0F11);
 }
 
@@ -398,8 +403,7 @@ async function handleOAuth(provider: OAuthProvider) {
     color: var(--text-color, #0A1628);
 
     /* 暗黑模式下使用纯白，提升品牌标题醒目度 */
-    :deep(.theme-dark) &,
-    .theme-dark & {
+    .wot-theme-dark & {
       color: #FFFFFF;
     }
   }
@@ -409,8 +413,7 @@ async function handleOAuth(provider: OAuthProvider) {
     color: var(--text-color-3, #6B7280);
 
     /* 暗黑下提亮到 --text-color-2，避免 #9CA3AF 在深底上偏暗 */
-    :deep(.theme-dark) &,
-    .theme-dark & {
+    .wot-theme-dark & {
       color: var(--text-color-2, #D1D5DB);
     }
   }
@@ -419,7 +422,6 @@ async function handleOAuth(provider: OAuthProvider) {
 /* ===== Card（不再是毛玻璃，使用纯色背景 + 与页面背景形成层级差） ===== */
 .login-card {
   width: 100%;
-  max-width: 654rpx;
   background: var(--card-bg-color, #FFFFFF);
   border-radius: var(--radius-xl, 32rpx);
   padding: 40rpx 36rpx;
@@ -429,8 +431,7 @@ async function handleOAuth(provider: OAuthProvider) {
   flex-shrink: 0;
 
   /* 暗黑模式：卡片用深色 2 级，页面背景用深色 1 级，形成细微层级差 */
-  :deep(.theme-dark) &,
-  .theme-dark & {
+  .wot-theme-dark & {
     background: var(--bg-color-3, #1A1A1A);
     border-color: var(--border-color, #2C2C2E);
     box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
@@ -444,43 +445,29 @@ async function handleOAuth(provider: OAuthProvider) {
     margin-bottom: 28rpx;
 
     /* 暗黑模式下使用纯白，提升卡片标题醒目度 */
-    :deep(.theme-dark) &,
-    .theme-dark & {
+    .wot-theme-dark & {
       color: #FFFFFF;
     }
   }
 }
 
-/* ===== 表单输入框容器 — 圆角底色包裹，替代 uview 的 border="surround" ===== */
-.login-field {
-  background: var(--bg-color-2, #F5F6F8);
-  border: 2rpx solid var(--border-color, #EAECF0);
+/* 输入框原生微调 — wot 自带底色/内边距/图标，仅补圆角 */
+:deep(.wd-input) {
   border-radius: 16rpx;
-  padding: 0 20rpx;
-  transition: border-color var(--transition-fast, 0.15s ease);
 }
 
-/* 暗黑模式适配（wot-ui 输入框主题变量 + 容器背景） */
+/* 暗黑下 wot 的 filled-oppo 回退纯黑，与卡片/页面层级脱节：
+   cell 容器回归透明，输入框回落深灰圆角块 */
+.wot-theme-dark .login-page :deep(.wd-cell) {
+  --wot-cell-bg: transparent;
+}
+
+.wot-theme-dark .login-page :deep(.wd-input) {
+  --wot-input-bg: var(--bg-color-3, #2C2C2E);
+}
+
 :deep(.wd-form-item) {
   margin-bottom: 20rpx;
-}
-
-.theme-dark :deep(.wd-input) {
-  --wot-input-bg: var(--bg-color-3, #2C2C2E);
-  --wot-input-inner-color: var(--text-color, #FFFFFF);
-  --wot-input-inner-placeholder-color: var(--text-color-4, #6B7280);
-}
-
-.theme-dark .login-field {
-  background: var(--bg-color-3, #2C2C2E);
-  border-color: var(--border-color, #2C2C2E);
-}
-
-/* 暗黑模式适配（wot-ui 滑块主题变量 + 深色层级体系） */
-.theme-dark :deep(.wd-slide-verify) {
-  --wot-slide-verify-bg: var(--bg-color-2, #1C1C1E);
-  --wot-slide-verify-button-bg: var(--bg-color-3, #2C2C2E);
-  --wot-slide-verify-text-color: var(--text-color-3, #9CA3AF);
 }
 
 /* ===== 记住密码 + 忘记密码 ===== */
@@ -492,49 +479,13 @@ async function handleOAuth(provider: OAuthProvider) {
   margin-top: 4rpx;
 }
 
-.remember-check {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 8rpx 0;
-
-  &__box {
-    width: 36rpx;
-    height: 36rpx;
-    border-radius: 8rpx;
-    border: 2rpx solid var(--text-color-4, #B0B0B0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
-
-    &.is-checked {
-      background: var(--primary-color, #4F8CFF);
-      border-color: var(--primary-color, #4F8CFF);
-    }
-  }
-
-  &__tick {
-    font-size: 24rpx;
-    color: #ffffff;
-    line-height: 1;
-  }
-
-  &__label {
-    font-size: var(--font-md, 28rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
 .forgot-link {
   font-size: var(--font-md, 28rpx);
-  color: var(--primary-color, #4F8CFF);
 }
 
 /* ===== OAuth Section ===== */
 .oauth-section {
   width: 100%;
-  max-width: 654rpx;
   margin-top: 16rpx;
   flex-shrink: 0;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useUserStore } from '@/store/userStore'
 
 definePage({
@@ -67,210 +67,80 @@ const groups = [
     ],
   },
 ]
+
+/** 搜索关键词，本地过滤模块分组 */
+const keyword = ref('')
+const filteredGroups = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw)
+    return groups
+  return groups
+    .map(group => ({ ...group, items: group.items.filter(item => item.text.toLowerCase().includes(kw)) }))
+    .filter(group => group.items.length > 0)
+})
 </script>
 
 <template>
-  <view class="work-page">
-    <!-- Navigation -->
-    <view class="work-nav">
-      <text class="work-nav__title">
-        工作台
-      </text>
-      <view class="work-nav__avatar" @click="navigateTo('mine')">
-        <text class="work-nav__avatar-text">
-          {{ (userInfo?.name || '管').charAt(0) }}
-        </text>
-      </view>
-    </view>
-
-    <!-- User info card -->
-    <view class="user-card fade-in-up">
-      <view class="user-card__avatar">
-        <text class="user-card__avatar-text">
-          {{ (userInfo?.name || '管').charAt(0) }}
-        </text>
-      </view>
-      <view class="user-card__info">
-        <text class="user-card__name">
+  <view class="box-border min-h-screen py-3">
+    <!-- 用户信息卡 -->
+    <view class="mx-3 mb-4 flex items-center gap-4 rounded-3 px-5 py-6 wot-bg-filled-oppo">
+      <wd-avatar
+        size="64px"
+        round
+        :text="(userInfo?.name || '管').charAt(0)"
+        bg-color="#4F8CFF"
+        color="#FFFFFF"
+      />
+      <view class="min-w-0 flex-1">
+        <view class="text-4 font-bold wot-text-text-main">
           {{ userInfo?.name || 'FastapiAdmin' }}
-        </text>
-        <text class="user-card__role">
+        </view>
+        <view class="mt-1 truncate text-3 wot-text-text-secondary">
           {{ userInfo?.roles?.map(r => r.name).join(', ') || '超级管理员' }}
-        </text>
-      </view>
-    </view>
-
-    <!-- Module groups -->
-    <view v-for="(group, gi) in groups" :key="gi" class="module-group" :class="[`fade-in-up-${gi + 1}`]">
-      <view class="module-group__title">
-        <view class="module-group__dot" :style="{ background: group.color }" />
-        <text>{{ group.title }}</text>
-      </view>
-      <view class="module-grid">
-        <view
-          v-for="item in group.items"
-          :key="item.name"
-          class="module-item"
-          hover-class="module-item--hover"
-          @click="navigateTo(item.name)"
-        >
-          <view class="module-item__icon" :style="{ background: group.bg }">
-            <wd-icon :name="item.icon" size="22px" :color="group.color" />
-          </view>
-          <text class="module-item__text">
-            {{ item.text }}
-          </text>
         </view>
       </view>
     </view>
 
+    <!-- 模块搜索 -->
+    <view class="mx-3 mb-4">
+      <wd-search v-model="keyword" placeholder="搜索模块功能" variant="light" hide-cancel />
+    </view>
+
+    <!-- 模块分组 -->
+    <view v-for="(group, gi) in filteredGroups" :key="gi" class="mb-4">
+      <view class="mb-2 mt-1 flex items-center gap-2 px-3">
+        <view class="h-3.5 w-1 rounded-full" :style="{ backgroundColor: group.color }" />
+        <text class="text-3.5 font-bold wot-text-text-main">
+          {{ group.title }}
+        </text>
+        <text class="text-2.5 wot-text-text-auxiliary">
+          {{ group.items.length }}
+        </text>
+      </view>
+      <wd-cell-group border custom-class="mx-3 rounded-2! overflow-hidden">
+        <wd-cell
+          v-for="item in group.items"
+          :key="item.name"
+          :title="item.text"
+          is-link
+          @click="navigateTo(item.name)"
+        >
+          <template #prefix>
+            <view
+              class="mr-2 h-8 w-8 flex items-center justify-center rounded-lg"
+              :style="{ backgroundColor: group.bg }"
+            >
+              <wd-icon :name="item.icon" size="16px" :color="group.color" />
+            </view>
+          </template>
+        </wd-cell>
+      </wd-cell-group>
+    </view>
+
+    <!-- 搜索无结果 -->
+    <wd-empty v-if="filteredGroups.length === 0" tip="未找到相关模块，换个关键词试试" />
+
     <!-- Bottom safe area -->
-    <view style="height: 100rpx;" />
+    <wd-gap height="100rpx" safe-area-bottom />
   </view>
 </template>
-
-<style lang="scss" scoped>
-.work-page {
-  padding: 0 32rpx;
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg-color, #F9F9F9);
-  min-height: 100vh;
-}
-
-/* ===== Navigation ===== */
-.work-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16rpx 0 24rpx;
-
-  &__title {
-    font-size: var(--font-2xl, 40rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__avatar {
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__avatar-text {
-    font-size: var(--font-md, 28rpx);
-    font-weight: 600;
-    color: #FFFFFF;
-  }
-}
-
-/* ===== User card（渐变欢迎卡，与 mine/login 设计语言一致） ===== */
-.user-card {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  background: var(--gradient-primary, linear-gradient(135deg, #4F8CFF, #2563EB));
-  border-radius: 32rpx;
-  padding: 32rpx;
-  margin-bottom: 40rpx;
-  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.18);
-
-  &__avatar {
-    width: 96rpx;
-    height: 96rpx;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.20);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__avatar-text {
-    font-size: var(--font-xl, 36rpx);
-    font-weight: 600;
-    color: #FFFFFF;
-  }
-
-  &__info {
-    display: flex;
-    flex-direction: column;
-    gap: 4rpx;
-  }
-
-  &__name {
-    font-size: var(--font-xl, 36rpx);
-    font-weight: 600;
-    color: #FFFFFF;
-  }
-
-  &__role {
-    font-size: var(--font-sm, 24rpx);
-    color: rgba(255, 255, 255, 0.85);
-  }
-}
-
-/* ===== Module group ===== */
-.module-group {
-  margin-bottom: 40rpx;
-
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-    font-size: var(--font-lg, 32rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-    margin-bottom: 20rpx;
-  }
-
-  &__dot {
-    width: 12rpx;
-    height: 12rpx;
-    border-radius: 4rpx;
-    flex-shrink: 0;
-  }
-}
-
-.module-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-}
-
-.module-item {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-  transition: all 0.15s ease;
-
-  &--hover {
-    opacity: 0.85;
-    transform: scale(0.98);
-    box-shadow: var(--shadow-md, 0 4rpx 12rpx rgba(1, 77, 178,0.10));
-  }
-
-  &__icon {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 16rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__text {
-    font-size: var(--font-md, 28rpx);
-    font-weight: 500;
-    color: var(--text-color, #0A1628);
-  }
-}
-</style>

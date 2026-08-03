@@ -3,11 +3,24 @@ import type { SwiperItem } from '@wot-ui/ui/components/wd-swiper/types'
 import type { DashboardStats } from '@/api/module_monitor/dashboard'
 import type { NoticeItem } from '@/api/module_system/notice'
 import { onPullDownRefresh, onReady, onShow } from '@dcloudio/uni-app'
+import { BarChart, PieChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import * as echarts from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import { computed, ref } from 'vue'
 import { DashboardAPI } from '@/api/module_monitor/dashboard'
 import { NoticeAPI } from '@/api/module_system/notice'
 import { TicketAPI } from '@/api/module_system/ticket'
 import { useUserStore } from '@/store/userStore'
+
+echarts.use([
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  BarChart,
+  PieChart,
+  CanvasRenderer,
+])
 
 definePage({
   name: 'home',
@@ -31,12 +44,17 @@ const dashboardStats = ref<DashboardStats | null>(null)
 const pendingTickets = ref(0)
 const recentNotices = ref<NoticeItem[]>([])
 const userStore = useUserStore()
+/** 页面滚动距离（供 wd-backtop 判断显示） */
+const scrollTop = ref(0)
+onPageScroll((e) => {
+  scrollTop.value = e.scrollTop
+})
 
 const NAV_LIST = [
-  { icon: '/static/icons/user.svg', title: '用户管理', name: 'work-users', color: '#4F8CFF', bg: 'rgba(79, 140, 255, 0.12)' },
-  { icon: '/static/icons/role.svg', title: '角色管理', name: 'work-roles', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)' },
-  { icon: '/static/icons/notice.svg', title: '通知公告', name: 'work-notices', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
-  { icon: '/static/icons/setting.svg', title: '系统配置', name: 'work-params', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.12)' },
+  { icon: 'user', title: '用户管理', name: 'work-users', color: '#4F8CFF' },
+  { icon: 'lock', title: '角色管理', name: 'work-roles', color: '#F59E0B' },
+  { icon: 'notification', title: '通知公告', name: 'work-notices', color: '#10B981' },
+  { icon: 'settings', title: '系统配置', name: 'work-params', color: '#8B5CF6' },
 ]
 
 /** 轮播 Banner 条目 */
@@ -93,6 +111,63 @@ function navigateTo(name: string) {
   if (r)
     r.push({ name })
 }
+
+/** 运营概览图表：在线占比环形图（真实数据，未加载时以 0 值占位） */
+const onlineDonutOption = computed(() => {
+  const s = dashboardStats.value
+  const online = s?.online_users ?? 0
+  const total = s?.total_users ?? 0
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+      textStyle: { fontSize: 12 },
+    },
+    legend: { show: false },
+    series: [{
+      type: 'pie',
+      radius: ['58%', '82%'],
+      center: ['50%', '50%'],
+      avoidLabelOverlap: false,
+      label: { show: false },
+      emphasis: { scale: false },
+      data: [
+        { value: online, name: '在线用户', itemStyle: { color: '#4F8CFF' } },
+        { value: Math.max(total - online, 0), name: '离线用户', itemStyle: { color: 'rgba(79, 140, 255, 0.14)' } },
+      ],
+    }],
+  }
+})
+
+/** 运营概览图表：今日数据柱状图（真实数据，未加载时以 0 值占位） */
+const todayBarOption = computed(() => {
+  const s = dashboardStats.value
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      textStyle: { fontSize: 12 },
+    },
+    grid: { left: 4, right: 4, top: 18, bottom: 0, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: ['今日登录', '本周新增', '独立用户'],
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 10, color: '#999' },
+    },
+    yAxis: { type: 'value', show: false },
+    series: [{
+      type: 'bar',
+      barWidth: 14,
+      data: [
+        { value: s?.today_login_count ?? 0, itemStyle: { color: '#4F8CFF', borderRadius: [6, 6, 0, 0] } },
+        { value: s?.week_user_created ?? 0, itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] } },
+        { value: s?.today_unique_users ?? 0, itemStyle: { color: '#F59E0B', borderRadius: [6, 6, 0, 0] } },
+      ],
+    }],
+  }
+})
 
 async function loadData() {
   loading.value = true
@@ -158,24 +233,22 @@ function getGreeting() {
 </script>
 
 <template>
-  <view class="home-page">
-    <!-- 顶部导航 -->
-    <view class="home-nav">
-      <text class="home-nav__title">
-        工作台概览
-      </text>
-      <view class="home-nav__bell" @click="navigateTo('work-notices')">
-        <wd-icon name="notification" size="18px" color="var(--text-color-2)" />
-        <view v-if="pendingTickets > 0" class="home-nav__badge" />
-      </view>
-    </view>
+  <view class="box-border min-h-screen">
+    <!-- 顶部通知栏 -->
+    <wd-notice-bar
+      text="这是一条消息提示信息，这是一条消息提示信息，这是一条消息提示信息"
+      closable
+      type="warning"
+      prefix="notification"
+      class="mb-3"
+    />
 
     <!-- 轮播 Banner -->
-    <view class="home-banner fade-in-up">
+    <view class="mx-3 mb-3">
       <wd-swiper
         :list="banners"
-        height="340"
-        radius="28"
+        height="100"
+        radius="14"
         :interval="4500"
         :autoplay="true"
         :loop="true"
@@ -183,18 +256,20 @@ function getGreeting() {
         <template #default="{ index }">
           <view class="banner-slide" :class="banners[index].cls" @click="banners[index].onClick">
             <view class="banner-slide__body">
-              <text class="banner-slide__tag">
-                {{ banners[index].tag }}
-              </text>
-              <text class="banner-slide__title">
+              <view class="banner-slide__tag">
+                <wd-tag size="small" round bg-color="rgba(255, 255, 255, 0.22)" color="#FFFFFF">
+                  {{ banners[index].tag }}
+                </wd-tag>
+              </view>
+              <view class="banner-slide__title">
                 {{ banners[index].title }}
-              </text>
-              <text class="banner-slide__subtitle">
+              </view>
+              <view class="banner-slide__subtitle">
                 {{ banners[index].subtitle }}
-              </text>
-              <text class="banner-slide__desc">
+              </view>
+              <view class="banner-slide__desc">
                 {{ banners[index].desc }}
-              </text>
+              </view>
             </view>
             <view class="banner-slide__cta">
               <text class="banner-slide__cta-text">
@@ -220,176 +295,168 @@ function getGreeting() {
     </view>
 
     <!-- 快捷入口 -->
-    <view class="home-grid fade-in-up-1">
-      <wd-grid :column="4">
-        <wd-grid-item v-for="item in NAV_LIST" :key="item.name" @click="navigateTo(item.name)">
-          <view class="nav-item__icon" :style="{ background: item.bg }">
+    <view class="mx-3 mb-3 rounded-2 p-2 wot-bg-filled-oppo">
+      <wd-grid :column="4" :border="false" clickable>
+        <wd-grid-item
+          v-for="item in NAV_LIST"
+          :key="item.name"
+          @click="navigateTo(item.name)"
+        >
+          <view class="w-full flex flex-col items-center">
             <view
-              class="nav-item__svg"
-              :style="{
-                backgroundColor: item.color,
-                maskImage: `url(${item.icon})`,
-                WebkitMaskImage: `url(${item.icon})`,
-              }"
-            />
+              class="h-11 w-11 flex items-center justify-center rounded-xl"
+              :style="{ backgroundColor: `${item.color}1a` }"
+            >
+              <wd-icon :name="item.icon" size="20px" :color="item.color" />
+            </view>
+            <view class="mt-1 w-full text-center text-2.5 wot-text-text-secondary">
+              {{ item.title }}
+            </view>
           </view>
-          <text class="home-grid__label">
-            {{ item.title }}
-          </text>
         </wd-grid-item>
       </wd-grid>
     </view>
 
     <!-- 运营概览 -->
-    <view class="section-header fade-in-up-2">
-      <text class="section-header__title">
+    <view class="mb-2 mt-4 flex items-center gap-2 px-3">
+      <view class="h-3.5 w-1 rounded-full" style="background-color: var(--primary-color, #4F8CFF);" />
+      <text class="text-3.5 font-bold wot-text-text-main">
         运营概览
       </text>
     </view>
     <SkeletonPage v-if="loading && !dashboardStats" :rows="3" />
-    <template v-else>
-      <view class="stats-row">
-        <view class="stat-item card-pressable fade-in-up-1">
-          <text class="stat-item__value stat-item__value--primary count-up">
-            {{ dashboardStats?.total_users ?? '-' }}
-          </text>
-          <text class="stat-item__label">
-            注册用户
-          </text>
-          <text class="stat-item__sub">
-            本周新增 {{ dashboardStats?.week_user_created ?? 0 }}
-          </text>
-        </view>
-        <view class="stat-item card-pressable fade-in-up-2">
-          <text class="stat-item__value stat-item__value--success count-up">
-            {{ dashboardStats?.online_users ?? '-' }}
-          </text>
-          <text class="stat-item__label">
-            在线用户
-          </text>
-          <text class="stat-item__sub">
-            当前在线
-          </text>
-        </view>
-        <view class="stat-item card-pressable fade-in-up-3">
-          <text class="stat-item__value stat-item__value--warning count-up">
-            {{ dashboardStats?.today_login_count ?? '-' }}
-          </text>
-          <text class="stat-item__label">
-            今日登录
-          </text>
-          <text class="stat-item__sub">
-            {{ dashboardStats?.today_unique_users ?? 0 }} 独立用户
-          </text>
-        </view>
-      </view>
+    <view v-else class="mx-3">
+      <wd-row :gutter="12">
+        <wd-col :span="8">
+          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+            <wd-count-to v-if="dashboardStats?.total_users != null" :end-val="dashboardStats.total_users" type="primary" custom-class="stat-count" />
+            <view v-else class="text-5 font-bold wot-text-text-main">
+              -
+            </view>
+            <view class="mt-1 text-3 wot-text-text-secondary">
+              注册用户
+            </view>
+            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+              本周新增 {{ dashboardStats?.week_user_created ?? 0 }}
+            </view>
+          </view>
+        </wd-col>
+        <wd-col :span="8">
+          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+            <wd-count-to v-if="dashboardStats?.online_users != null" :end-val="dashboardStats.online_users" type="success" custom-class="stat-count" />
+            <view v-else class="text-5 font-bold wot-text-text-main">
+              -
+            </view>
+            <view class="mt-1 text-3 wot-text-text-secondary">
+              在线用户
+            </view>
+            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+              当前在线
+            </view>
+          </view>
+        </wd-col>
+        <wd-col :span="8">
+          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+            <wd-count-to v-if="dashboardStats?.today_login_count != null" :end-val="dashboardStats.today_login_count" type="warning" custom-class="stat-count" />
+            <view v-else class="text-5 font-bold wot-text-text-main">
+              -
+            </view>
+            <view class="mt-1 text-3 wot-text-text-secondary">
+              今日登录
+            </view>
+            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+              {{ dashboardStats?.today_unique_users ?? 0 }} 独立用户
+            </view>
+          </view>
+        </wd-col>
+      </wd-row>
+    </view>
 
-      <!-- 最新公告 -->
-      <view v-if="recentNotices.length > 0" class="home-section fade-in-up-3">
-        <view class="section-header">
-          <text class="section-header__title">
-            最新公告
-          </text>
-          <text class="section-header__more" @click="navigateTo('work-notices')">
-            全部 →
-          </text>
+    <!-- 运营图表（未加载数据时以 0 值占位渲染） -->
+    <view class="grid grid-cols-2 mx-3 mt-3 gap-3">
+      <view class="rounded-2 p-3 wot-bg-filled-oppo">
+        <view class="mb-1 text-center text-3 font-bold wot-text-text-main">
+          在线占比
         </view>
-        <view class="home-card">
-          <wd-cell-group border>
-            <wd-cell v-for="item in recentNotices" :key="item.id" :title="item.notice_title" is-link @click="navigateTo('work-notices')">
-              <template #label>
-                <text class="home-cell__time">
-                  {{ item.created_time || '' }}
-                </text>
-              </template>
-            </wd-cell>
-          </wd-cell-group>
-        </view>
+        <uni-echarts custom-class="h-44 w-full" :option="onlineDonutOption" />
       </view>
+      <view class="rounded-2 p-3 wot-bg-filled-oppo">
+        <view class="mb-1 text-center text-3 font-bold wot-text-text-main">
+          今日数据
+        </view>
+        <uni-echarts custom-class="h-44 w-full" :option="todayBarOption" />
+      </view>
+    </view>
 
-      <!-- 最近登录 -->
-      <view v-if="dashboardStats?.recent_logins?.length" class="home-section fade-in-up-4">
-        <view class="section-header">
-          <text class="section-header__title">
-            最近登录
-          </text>
-        </view>
-        <view class="home-card">
-          <wd-cell-group border>
-            <wd-cell v-for="(item, i) in dashboardStats.recent_logins" :key="i" :title="item.username">
-              <template #label>
-                <text class="home-cell__time">
-                  {{ item.login_time || '' }}{{ item.login_ip ? ` · ${item.login_ip}` : '' }}
-                </text>
-              </template>
-              <StatusBadge :status="item.status === 1 ? 'success' : 'failed'" />
-            </wd-cell>
-          </wd-cell-group>
-        </view>
+    <!-- 最新公告 -->
+    <view v-if="recentNotices.length > 0" class="mb-2 mt-4 flex items-center justify-between px-3">
+      <view class="flex items-center gap-2">
+        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--success-color, #10B981);" />
+        <text class="text-3.5 font-bold wot-text-text-main">
+          最新公告
+        </text>
       </view>
-    </template>
+      <text class="text-3 wot-text-primary" @click="navigateTo('work-notices')">
+        全部
+      </text>
+    </view>
+    <view v-if="recentNotices.length > 0" class="mx-3">
+      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
+        <wd-cell
+          v-for="item in recentNotices"
+          :key="item.id"
+          :title="item.notice_title"
+          is-link
+          @click="navigateTo('work-notices')"
+        >
+          <template #label>
+            <text class="text-2.5 wot-text-text-auxiliary">
+              {{ item.created_time || '' }}
+            </text>
+          </template>
+        </wd-cell>
+      </wd-cell-group>
+    </view>
+
+    <!-- 最近登录 -->
+    <view v-if="dashboardStats?.recent_logins?.length" class="mb-2 mt-4 flex items-center gap-2 px-3">
+      <view class="h-3.5 w-1 rounded-full" style="background-color: var(--warning-color, #F59E0B);" />
+      <text class="text-3.5 font-bold wot-text-text-main">
+        最近登录
+      </text>
+    </view>
+    <view v-if="dashboardStats?.recent_logins?.length" class="mx-3">
+      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
+        <wd-cell
+          v-for="(item, i) in dashboardStats.recent_logins"
+          :key="i"
+          :title="item.username"
+        >
+          <template #label>
+            <text class="text-2.5 wot-text-text-auxiliary">
+              {{ item.login_time || '' }}{{ item.login_ip ? ` · ${item.login_ip}` : '' }}
+            </text>
+          </template>
+          <template #value>
+            <StatusBadge :status="item.status === 1 ? 'success' : 'failed'" />
+          </template>
+        </wd-cell>
+      </wd-cell-group>
+    </view>
 
     <!-- Bottom safe area -->
-    <view style="height: 100rpx;" />
+    <wd-gap height="100rpx" safe-area-bottom />
+    <wd-backtop :scroll-top="scrollTop" :top="80" />
   </view>
 </template>
 
 <style lang="scss" scoped>
-.home-page {
-  padding: 0 32rpx;
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg-color, #F9F9F9);
-  min-height: 100vh;
-}
-
-/* ===== 顶部导航 ===== */
-.home-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16rpx 0 24rpx;
-
-  &__title {
-    font-size: var(--font-2xl, 40rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__bell {
-    position: relative;
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: 50%;
-    background: var(--bg-color-2, #F5F6F8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:active { opacity: 0.7; }
-  }
-
-  &__badge {
-    position: absolute;
-    top: 14rpx;
-    right: 14rpx;
-    width: 16rpx;
-    height: 16rpx;
-    border-radius: 50%;
-    background: var(--danger-color, #EF4444);
-    border: 2rpx solid var(--bg-color, #FFFFFF);
-  }
-}
-
-/* ===== 轮播 Banner ===== */
-.home-banner {
-  margin-bottom: 32rpx;
-}
-
+/* ===== 轮播 Banner（渐变装饰 + 文字布局，其余布局全部走 UnoCSS 原子类） ===== */
 .banner-slide {
   position: relative;
-  height: 340rpx;
+  width: 100%;
+  height: 100%;
   padding: 36rpx 40rpx;
-  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -435,16 +502,11 @@ function getGreeting() {
 
   &__tag {
     align-self: flex-start;
-    font-size: var(--font-xs, 20rpx);
-    line-height: 1;
-    padding: 8rpx 16rpx;
-    border-radius: var(--radius-full, 9999rpx);
-    background: rgba(255, 255, 255, 0.22);
     margin-bottom: 20rpx;
   }
 
   &__title {
-    font-size: var(--font-2xl, 40rpx);
+    font-size: 40rpx;
     font-weight: 700;
     line-height: 1.3;
     margin-bottom: 8rpx;
@@ -454,13 +516,13 @@ function getGreeting() {
   }
 
   &__subtitle {
-    font-size: var(--font-sm, 24rpx);
+    font-size: 24rpx;
     color: rgba(255, 255, 255, 0.88);
     margin-bottom: 8rpx;
   }
 
   &__desc {
-    font-size: var(--font-xs, 20rpx);
+    font-size: 20rpx;
     color: rgba(255, 255, 255, 0.68);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -476,19 +538,19 @@ function getGreeting() {
     align-items: center;
     gap: 8rpx;
     padding: 16rpx 24rpx;
-    border-radius: var(--radius-full, 9999rpx);
+    border-radius: 9999rpx;
     background: rgba(255, 255, 255, 0.22);
     border: 2rpx solid rgba(255, 255, 255, 0.35);
 
     &-text {
-      font-size: var(--font-sm, 24rpx);
+      font-size: 24rpx;
       font-weight: 500;
       color: #FFFFFF;
       white-space: nowrap;
     }
 
     &-arrow {
-      font-size: var(--font-md, 28rpx);
+      font-size: 28rpx;
       font-weight: 400;
       color: #FFFFFF;
       line-height: 1;
@@ -513,124 +575,15 @@ function getGreeting() {
 
     &.is-active {
       width: 28rpx;
-      border-radius: var(--radius-full, 9999rpx);
+      border-radius: 9999rpx;
       background: #FFFFFF;
     }
   }
 }
 
-/* ===== 快捷入口 ===== */
-.home-grid {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 20rpx 0;
-  margin-bottom: 32rpx;
-  box-shadow: var(--shadow-xs, 0 3rpx 8rpx rgba(1, 77, 178, 0.03));
-
-  &__label {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
-.nav-item__icon {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12rpx;
-}
-
-/* SVG 图标：以 mask 蒙版取形，background-color 着色（currentColor 方案） */
-.nav-item__svg {
-  width: 40rpx;
-  height: 40rpx;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
-}
-
-/* ===== Section header ===== */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-
-  &__title {
-    font-size: var(--font-lg, 32rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__more {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--primary-color, #4F8CFF);
-  }
-}
-
-/* ===== Stats row ===== */
-.stats-row {
-  display: flex;
-  gap: 24rpx;
-  margin-bottom: 32rpx;
-}
-
-.stat-item {
-  flex: 1;
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: var(--shadow-xs, 0 3rpx 8rpx rgba(79, 140, 255, 0.03));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-
-  &__value {
-    font-size: var(--font-3xl, 48rpx);
-    font-weight: 600;
-    font-family: 'Inter', -apple-system, sans-serif;
-    margin-bottom: 8rpx;
-
-    &--primary { color: var(--primary-color, #4F8CFF); }
-    &--success { color: var(--success-color, #10B981); }
-    &--warning { color: var(--warning-color, #F59E0B); }
-  }
-
-  &__label {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
-    margin-bottom: 4rpx;
-  }
-
-  &__sub {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-4, #B0B0B0);
-  }
-}
-
-/* ===== Home card ===== */
-.home-section {
-  margin-bottom: 32rpx;
-}
-
-.home-card {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  box-shadow: var(--shadow-xs, 0 3rpx 8rpx rgba(1, 77, 178, 0.03));
-  overflow: hidden;
-}
-
-/* ===== Home cell time ===== */
-.home-cell__time {
-  font-size: var(--font-sm, 24rpx);
-  color: var(--text-color-4, #B0B0B0);
+/* wd-count-to 数字统一字号 */
+:deep(.stat-count) {
+  font-size: 40rpx;
+  font-weight: 700;
 }
 </style>
