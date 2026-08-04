@@ -99,23 +99,6 @@ function demoLoadPets() {
 function demoLogin() {
   performLogin('testuser', 'testpass')
 }
-
-// 链接导航处理
-function handleNavigate(url: string) {
-  // #ifdef H5
-  window.open(url, '_blank')
-  // #endif
-  // #ifndef H5
-  uni.setClipboardData({
-    data: url,
-    showToast: false,
-    success: () => {
-      uni.hideToast()
-      GlobalToast.success(`${url} 已复制到剪贴板`)
-    },
-  })
-  // #endif
-}
 </script>
 
 <template>
@@ -274,17 +257,6 @@ function handleNavigate(url: string) {
           </view>
         </view>
       </view>
-    </demo-block>
-
-    <!-- 相关链接 -->
-    <demo-block title="相关链接" transparent>
-      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="📚 Alova 官方文档" value="alova.js.org" is-link @click="handleNavigate('https://alova.js.org/')" />
-        <wd-cell title="🐙 GitHub 仓库" value="alovajs/alova" is-link @click="handleNavigate('https://github.com/alovajs/alova')" />
-        <wd-cell title="📖 uni-app 文档" value="网络请求" is-link @click="handleNavigate('https://uniapp.dcloud.net.cn/api/request/request.html')" />
-        <wd-cell title="🎯 Alova Hooks" value="请求策略" is-link @click="handleNavigate('https://alova.js.org/zh-CN/tutorial/client/strategy/')" />
-        <wd-cell title="💡 最佳实践" value="使用指南" is-link @click="handleNavigate('https://alova.js.org/zh-CN/tutorial/project/best-practice/')" />
-      </wd-cell-group>
     </demo-block>
   </view>
 </template>

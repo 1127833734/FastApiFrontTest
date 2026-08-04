@@ -25,10 +25,15 @@ function statusLabel(s: number | string | undefined) {
   return 'draft'
 }
 
-const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<NoticeItem>({
+const { list, total, loading, pageParams, loadData, toFirst, loadNext } = useListPage<NoticeItem>({
   fetcher: p => NoticeAPI.getPage({ ...p, notice_title: searchTitle.value || undefined }),
   onError: () => toast.error('加载失败'),
 })
+
+function handlePageChange({ value }: { value: number }) {
+  pageParams.value.page_no = value
+  loadData()
+}
 
 function onSearch() {
   toFirst()
@@ -133,9 +138,9 @@ onLoad(() => loadData())
     <template v-else>
       <view class="px-sm">
         <view class="admin-card">
-          <ListEmpty v-if="!loading && list.length === 0" text="暂无公告" />
+          <wd-empty v-if="!loading && list.length === 0" tip="暂无公告" />
           <wd-cell-group v-else>
-            <wd-cell v-for="item in list" :key="item.id" is-link @click="openEdit(item.id!)">
+            <wd-cell v-for="item in list" :key="item.id" center is-link @click="openEdit(item.id!)">
               <template #title>
                 <view>
                   <text class="text-md font-medium">
@@ -153,7 +158,14 @@ onLoad(() => loadData())
           </wd-cell-group>
         </view>
       </view>
-      <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
+      <wd-pagination
+        :model-value="pageParams.page_no"
+        :total="total"
+        :page-size="pageParams.page_size"
+        button-variant="plain"
+        hide-if-one-page
+        @change="handlePageChange"
+      />
       <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
         <view class="p-xl">
           <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />

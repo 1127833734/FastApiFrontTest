@@ -2,8 +2,9 @@
 /**
  * 页面骨架屏组件
  * 在数据加载时展示占位内容，提升感知性能
+ * 基于 wd-skeleton 封装
  */
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   /** 显示行数（列表行） */
   rows?: number
   /** 是否显示搜索栏骨架 */
@@ -13,37 +14,31 @@ withDefaults(defineProps<{
 }>(), {
   rows: 5,
 })
+
+/** 搜索栏占位行 */
+const searchRowCol = [{ type: 'rect' as const, height: '64rpx', borderRadius: '12rpx' }]
+
+/** 列表行占位：圆形头像 + 文本块 + 右侧徽章 */
+const listRowCol = [
+  [
+    { type: 'circle' as const, size: '64rpx' },
+    { type: 'rect' as const, width: '200rpx', height: '28rpx', marginLeft: '24rpx' },
+    { type: 'rect' as const, width: '80rpx', height: '40rpx', borderRadius: '999rpx' },
+  ],
+]
 </script>
 
 <template>
   <view class="p-sm">
     <!-- 搜索栏骨架 -->
     <view v-if="search" class="admin-card mb-md p-md">
-      <view class="skeleton-block" style="height: 64rpx; width: 100%; border-radius: var(--radius-md);" />
+      <wd-skeleton :row-col="searchRowCol" :loading="true" animation="gradient" />
     </view>
     <!-- 多行列表骨架 -->
     <view class="admin-card p-sm">
-      <view v-for="i in rows" :key="i" class="gap-md p-md flex items-center" :style="{ borderBottom: i < rows ? '1px solid var(--border-color)' : 'none' }">
-        <view class="skeleton-block" style="width: 64rpx; height: 64rpx; border-radius: 50%; flex-shrink: 0;" />
-        <view class="flex-1">
-          <view class="skeleton-block" style="height: 28rpx; width: 40%; border-radius: var(--radius-sm);" />
-          <view class="skeleton-block mt-sm" style="height: 22rpx; width: 70%; border-radius: var(--radius-sm);" />
-        </view>
-        <view class="skeleton-block" style="width: 80rpx; height: 40rpx; border-radius: var(--radius-full);" />
+      <view v-for="i in props.rows" :key="i" class="gap-md p-md">
+        <wd-skeleton :row-col="listRowCol" :loading="true" animation="gradient" />
       </view>
     </view>
   </view>
 </template>
-
-<style scoped>
-.skeleton-block {
-  background: linear-gradient(90deg, var(--bg-color-3, #EAEAEA) 25%, var(--bg-color-2, #F5F6F8) 50%, var(--bg-color-3, #EAEAEA) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-</style>

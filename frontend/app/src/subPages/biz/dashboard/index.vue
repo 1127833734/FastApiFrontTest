@@ -3,7 +3,6 @@ import type { DashboardStats } from '@/api/module_monitor/dashboard'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { DashboardAPI } from '@/api/module_monitor/dashboard'
-import SkeletonPage from '@/components/SkeletonPage.vue'
 
 definePage({
   name: 'dashboard',
@@ -31,6 +30,23 @@ const alerts = ref([
   { id: 3, level: 'info', text: '新用户注册量异常增长', time: '1小时前' },
 ])
 
+function alertBg(level: string) {
+  const map: Record<string, string> = {
+    danger: 'var(--danger-color-light, #FEF2F2)',
+    warning: 'var(--warning-color-light, #FFF8E6)',
+    info: 'var(--info-color-light, #F2F3F5)',
+  }
+  return map[level] || 'var(--bg-color-2, #F2F3F5)'
+}
+function alertColor(level: string) {
+  const map: Record<string, string> = {
+    danger: 'var(--danger-color, #EF4444)',
+    warning: 'var(--warning-color, #F59E0B)',
+    info: 'var(--info-color, #8892A3)',
+  }
+  return map[level] || '#8892A3'
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -56,88 +72,79 @@ onPullDownRefresh(() => loadData())
 </script>
 
 <template>
-  <view class="dashboard-page">
-    <!-- Nav header -->
-    <view class="dash-nav">
-      <text class="dash-nav__title">
-        数据概览
-      </text>
-      <view class="dash-nav__badge">
-        <text class="dash-nav__badge-text">
-          今日
-        </text>
-      </view>
-    </view>
-
+  <view class="page-wraper py-3">
     <SkeletonPage v-if="loading && !stats" :rows="6" />
 
     <template v-else>
       <!-- Stats row -->
-      <view class="stats-row">
-        <view class="stat-card card-pressable">
-          <text class="stat-card__value" style="color: var(--primary-color);">
+      <view class="mx-3 mb-3 flex gap-3">
+        <view class="flex-1 rounded-2 p-4 text-center wot-bg-filled-oppo">
+          <text class="block text-5 font-bold" style="color: var(--primary-color);">
             {{ stats?.total_users?.toLocaleString() ?? '-' }}
           </text>
-          <text class="stat-card__label">
+          <text class="mt-1 block text-2.5 wot-text-text-secondary">
             总用户数
           </text>
         </view>
-        <view class="stat-card card-pressable">
-          <text class="stat-card__value" style="color: var(--success-color);">
+        <view class="flex-1 rounded-2 p-4 text-center wot-bg-filled-oppo">
+          <text class="block text-5 font-bold" style="color: var(--success-color);">
             {{ stats?.today_login_count ?? '-' }}
           </text>
-          <text class="stat-card__label">
+          <text class="mt-1 block text-2.5 wot-text-text-secondary">
             今日活跃
           </text>
         </view>
       </view>
 
       <!-- Chart section -->
-      <view class="chart-card">
-        <view class="chart-card__header">
-          <text class="chart-card__title">
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <view class="mb-4 flex items-center justify-between">
+          <text class="text-3.5 font-bold wot-text-text-main">
             登录趋势 (近7天)
           </text>
-          <text class="chart-card__period">
+          <text class="text-2.5 wot-text-text-auxiliary">
             7天
           </text>
         </view>
-        <view class="chart-bars">
-          <view v-for="item in loginTrend" :key="item.day" class="chart-bar-wrap">
-            <view class="chart-bar" :style="{ height: `${item.value}%` }">
-              <text class="chart-bar__tip">
-                {{ item.label }}
-              </text>
-            </view>
-            <text class="chart-bar__label">
-              {{ item.day }}
+        <view class="flex items-end justify-between gap-3" style="height: 280rpx;">
+          <view v-for="item in loginTrend" :key="item.day" class="h-full flex flex-1 flex-col items-center justify-end gap-2">
+            <text class="text-2.5 wot-text-text-auxiliary">
+              {{ item.label }}
             </text>
+            <view
+              class="w-[52rpx] rounded-lg"
+              :style="{ height: `${Math.max(item.value * 1.8, 16)}rpx`, background: 'linear-gradient(180deg, var(--primary-color-light, #E8F0FF) 0%, var(--primary-color, #4F8CFF) 100%)' }"
+            />
           </view>
+        </view>
+        <view class="mt-2 flex justify-between gap-3">
+          <text v-for="item in loginTrend" :key="item.day" class="flex-1 text-center text-2.5 wot-text-text-auxiliary">
+            {{ item.day }}
+          </text>
         </view>
       </view>
 
       <!-- Alerts -->
-      <view class="alert-card">
-        <view class="alert-card__header">
-          <text class="alert-card__title">
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <view class="mb-3 flex items-center justify-between">
+          <text class="text-3.5 font-bold wot-text-text-main">
             系统告警
           </text>
-          <view class="alert-card__badge">
-            <text class="alert-card__badge-text">
-              {{ alerts.length }}
-            </text>
-          </view>
+          <wd-tag type="danger" round size="small">
+            {{ alerts.length }}
+          </wd-tag>
         </view>
         <view
-          v-for="alert in alerts" :key="alert.id"
-          class="alert-item"
-          :class="`alert-item--${alert.level}`"
+          v-for="alert in alerts"
+          :key="alert.id"
+          class="mb-2 flex items-center gap-3 rounded-lg p-3 last:mb-0"
+          :style="{ background: alertBg(alert.level) }"
         >
-          <view class="alert-item__dot" :class="`alert-item__dot--${alert.level}`" />
-          <text class="alert-item__text">
+          <view class="h-1.5 w-1.5 shrink-0 rounded-full" :style="{ background: alertColor(alert.level) }" />
+          <text class="flex-1 text-3 wot-text-text-main">
             {{ alert.text }}
           </text>
-          <text class="alert-item__time">
+          <text class="shrink-0 text-2.5 wot-text-text-auxiliary">
             {{ alert.time }}
           </text>
         </view>
@@ -145,209 +152,3 @@ onPullDownRefresh(() => loadData())
     </template>
   </view>
 </template>
-
-<style lang="scss" scoped>
-.dashboard-page {
-  min-height: 100vh;
-  background: var(--page-bg-color, #F9F9F9);
-  padding: var(--spacing-2xl, 32rpx);
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
-}
-
-.dash-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 88rpx;
-  margin-bottom: var(--spacing-lg, 20rpx);
-
-  &__title {
-    font-size: var(--font-2xl, 40rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__badge {
-    background: var(--bg-color-2, #F2F3F5);
-    border-radius: var(--radius-full, 9999rpx);
-    padding: 8rpx 24rpx;
-  }
-
-  &__badge-text {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
-.stats-row {
-  display: flex;
-  gap: var(--spacing-md, 16rpx);
-  margin-bottom: var(--spacing-lg, 20rpx);
-}
-
-.stat-card {
-  flex: 1;
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: var(--radius-md, 16rpx);
-  padding: var(--spacing-md, 16rpx);
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178, 0.06));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-
-  &__value {
-    font-size: var(--font-2xl, 40rpx);
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-  }
-
-  &__label {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
-.chart-card {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: var(--radius-md, 16rpx);
-  padding: var(--spacing-lg, 20rpx);
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178, 0.06));
-  margin-bottom: var(--spacing-lg, 20rpx);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--spacing-lg, 20rpx);
-  }
-
-  &__title {
-    font-size: var(--font-md, 28rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__period {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
-.chart-bars {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  height: 280rpx;
-  gap: 12rpx;
-}
-
-.chart-bar-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  height: 100%;
-  justify-content: flex-end;
-}
-
-.chart-bar {
-  width: 52rpx;
-  min-height: 16rpx;
-  background: linear-gradient(180deg, var(--primary-color-light, #E8F0FF) 0%, var(--primary-color, #4F8CFF) 100%);
-  border-radius: 8rpx;
-  position: relative;
-  transition: height 0.6s ease;
-
-  &__tip {
-    position: absolute;
-    top: -36rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-    white-space: nowrap;
-    opacity: 0.8;
-  }
-
-  &__label {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-  }
-}
-
-.alert-card {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: var(--radius-md, 16rpx);
-  padding: var(--spacing-lg, 20rpx);
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178, 0.06));
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--spacing-md, 16rpx);
-  }
-
-  &__title {
-    font-size: var(--font-md, 28rpx);
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__badge {
-    background: var(--danger-color, #EF4444);
-    border-radius: 50%;
-    width: 44rpx;
-    height: 44rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__badge-text {
-    font-size: var(--font-sm, 24rpx);
-    font-weight: 700;
-    color: var(--text-color-inverse, #FFFFFF);
-  }
-}
-
-.alert-item {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 20rpx;
-  border-radius: var(--radius-sm, 8rpx);
-  margin-bottom: 12rpx;
-
-  &:last-child { margin-bottom: 0; }
-
-  &--danger { background: var(--danger-color-light, #FEF2F2); }
-  &--warning { background: var(--warning-color-light, #FFF8E6); }
-  &--info { background: var(--info-color-light, #F2F3F5); }
-
-  &__dot {
-    width: 12rpx;
-    height: 12rpx;
-    border-radius: 50%;
-    flex-shrink: 0;
-
-    &--danger { background: var(--danger-color, #EF4444); }
-    &--warning { background: var(--warning-color, #F59E0B); }
-    &--info { background: var(--info-color, #8892A3); }
-  }
-
-  &__text {
-    flex: 1;
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color, #0A1628);
-  }
-
-  &__time {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-    flex-shrink: 0;
-  }
-}
-</style>

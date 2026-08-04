@@ -130,23 +130,6 @@ function copyCode(code: string) {
     },
   })
 }
-
-// 链接导航处理
-function handleNavigate(url: string) {
-  // #ifdef H5
-  window.open(url, '_blank')
-  // #endif
-  // #ifndef H5
-  uni.setClipboardData({
-    data: url,
-    showToast: false,
-    success: () => {
-      uni.hideToast()
-      showSuccess({ msg: `${url} 已复制到剪贴板` })
-    },
-  })
-  // #endif
-}
 </script>
 
 <template>
@@ -477,17 +460,6 @@ function handleNavigate(url: string) {
           </view>
         </view>
       </view>
-    </demo-block>
-
-    <!-- 相关链接 -->
-    <demo-block title="相关链接" transparent>
-      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="📚 UnoCSS 官方文档" value="unocss.dev" is-link @click="handleNavigate('https://unocss.dev/')" />
-        <wd-cell title="🐙 GitHub 仓库" value="unocss/unocss" is-link @click="handleNavigate('https://github.com/unocss/unocss')" />
-        <wd-cell title="🎮 在线演练场" value="在线体验" is-link @click="handleNavigate('https://unocss.dev/play/')" />
-        <wd-cell title="📖 Tailwind CSS" value="参考文档" is-link @click="handleNavigate('https://tailwindcss.com/docs')" />
-        <wd-cell title="💡 最佳实践" value="使用指南" is-link @click="handleNavigate('https://unocss.dev/guide/')" />
-      </wd-cell-group>
     </demo-block>
   </view>
 </template>

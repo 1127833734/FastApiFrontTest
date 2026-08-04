@@ -245,23 +245,6 @@ function copyCode(code: string) {
     },
   })
 }
-
-// 链接导航处理
-function handleNavigate(url: string) {
-  // #ifdef H5
-  window.open(url, '_blank')
-  // #endif
-  // #ifndef H5
-  uni.setClipboardData({
-    data: url,
-    showToast: false,
-    success: () => {
-      uni.hideToast()
-      showSuccess({ msg: `${url} 已复制到剪贴板` })
-    },
-  })
-  // #endif
-}
 </script>
 
 <template>
@@ -566,16 +549,6 @@ function handleNavigate(url: string) {
           </view>
         </view>
       </view>
-    </demo-block>
-
-    <!-- 相关链接 -->
-    <demo-block title="相关链接" transparent>
-      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="📚 WotUI Toast" value="轻提示组件" is-link @click="handleNavigate('https://wot-ui.cn/component/toast.html')" />
-        <wd-cell title="🔄 WotUI Loading" value="加载组件" is-link @click="handleNavigate('https://wot-ui.cn/component/loading.html')" />
-        <wd-cell title="💬 WotUI MessageBox" value="弹窗组件" is-link @click="handleNavigate('https://wot-ui.cn/component/message-box.html')" />
-        <wd-cell title="🍍 Pinia 状态管理" value="Vue 状态库" is-link @click="handleNavigate('https://pinia.vuejs.org/zh/')" />
-      </wd-cell-group>
     </demo-block>
   </view>
 </template>

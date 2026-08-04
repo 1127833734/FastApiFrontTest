@@ -29,21 +29,15 @@ const groups = [
     bg: 'var(--primary-color-light)',
     items: [
       { icon: 'user', text: '用户管理', name: 'work-users' },
-      { icon: 'lock', text: '角色管理', name: 'work-roles' },
-      { icon: 'apps', text: '部门管理', name: 'work-depts' },
-      { icon: 'menu', text: '菜单管理', name: 'work-menus' },
-      { icon: 'list', text: '岗位管理', name: 'work-positions' },
     ],
   },
   {
-    title: '系统配置',
+    title: '业务中心',
     color: '#F59E0B',
     bg: 'var(--warning-color-light)',
     items: [
-      { icon: 'tags', text: '字典管理', name: 'work-dicts' },
       { icon: 'notification', text: '通知公告', name: 'work-notices' },
-      { icon: 'settings', text: '参数管理', name: 'work-params' },
-      { icon: 'refresh', text: '版本管理', name: 'work-versions' },
+      { icon: 'message', text: '工单管理', name: 'work-tickets' },
     ],
   },
   {
@@ -51,7 +45,6 @@ const groups = [
     color: '#10B981',
     bg: 'var(--success-color-light)',
     items: [
-      { icon: 'message', text: '工单管理', name: 'work-tickets' },
       { icon: 'file', text: '操作日志', name: 'work-oplogs' },
       { icon: 'eye-fill', text: '登录日志', name: 'work-loginlogs' },
       { icon: 'user', text: '在线用户', name: 'work-online' },
@@ -121,16 +114,19 @@ const filteredGroups = computed(() => {
         <wd-cell
           v-for="item in group.items"
           :key="item.name"
-          :title="item.text"
+          center
           is-link
           @click="navigateTo(item.name)"
         >
-          <template #prefix>
-            <view
-              class="mr-2 h-8 w-8 flex items-center justify-center rounded-lg"
-              :style="{ backgroundColor: group.bg }"
-            >
-              <wd-icon :name="item.icon" size="16px" :color="group.color" />
+          <template #title>
+            <view class="flex items-center gap-2.5">
+              <view
+                class="h-8 w-8 flex shrink-0 items-center justify-center rounded-lg"
+                :style="{ backgroundColor: group.bg }"
+              >
+                <wd-icon :name="item.icon" size="16px" :color="group.color" />
+              </view>
+              <text>{{ item.text }}</text>
             </view>
           </template>
         </wd-cell>

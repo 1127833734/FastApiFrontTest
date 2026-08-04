@@ -52,9 +52,7 @@ onPageScroll((e) => {
 
 const NAV_LIST = [
   { icon: 'user', title: '用户管理', name: 'work-users', color: '#4F8CFF' },
-  { icon: 'lock', title: '角色管理', name: 'work-roles', color: '#F59E0B' },
   { icon: 'notification', title: '通知公告', name: 'work-notices', color: '#10B981' },
-  { icon: 'settings', title: '系统配置', name: 'work-params', color: '#8B5CF6' },
 ]
 
 /** 轮播 Banner 条目 */
@@ -234,12 +232,13 @@ function getGreeting() {
 
 <template>
   <view class="box-border min-h-screen">
-    <!-- 顶部通知栏 -->
+    <!-- 顶部通知栏（info 类型跟随主题色：背景 --wot-primary-1 / 文字 --wot-primary-6；暗黑模式下经 home-notice 覆盖为半透明主色底） -->
     <wd-notice-bar
       text="这是一条消息提示信息，这是一条消息提示信息，这是一条消息提示信息"
       closable
-      type="warning"
+      type="info"
       prefix="notification"
+      custom-class="home-notice"
       class="mb-3"
     />
 
@@ -419,16 +418,21 @@ function getGreeting() {
     </view>
 
     <!-- 最近登录 -->
-    <view v-if="dashboardStats?.recent_logins?.length" class="mb-2 mt-4 flex items-center gap-2 px-3">
-      <view class="h-3.5 w-1 rounded-full" style="background-color: var(--warning-color, #F59E0B);" />
-      <text class="text-3.5 font-bold wot-text-text-main">
-        最近登录
+    <view v-if="dashboardStats?.recent_logins?.length" class="mb-2 mt-4 flex items-center justify-between px-3">
+      <view class="flex items-center gap-2">
+        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--warning-color, #F59E0B);" />
+        <text class="text-3.5 font-bold wot-text-text-main">
+          最近登录
+        </text>
+      </view>
+      <text class="text-3 wot-text-primary" @click="navigateTo('work-loginlogs')">
+        全部
       </text>
     </view>
     <view v-if="dashboardStats?.recent_logins?.length" class="mx-3">
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
         <wd-cell
-          v-for="(item, i) in dashboardStats.recent_logins"
+          v-for="(item, i) in dashboardStats.recent_logins.slice(0, 5)"
           :key="i"
           :title="item.username"
         >
@@ -442,6 +446,19 @@ function getGreeting() {
           </template>
         </wd-cell>
       </wd-cell-group>
+      <wd-loadmore state="finished">
+        <template #finished>
+          <view
+            class="flex items-center justify-center py-1"
+            @click="navigateTo('work-loginlogs')"
+          >
+            <text class="text-3 wot-text-primary">
+              加载更多
+            </text>
+            <wd-icon name="arrow-right" size="14px" custom-class="wot-text-primary" />
+          </view>
+        </template>
+      </wd-loadmore>
     </view>
 
     <!-- Bottom safe area -->
@@ -585,5 +602,13 @@ function getGreeting() {
 :deep(.stat-count) {
   font-size: 40rpx;
   font-weight: 700;
+}
+</style>
+
+<style lang="scss">
+/* 暗黑模式下首页通知栏底色改为半透明主色，避免默认深蓝色块 (#0A235C) 在暗色页面上过重；
+   需要全局选择器，因为 .wot-theme-dark 挂在外层 wd-config-provider 根上 */
+.wot-theme-dark .home-notice {
+  --wot-notice-bar-info-bg: rgba(68, 128, 255, 0.12);
 }
 </style>

@@ -3,7 +3,6 @@ import type { TicketComment, TicketItem } from '@/api/module_system/ticket'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { reactive, ref } from 'vue'
 import { TicketAPI } from '@/api/module_system/ticket'
-import SkeletonPage from '@/components/SkeletonPage.vue'
 
 definePage({
   name: 'work-ticket-detail',
@@ -116,74 +115,55 @@ onLoad((options) => {
 </script>
 
 <template>
-  <view class="detail-page">
+  <view class="page-wraper" style="padding-bottom: 140rpx;">
     <SkeletonPage v-if="loading && !ticket" :rows="5" />
 
     <template v-else-if="ticket">
       <!-- Ticket Header -->
-      <view class="ticket-header fade-in-up">
-        <text class="ticket-header__title">
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="block text-4 font-bold wot-text-text-main">
           {{ ticket.title || '未命名工单' }}
         </text>
-        <view class="ticket-header__badges">
-          <view class="badge" :style="{ background: `${getTypeColor(ticket.ticket_type)}18`, color: getTypeColor(ticket.ticket_type) }">
+        <view class="mt-3 flex gap-2">
+          <wd-tag size="small" round :bg-color="`${getTypeColor(ticket.ticket_type)}18`" :color="getTypeColor(ticket.ticket_type)">
             {{ getTypeLabel(ticket.ticket_type) }}
-          </view>
-          <view class="badge" :style="{ background: `${getStatusColor(ticket.status)}18`, color: getStatusColor(ticket.status) }">
+          </wd-tag>
+          <wd-tag size="small" round :bg-color="`${getStatusColor(ticket.status)}18`" :color="getStatusColor(ticket.status)">
             {{ getStatusLabel(ticket.status) }}
-          </view>
+          </wd-tag>
         </view>
       </view>
 
       <!-- Ticket Info -->
-      <view class="ticket-info fade-in-up-1">
-        <view class="info-row">
-          <text class="info-row__label">
-            创建时间
-          </text>
-          <text class="info-row__value">
-            {{ ticket.created_time || '—' }}
-          </text>
-        </view>
-        <view class="info-row">
-          <text class="info-row__label">
-            处理人
-          </text>
-          <text class="info-row__value">
-            {{ ticket.assigned_by?.name || '未分配' }}
-          </text>
-        </view>
-        <view class="info-row">
-          <text class="info-row__label">
-            更新时间
-          </text>
-          <text class="info-row__value">
-            {{ ticket.updated_time || '—' }}
-          </text>
-        </view>
+      <view class="mx-3 mb-3">
+        <wd-cell-group border custom-class="rounded-2! overflow-hidden">
+          <wd-cell title="创建时间" :value="ticket.created_time || '—'" />
+          <wd-cell title="处理人" :value="ticket.assigned_by?.name || '未分配'" />
+          <wd-cell title="更新时间" :value="ticket.updated_time || '—'" />
+        </wd-cell-group>
       </view>
 
       <!-- Ticket Content -->
-      <view v-if="ticket.ticket_content || ticket.summary" class="ticket-content fade-in-up-2">
-        <text class="section-title">
+      <view v-if="ticket.ticket_content || ticket.summary" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
           工单内容
         </text>
-        <text class="ticket-content__text">
+        <text class="block text-3 leading-relaxed wot-text-text-secondary">
           {{ ticket.summary || ticket.ticket_content }}
         </text>
       </view>
 
       <!-- Images -->
-      <view v-if="parseImages(ticket.images).length > 0" class="ticket-images fade-in-up-2">
-        <text class="section-title">
+      <view v-if="parseImages(ticket.images).length > 0" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
           附件图片
         </text>
-        <view class="images-grid">
+        <view class="flex flex-wrap gap-3">
           <image
             v-for="(img, idx) in parseImages(ticket.images)"
             :key="img"
             :src="img"
-            class="images-grid__item"
+            class="h-[200rpx] w-[200rpx] rounded-lg wot-bg-filled-oppo"
             mode="aspectFill"
             lazy-load
             @click="previewImages(parseImages(ticket.images), idx)"
@@ -192,51 +172,47 @@ onLoad((options) => {
       </view>
 
       <!-- Reply -->
-      <view v-if="ticket.reply" class="ticket-reply fade-in-up-3">
-        <text class="section-title">
+      <view v-if="ticket.reply" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
           处理回复
         </text>
-        <view class="reply-box">
-          <text class="reply-box__text">
+        <view class="rounded-lg p-3" style="background: var(--primary-color-light, rgba(1, 77, 178, 0.06));">
+          <text class="block text-3 leading-relaxed wot-text-text-secondary">
             {{ ticket.reply }}
           </text>
         </view>
       </view>
 
       <!-- Comments -->
-      <view class="comments-section fade-in-up-3">
-        <view class="comments-header">
-          <text class="section-title">
-            评论 ({{ commentTotal }})
-          </text>
-        </view>
-
-        <ListEmpty v-if="comments.length === 0" text="暂无评论，快来抢沙发" />
-
-        <view v-else class="comments-list">
-          <view v-for="comment in comments" :key="comment.id" class="comment-item">
-            <view class="comment-item__avatar">
-              <text class="comment-item__avatar-text">
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+          评论 ({{ commentTotal }})
+        </text>
+        <wd-empty v-if="comments.length === 0" tip="暂无评论，快来抢沙发" />
+        <view v-else class="flex flex-col gap-4">
+          <view v-for="comment in comments" :key="comment.id" class="flex gap-3">
+            <view class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full" style="background: var(--primary-color);">
+              <text class="text-3.5 font-semibold" style="color: #FFFFFF;">
                 {{ (comment.username || '匿').charAt(0) }}
               </text>
             </view>
-            <view class="comment-item__body">
-              <view class="comment-item__header">
-                <text class="comment-item__name">
+            <view class="min-w-0 flex-1">
+              <view class="flex items-center gap-3">
+                <text class="text-3 font-semibold wot-text-text-main">
                   {{ comment.username || '匿名用户' }}
                 </text>
-                <text class="comment-item__time">
+                <text class="text-2.5 wot-text-text-auxiliary">
                   {{ comment.created_time || '' }}
                 </text>
               </view>
-              <text class="comment-item__content">
+              <text class="mt-1 block text-3 leading-relaxed wot-text-text-secondary">
                 {{ comment.content }}
               </text>
             </view>
           </view>
 
-          <view v-if="commentTotal > comments.length" class="load-more" @click="commentPage.page_no++; loadComments()">
-            <text class="load-more__text">
+          <view v-if="commentTotal > comments.length" class="flex items-center justify-center py-1" @click="commentPage.page_no++; loadComments()">
+            <text class="text-3 wot-text-primary">
               加载更多
             </text>
           </view>
@@ -244,15 +220,19 @@ onLoad((options) => {
       </view>
     </template>
 
-    <ListEmpty v-else text="工单不存在或已删除" />
+    <wd-empty v-else tip="工单不存在或已删除" />
 
     <!-- Comment Input -->
-    <view v-if="ticket" class="comment-bar">
+    <view
+      v-if="ticket"
+      class="fixed inset-x-0 bottom-0 flex items-center gap-3 px-4 py-3"
+      style="z-index: 100; background: var(--card-bg-color, #FFFFFF); border-top: 1rpx solid var(--border-color, #F0F0F0); padding-bottom: calc(12px + env(safe-area-inset-bottom));"
+    >
       <wd-input
         v-model="commentText"
         placeholder="写下你的评论..."
         clearable
-        style="flex:1"
+        class="flex-1"
       />
       <wd-button
         size="small"
@@ -266,234 +246,3 @@ onLoad((options) => {
     </view>
   </view>
 </template>
-
-<style lang="scss" scoped>
-.detail-page {
-  padding: 0 32rpx 140rpx;
-  background: var(--page-bg-color, #F9F9F9);
-  min-height: 100vh;
-}
-
-/* ===== Ticket Header ===== */
-.ticket-header {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin: 24rpx 0 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-
-  &__title {
-    display: block;
-    font-size: 34rpx;
-    font-weight: 700;
-    color: var(--text-color, #0A1628);
-    line-height: 1.4;
-    margin-bottom: 16rpx;
-  }
-
-  &__badges {
-    display: flex;
-    gap: 12rpx;
-  }
-}
-
-.badge {
-  font-size: 22rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 8rpx;
-  font-weight: 500;
-}
-
-/* ===== Ticket Info ===== */
-.ticket-info {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8rpx 0;
-
-  &__label {
-    font-size: 26rpx;
-    color: var(--text-color-3, #6B7280);
-  }
-
-  &__value {
-    font-size: 26rpx;
-    color: var(--text-color, #0A1628);
-    font-weight: 500;
-  }
-}
-
-/* ===== Sections ===== */
-.section-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: var(--text-color, #0A1628);
-  margin-bottom: 16rpx;
-}
-
-/* ===== Content ===== */
-.ticket-content {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-
-  &__text {
-    font-size: 28rpx;
-    color: var(--text-color-2, #4B5563);
-    line-height: 1.6;
-  }
-}
-
-/* ===== Images ===== */
-.ticket-images {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-}
-
-.images-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-
-  &__item {
-    width: 200rpx;
-    height: 200rpx;
-    border-radius: 16rpx;
-    background: var(--page-bg-color, #F9F9F9);
-  }
-}
-
-/* ===== Reply ===== */
-.ticket-reply {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-}
-
-.reply-box {
-  background: var(--primary-color-light, rgba(1,77,178,0.06));
-  border-radius: 16rpx;
-  padding: 16rpx;
-
-  &__text {
-    font-size: 28rpx;
-    color: var(--text-color-2, #4B5563);
-    line-height: 1.6;
-  }
-}
-
-/* ===== Comments ===== */
-.comments-section {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-}
-
-.comments-header {
-  margin-bottom: 16rpx;
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.comment-item {
-  display: flex;
-  gap: 16rpx;
-
-  &__avatar {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__avatar-text {
-    font-size: 28rpx;
-    font-weight: 600;
-    color: #FFFFFF;
-  }
-
-  &__body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin-bottom: 8rpx;
-  }
-
-  &__name {
-    font-size: 26rpx;
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__time {
-    font-size: 22rpx;
-    color: var(--text-color-4, #B0B0B0);
-  }
-
-  &__content {
-    font-size: 28rpx;
-    color: var(--text-color-2, #4B5563);
-    line-height: 1.5;
-  }
-}
-
-/* ===== Load more ===== */
-.load-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 72rpx;
-
-  &__text {
-    font-size: 26rpx;
-    color: var(--primary-color, #4F8CFF);
-  }
-}
-
-/* ===== Comment Bar ===== */
-.comment-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 16rpx 32rpx;
-  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-  background: var(--card-bg-color, #FFFFFF);
-  border-top: 1rpx solid var(--border-color, #F0F0F0);
-  z-index: 100;
-}
-</style>

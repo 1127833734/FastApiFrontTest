@@ -7,10 +7,15 @@ definePage({ name: 'work-online', style: { navigationBarTitleText: '在线用户
 
 const toast = useToast()
 
-const { list, total, loading, pageParams, loadData, loadPrev, loadNext } = useListPage<OnlineUserItem>({
+const { list, total, loading, pageParams, loadData, loadNext } = useListPage<OnlineUserItem>({
   fetcher: p => OnlineAPI.getPage(p),
   onError: () => toast.error('加载失败'),
 })
+
+function handlePageChange({ value }: { value: number }) {
+  pageParams.value.page_no = value
+  loadData()
+}
 
 function forceLogout(sessionId: string) {
   uni.showModal({
@@ -48,9 +53,9 @@ onLoad(() => loadData())
     </view>
     <view class="px-sm">
       <view class="admin-card">
-        <ListEmpty v-if="!loading && list.length === 0" text="暂无在线用户" />
+        <wd-empty v-if="!loading && list.length === 0" tip="暂无在线用户" />
         <wd-cell-group v-else>
-          <wd-cell v-for="item in list" :key="item.session_id || item.user_id">
+          <wd-cell v-for="item in list" :key="item.session_id || item.user_id" center>
             <template #title>
               <view>
                 <text class="text-md font-medium">
@@ -78,6 +83,13 @@ onLoad(() => loadData())
         </wd-cell-group>
       </view>
     </view>
-    <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
+    <wd-pagination
+      :model-value="pageParams.page_no"
+      :total="total"
+      :page-size="pageParams.page_size"
+      button-variant="plain"
+      hide-if-one-page
+      @change="handlePageChange"
+    />
   </view>
 </template>

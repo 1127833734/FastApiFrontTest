@@ -6,7 +6,7 @@ definePage({
     navigationBarTitleText: '设置',
   },
 })
-
+const { success: showSuccess } = useGlobalToast()
 const router = useRouter()
 const {
   theme,
@@ -41,8 +41,21 @@ function handleThemeColorSelect(option: any) {
   selectThemeColor(option)
 }
 
-function openUrl(url: string) {
+// 链接导航处理
+function handleNavigate(url: string) {
+  // #ifdef H5
   window.open(url, '_blank')
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({
+    data: url,
+    showToast: false,
+    success: () => {
+      uni.hideToast()
+      showSuccess({ msg: `${url} 已复制到剪贴板` })
+    },
+  })
+  // #endif
 }
 </script>
 
@@ -84,18 +97,14 @@ function openUrl(url: string) {
 
     <demo-block title="工具链介绍" transparent>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="🧩 FastapiAdmin官网" is-link @click="openUrl('https://service.fastapiadmin.com')" />
-        <wd-cell title="🚦 github" is-link @click="openUrl('https://github.com/fastapiadmin/FastapiAdmin')" />
-        <wd-cell title="✨ gitee" is-link @click="openUrl('https://gitee.com/fastapiadmin/FastapiAdmin')" />
-        <wd-cell title="🧠 Agent Skills" is-link @click="navigateTo('skills')" />
-        <wd-cell title="🚦 Router 路由管理" is-link @click="navigateTo('router')" />
+        <wd-cell title="🧩 进入官网" is-link @click="handleNavigate('https://service.fastapiadmin.com')" />
+        <wd-cell title="🚦 github" is-link @click="handleNavigate('https://github.com/fastapiadmin/FastapiAdmin')" />
+        <wd-cell title="✨ gitee" is-link @click="handleNavigate('https://gitee.com/fastapiadmin/FastapiAdmin')" />
         <wd-cell title="🌐 Alova 网络请求" is-link @click="navigateTo('request')" />
         <wd-cell title="🎨 Icon 图标" is-link @click="navigateTo('icon')" />
         <wd-cell title="✨ Unocss 原子化" is-link @click="navigateTo('styles')" />
         <wd-cell title="🍍 Pinia 持久化" is-link @click="navigateTo('pinia')" />
         <wd-cell title="💬 Fedback 反馈组件" is-link @click="navigateTo('feedback')" />
-        <wd-cell title="🌱 CreateUni 脚手架" is-link @click="navigateTo('create-uni') " />
-        <wd-cell title="🔄 CI/CD 持续集成" is-link @click="navigateTo('ci')" />
         <wd-cell title="🦾  uni-ku/root" is-link @click="navigateTo('root')" />
         <wd-cell title="📊 uni-echarts" is-link @click="navigateTo('echarts')" />
       </wd-cell-group>

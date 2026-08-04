@@ -53,3 +53,71 @@ function resolve(input: string | boolean | number): { label: string, cls: string
     {{ label || resolve(status).label }}
   </text>
 </template>
+
+<style lang="scss">
+/* 状态徽标全局样式（非 scoped，供页面复用类名）
+ * 颜色使用 wot-ui 语义变量，自动适配亮/暗主题 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+
+.status-badge--dot {
+  display: inline-block;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+/* 各状态仅定义文字色，背景色由带外层 .status-badge 的组合规则提供，
+ * 使纯圆点模式只显示纯色圆点 */
+.status-badge--enabled {
+  color: var(--wot-success-main);
+}
+.status-badge.status-badge--enabled {
+  background: var(--wot-success-surface);
+}
+
+.status-badge--disabled {
+  color: var(--wot-text-auxiliary);
+}
+.status-badge.status-badge--disabled {
+  background: var(--wot-filled-content);
+}
+
+.status-badge--primary {
+  color: var(--wot-primary-6);
+}
+.status-badge.status-badge--primary {
+  background: var(--wot-primary-1);
+}
+
+.status-badge--danger {
+  color: var(--wot-danger-main);
+}
+.status-badge.status-badge--danger {
+  background: var(--wot-danger-surface);
+}
+
+/* failed 为 danger 的别名（menus 页菜单类型使用） */
+.status-badge--failed {
+  color: var(--wot-danger-main);
+}
+.status-badge.status-badge--failed {
+  background: var(--wot-danger-surface);
+}
+
+.status-badge--draft {
+  color: var(--wot-text-secondary);
+}
+.status-badge.status-badge--draft {
+  background: var(--wot-filled-content);
+}
+</style>

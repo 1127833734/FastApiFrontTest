@@ -79,26 +79,6 @@
       "pages": [
         // #ifdef APP
         {
-          "path": "ci/index",
-          "type": "page",
-          "name": "ci",
-          "style": {
-            "navigationBarTitleText": "CI 持续集成"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "create-uni/index",
-          "type": "page",
-          "name": "create-uni",
-          "style": {
-            "navigationBarTitleText": "CreateUni 脚手架"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
           "path": "feedback/index",
           "type": "page",
           "name": "feedback",
@@ -139,86 +119,6 @@
         // #endif
         // #ifdef APP
         {
-          "path": "router/demo-aftereach",
-          "type": "page",
-          "name": "demo-aftereach",
-          "style": {
-            "navigationBarTitleText": "afterEach 钩子演示"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-guard",
-          "type": "page",
-          "name": "demo-guard",
-          "style": {
-            "navigationBarTitleText": "导航守卫演示"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-object",
-          "type": "page",
-          "name": "demo-object",
-          "style": {
-            "navigationBarTitleText": "对象路径跳转"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-params",
-          "type": "page",
-          "name": "demo-params",
-          "style": {
-            "navigationBarTitleText": "参数接收演示"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-protected",
-          "type": "page",
-          "name": "demo-protected",
-          "style": {
-            "navigationBarTitleText": "受保护页面"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-query",
-          "type": "page",
-          "name": "demo-query",
-          "style": {
-            "navigationBarTitleText": "查询参数接收演示"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/demo-string",
-          "type": "page",
-          "name": "demo-string",
-          "style": {
-            "navigationBarTitleText": "字符串路径跳转"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "router/index",
-          "type": "page",
-          "name": "router",
-          "style": {
-            "navigationBarTitleText": "路由管理"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
           "path": "styles/index",
           "type": "page",
           "name": "styles",
@@ -234,19 +134,6 @@
           "name": "root",
           "style": {
             "navigationBarTitleText": "uni-ku/root"
-          }
-        },
-        // #endif
-        // #ifdef APP
-        {
-          "path": "skills/index",
-          "type": "page",
-          "name": "skills",
-          "layout": "default",
-          "style": {
-            "navigationBarTitleText": "Agent Skills",
-            "navigationBarBackgroundColor": "#f9fafb",
-            "navigationBarTextStyle": "black"
           }
         },
         // #endif
@@ -276,27 +163,11 @@
           }
         },
         {
-          "path": "biz/dicts/index",
-          "type": "page",
-          "name": "work-dicts",
-          "style": {
-            "navigationBarTitleText": "字典管理"
-          }
-        },
-        {
           "path": "biz/notices/index",
           "type": "page",
           "name": "work-notices",
           "style": {
             "navigationBarTitleText": "通知公告"
-          }
-        },
-        {
-          "path": "biz/params/index",
-          "type": "page",
-          "name": "work-params",
-          "style": {
-            "navigationBarTitleText": "参数管理"
           }
         },
         {
@@ -321,14 +192,6 @@
           "name": "work-user-detail",
           "style": {
             "navigationBarTitleText": "用户详情"
-          }
-        },
-        {
-          "path": "biz/versions/index",
-          "type": "page",
-          "name": "work-versions",
-          "style": {
-            "navigationBarTitleText": "版本管理"
           }
         },
         {
@@ -369,22 +232,6 @@
           "name": "work-oplogs",
           "style": {
             "navigationBarTitleText": "操作日志"
-          }
-        },
-        {
-          "path": "setting/ci/index",
-          "type": "page",
-          "name": "ci",
-          "style": {
-            "navigationBarTitleText": "CI 持续集成"
-          }
-        },
-        {
-          "path": "setting/create-uni/index",
-          "type": "page",
-          "name": "create-uni",
-          "style": {
-            "navigationBarTitleText": "CreateUni 脚手架"
           }
         },
         {
@@ -436,81 +283,6 @@
           }
         },
         {
-          "path": "setting/router/demo-aftereach",
-          "type": "page",
-          "name": "demo-aftereach",
-          "style": {
-            "navigationBarTitleText": "afterEach 钩子演示"
-          }
-        },
-        {
-          "path": "setting/router/demo-guard",
-          "type": "page",
-          "name": "demo-guard",
-          "style": {
-            "navigationBarTitleText": "导航守卫演示"
-          }
-        },
-        {
-          "path": "setting/router/demo-object",
-          "type": "page",
-          "name": "demo-object",
-          "style": {
-            "navigationBarTitleText": "对象路径跳转"
-          }
-        },
-        {
-          "path": "setting/router/demo-params",
-          "type": "page",
-          "name": "demo-params",
-          "style": {
-            "navigationBarTitleText": "参数接收演示"
-          }
-        },
-        {
-          "path": "setting/router/demo-protected",
-          "type": "page",
-          "name": "demo-protected",
-          "style": {
-            "navigationBarTitleText": "受保护页面"
-          }
-        },
-        {
-          "path": "setting/router/demo-query",
-          "type": "page",
-          "name": "demo-query",
-          "style": {
-            "navigationBarTitleText": "查询参数接收演示"
-          }
-        },
-        {
-          "path": "setting/router/demo-string",
-          "type": "page",
-          "name": "demo-string",
-          "style": {
-            "navigationBarTitleText": "字符串路径跳转"
-          }
-        },
-        {
-          "path": "setting/router/index",
-          "type": "page",
-          "name": "router",
-          "style": {
-            "navigationBarTitleText": "路由管理"
-          }
-        },
-        {
-          "path": "setting/skills/index",
-          "type": "page",
-          "name": "skills",
-          "layout": "default",
-          "style": {
-            "navigationBarTitleText": "Agent Skills",
-            "navigationBarBackgroundColor": "#f9fafb",
-            "navigationBarTextStyle": "black"
-          }
-        },
-        {
           "path": "setting/styles/index",
           "type": "page",
           "name": "styles",
@@ -524,38 +296,6 @@
           "name": "root",
           "style": {
             "navigationBarTitleText": "uni-ku/root"
-          }
-        },
-        {
-          "path": "system/depts/index",
-          "type": "page",
-          "name": "work-depts",
-          "style": {
-            "navigationBarTitleText": "部门管理"
-          }
-        },
-        {
-          "path": "system/menus/index",
-          "type": "page",
-          "name": "work-menus",
-          "style": {
-            "navigationBarTitleText": "菜单管理"
-          }
-        },
-        {
-          "path": "system/positions/index",
-          "type": "page",
-          "name": "work-positions",
-          "style": {
-            "navigationBarTitleText": "岗位管理"
-          }
-        },
-        {
-          "path": "system/roles/index",
-          "type": "page",
-          "name": "work-roles",
-          "style": {
-            "navigationBarTitleText": "角色管理"
           }
         },
         {

@@ -3,7 +3,6 @@ import type { AIModelConfig, AIModelForm } from '@/api/module_ai/chat'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { reactive, ref } from 'vue'
 import { ChatAPI } from '@/api/module_ai/chat'
-import SkeletonPage from '@/components/SkeletonPage.vue'
 
 definePage({
   name: 'work-ai-models',
@@ -128,128 +127,91 @@ onLoad(() => {
 </script>
 
 <template>
-  <view class="list-page">
-    <view class="create-btn fade-in-up" @click="openCreate">
-      <text class="create-btn__icon">
-        +
+  <view class="page-wraper">
+    <!-- Meta bar -->
+    <view class="action-bar">
+      <text class="text-md text-muted font-bold">
+        共 {{ models.length }} 条
       </text>
-      <text class="create-btn__text">
-        新建模型配置
-      </text>
+      <wd-button size="small" type="primary" @click="openCreate">
+        + 新建配置
+      </wd-button>
     </view>
 
+    <!-- List -->
     <SkeletonPage v-if="loading && models.length === 0" :rows="3" />
-    <ListEmpty v-else-if="!loading && models.length === 0" text="暂无模型配置" />
-    <view v-else class="models-list">
-      <view
-        v-for="(model, idx) in models"
-        :key="model.config_id"
-        class="model-item" :class="[`fade-in-up-${Math.min(idx % 5 + 1, 5)}`, model.is_active && 'model-item--active']"
-      >
-        <view class="model-item__header">
-          <view class="model-item__info">
-            <text class="model-item__name">
-              {{ model.name || '未命名' }}
-            </text>
-            <view v-if="model.is_active" class="model-item__active-tag">
-              <text class="model-item__active-text">
-                ● 使用中
-              </text>
-            </view>
-          </view>
-          <text class="model-item__model-id">
-            {{ model.model_id }}
-          </text>
-        </view>
-
-        <view class="model-item__meta">
-          <text class="model-item__url">
-            {{ model.base_url }}
-          </text>
-          <text class="model-item__temp">
-            温度: {{ model.temperature ?? '—' }}
-          </text>
-        </view>
-
-        <view class="model-item__actions">
-          <view
-            v-if="!model.is_active"
-            class="model-action model-action--primary btn-press"
-            @click="handleActivate(model.config_id)"
-          >
-            <text class="model-action__text">
-              ⚡ 激活
-            </text>
-          </view>
-          <view class="model-action btn-press" @click="openEdit(model)">
-            <text class="model-action__text">
-              ✎ 编辑
-            </text>
-          </view>
-          <view class="model-action model-action--danger btn-press" @click="handleDelete(model.config_id)">
-            <text class="model-action__text">
-              ✕ 删除
-            </text>
-          </view>
+    <template v-else>
+      <view class="px-sm">
+        <view class="admin-card">
+          <wd-empty v-if="!loading && models.length === 0" tip="暂无模型配置" />
+          <wd-cell-group v-else>
+            <wd-cell v-for="model in models" :key="model.config_id" center>
+              <template #title>
+                <view class="flex items-center gap-2">
+                  <text class="truncate text-3.5 font-medium wot-text-text-main">
+                    {{ model.name || '未命名' }}
+                  </text>
+                  <wd-tag v-if="model.is_active" size="small" type="success" round>
+                    使用中
+                  </wd-tag>
+                </view>
+              </template>
+              <template #label>
+                <view class="flex flex-col">
+                  <text class="truncate text-2.5 wot-text-text-auxiliary">
+                    {{ model.model_id }} · 温度 {{ model.temperature ?? '—' }}
+                  </text>
+                  <text class="truncate text-2.5 wot-text-text-auxiliary">
+                    {{ model.base_url }}
+                  </text>
+                </view>
+              </template>
+              <template #default>
+                <view class="flex items-center gap-2">
+                  <wd-button
+                    v-if="!model.is_active"
+                    size="mini"
+                    type="primary"
+                    variant="plain"
+                    @click.stop="handleActivate(model.config_id)"
+                  >
+                    激活
+                  </wd-button>
+                  <wd-icon name="edit" size="18px" color="var(--text-color-3, #6B7280)" @click.stop="openEdit(model)" />
+                  <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(model.config_id)" />
+                </view>
+              </template>
+            </wd-cell>
+          </wd-cell-group>
         </view>
       </view>
-    </view>
-
-    <view style="height: 120rpx;" />
+    </template>
 
     <!-- Form Popup -->
-    <wd-popup
-      v-model="showForm"
-      position="bottom"
-      custom-style="border-radius: 32rpx 32rpx 0 0; padding-bottom: 40rpx;"
-      @close="showForm = false"
-    >
-      <view class="form-panel">
-        <view class="form-panel__header">
-          <text class="form-panel__title">
-            {{ formTitle }}
-          </text>
-          <text class="form-panel__close" @click="showForm = false">
-            ✕
-          </text>
-        </view>
-
-        <view class="form-group">
-          <text class="form-group__label">
-            配置名称 *
-          </text>
-          <wd-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable />
-        </view>
-
-        <view class="form-group">
-          <text class="form-group__label">
-            模型 ID *
-          </text>
-          <wd-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable />
-        </view>
-
-        <view class="form-group">
-          <text class="form-group__label">
-            API 地址 *
-          </text>
-          <wd-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable />
-        </view>
-
-        <view class="form-group">
-          <text class="form-group__label">
-            API Key *
-          </text>
-          <wd-input v-model="form.api_key" placeholder="sk-..." show-password clearable />
-        </view>
-
-        <view class="form-group">
-          <text class="form-group__label">
-            温度 (0-2)
-          </text>
-          <wd-input v-model="form.temperature" type="number" placeholder="0.7" />
-        </view>
-
-        <view class="form-actions">
+    <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
+      <view class="p-xl">
+        <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
+        <wd-form :model="form" class="mt-lg">
+          <wd-form-item label="配置名称" border>
+            <wd-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable />
+          </wd-form-item>
+          <wd-form-item label="模型 ID" border>
+            <wd-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable />
+          </wd-form-item>
+          <wd-form-item label="API 地址" border>
+            <wd-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable />
+          </wd-form-item>
+          <wd-form-item label="API Key" border>
+            <wd-input v-model="form.api_key" placeholder="sk-..." show-password clearable />
+          </wd-form-item>
+          <wd-form-item label="温度 (0-2)" border>
+            <wd-input v-model="form.temperature" type="number" placeholder="0.7" />
+          </wd-form-item>
+        </wd-form>
+        <view class="gap-md mt-xl flex">
+          <wd-button variant="plain" block @click="showForm = false">
+            取消
+          </wd-button>
           <wd-button block type="primary" :loading="submitting" @click="submitForm">
             {{ editingId ? '更新' : '创建' }}
           </wd-button>
@@ -258,198 +220,3 @@ onLoad(() => {
     </wd-popup>
   </view>
 </template>
-
-<style lang="scss" scoped>
-.list-page {
-  padding: 0 32rpx;
-  padding-bottom: 40rpx;
-  background: var(--page-bg-color, #F9F9F9);
-  min-height: 100vh;
-}
-
-/* ===== Create button ===== */
-.create-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  height: 80rpx;
-  background: var(--primary-color, #4F8CFF);
-  border-radius: 24rpx;
-  margin: 24rpx 0;
-  box-shadow: 0 4rpx 16rpx rgba(1, 77, 178, 0.2);
-  transition: all 0.15s ease;
-
-  &:active { opacity: 0.85; transform: scale(0.98); }
-
-  &__icon { font-size: 36rpx; color: #FFFFFF; font-weight: 300; }
-  &__text { font-size: 28rpx; color: #FFFFFF; font-weight: 600; }
-}
-
-/* ===== Models list ===== */
-.models-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.model-item {
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-  border: 2rpx solid transparent;
-  transition: all 0.2s ease;
-
-  &--active {
-    border-color: var(--primary-color, #4F8CFF);
-    box-shadow: 0 4rpx 16rpx rgba(1, 77, 178, 0.12);
-  }
-
-  &__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 12rpx;
-  }
-
-  &__info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-  }
-
-  &__name {
-    font-size: 30rpx;
-    font-weight: 600;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__active-tag {
-    background: rgba(16, 185, 129, 0.1);
-    padding: 2rpx 10rpx;
-    border-radius: 8rpx;
-  }
-
-  &__active-text {
-    font-size: 20rpx;
-    color: #10B981;
-    font-weight: 500;
-  }
-
-  &__model-id {
-    font-size: 22rpx;
-    color: var(--primary-color, #4F8CFF);
-    background: var(--primary-color-light, rgba(1,77,178,0.08));
-    padding: 4rpx 12rpx;
-    border-radius: 8rpx;
-    font-family: 'SF Mono', 'Consolas', monospace;
-    flex-shrink: 0;
-  }
-
-  &__meta {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin-bottom: 16rpx;
-  }
-
-  &__url {
-    font-size: 24rpx;
-    color: var(--text-color-3, #6B7280);
-    font-family: 'SF Mono', 'Consolas', monospace;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-  }
-
-  &__temp {
-    font-size: 22rpx;
-    color: var(--text-color-4, #B0B0B0);
-    flex-shrink: 0;
-  }
-
-  &__actions {
-    display: flex;
-    gap: 12rpx;
-    padding-top: 12rpx;
-    border-top: 1rpx solid var(--border-color, #F0F0F0);
-  }
-}
-
-.model-action {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 56rpx;
-  border-radius: 12rpx;
-  background: var(--bg-color-2, #F5F6F8);
-  transition: all 0.15s ease;
-
-  &--primary { background: var(--primary-color-light, rgba(1,77,178,0.08)); }
-  &--danger { background: var(--danger-color-light, #FEF2F2); }
-
-  &--primary .model-action__text { color: var(--primary-color, #4F8CFF); }
-  &--danger .model-action__text { color: var(--danger-color, #EF4444); }
-
-  &__text {
-    font-size: 22rpx;
-    font-weight: 500;
-    color: var(--text-color-2, #4B5563);
-    white-space: nowrap;
-  }
-
-  &:active { opacity: 0.7; transform: scale(0.95); }
-}
-
-/* ===== Form Panel ===== */
-.form-panel {
-  padding: 32rpx;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32rpx;
-  }
-
-  &__title {
-    font-size: 34rpx;
-    font-weight: 700;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__close {
-    font-size: 32rpx;
-    color: var(--text-color-3, #6B7280);
-    width: 56rpx;
-    height: 56rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--bg-color-2, #F5F6F8);
-    &:active { opacity: 0.6; }
-  }
-}
-
-.form-group {
-  margin-bottom: 24rpx;
-
-  &__label {
-    display: block;
-    font-size: 26rpx;
-    font-weight: 500;
-    color: var(--text-color-2, #4B5563);
-    margin-bottom: 12rpx;
-  }
-}
-
-.form-actions {
-  margin-top: 32rpx;
-}
-</style>

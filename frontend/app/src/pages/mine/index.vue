@@ -69,13 +69,8 @@ const settingsList = [
 
 const quickLinks = [
   { title: '用户管理', name: 'work-users', icon: 'user', color: '#4F8CFF' },
-  { title: '角色管理', name: 'work-roles', icon: 'lock', color: '#F59E0B' },
-  { title: '部门管理', name: 'work-depts', icon: 'apps', color: '#10B981' },
-  { title: '菜单管理', name: 'work-menus', icon: 'menu', color: '#8B5CF6' },
-  { title: '岗位管理', name: 'work-positions', icon: 'list', color: '#4F8CFF' },
-  { title: '字典管理', name: 'work-dicts', icon: 'tags', color: '#F59E0B' },
   { title: '通知公告', name: 'work-notices', icon: 'notification', color: '#10B981' },
-  { title: '参数管理', name: 'work-params', icon: 'settings', color: '#8B5CF6' },
+  { title: '工单管理', name: 'work-tickets', icon: 'message', color: '#F59E0B' },
   { title: 'AI 模型', name: 'work-ai-models', icon: 'robot', color: '#8B5CF6' },
 ]
 </script>
@@ -149,9 +144,9 @@ const quickLinks = [
 
     <!-- 快捷入口 -->
     <view class="mx-3 mb-3 rounded-2 p-2 wot-bg-filled-oppo">
-      <wd-grid :column="3" :border="false" clickable>
+      <wd-grid :column="4" :border="false" clickable>
         <wd-grid-item
-          v-for="item in quickLinks"
+          v-for="item in quickLinks.slice(0, 4)"
           :key="item.name"
           @click="navigateTo(item.name)"
         >

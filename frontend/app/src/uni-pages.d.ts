@@ -11,41 +11,23 @@ type _LocationUrl =
   "/subPages/about/index" |
   "/subPages/setting/index" |
   "/subPages/biz/dashboard/index" |
-  "/subPages/biz/dicts/index" |
   "/subPages/biz/notices/index" |
-  "/subPages/biz/params/index" |
   "/subPages/biz/ticket-detail/index" |
   "/subPages/biz/tickets/index" |
   "/subPages/biz/user-detail/index" |
-  "/subPages/biz/versions/index" |
   "/subPages/dev/ai-models/index" |
   "/subPages/dev/chat/index" |
   "/subPages/monitor/loginlogs/index" |
   "/subPages/monitor/online/index" |
   "/subPages/monitor/oplogs/index" |
-  "/subPages/setting/ci/index" |
-  "/subPages/setting/create-uni/index" |
   "/subPages/setting/echarts/index" |
   "/subPages/setting/echarts-async/index" |
   "/subPages/setting/feedback/index" |
   "/subPages/setting/icon/index" |
   "/subPages/setting/pinia/index" |
   "/subPages/setting/request/index" |
-  "/subPages/setting/router/demo-aftereach" |
-  "/subPages/setting/router/demo-guard" |
-  "/subPages/setting/router/demo-object" |
-  "/subPages/setting/router/demo-params" |
-  "/subPages/setting/router/demo-protected" |
-  "/subPages/setting/router/demo-query" |
-  "/subPages/setting/router/demo-string" |
-  "/subPages/setting/router/index" |
-  "/subPages/setting/skills/index" |
   "/subPages/setting/styles/index" |
   "/subPages/setting/uni-ku-root/index" |
-  "/subPages/system/depts/index" |
-  "/subPages/system/menus/index" |
-  "/subPages/system/positions/index" |
-  "/subPages/system/roles/index" |
   "/subPages/system/users/index";
 
 interface NavigateToOptions {

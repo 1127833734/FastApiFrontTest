@@ -155,23 +155,6 @@ function setTempMessage() {
   tempMessage.value = ''
   showSuccess({ msg: '临时消息已设置（不会持久化）' })
 }
-
-// 链接导航处理
-function handleNavigate(url: string) {
-  // #ifdef H5
-  window.open(url, '_blank')
-  // #endif
-  // #ifndef H5
-  uni.setClipboardData({
-    data: url,
-    showToast: false,
-    success: () => {
-      uni.hideToast()
-      showSuccess({ msg: `${url} 已复制到剪贴板` })
-    },
-  })
-  // #endif
-}
 </script>
 
 <template>
@@ -533,15 +516,6 @@ persist(context, ['global-register', 'temp'])`)"
           </view>
         </view>
       </view>
-    </demo-block>
-
-    <!-- 相关链接 -->
-    <demo-block title="相关链接" transparent>
-      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="📚 Pinia 官方文档" value="状态管理库" is-link @click="handleNavigate('https://pinia.vuejs.org/zh/')" />
-        <wd-cell title="🎯 Vue 3 文档" value="组合式 API" is-link @click="handleNavigate('https://cn.vuejs.org/guide/extras/composition-api-faq.html')" />
-        <wd-cell title="🔧 uni-app 存储" value="本地存储 API" is-link @click="handleNavigate('https://uniapp.dcloud.net.cn/api/storage/storage.html')" />
-      </wd-cell-group>
     </demo-block>
   </view>
 </template>

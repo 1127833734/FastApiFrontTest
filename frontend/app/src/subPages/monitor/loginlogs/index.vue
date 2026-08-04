@@ -9,10 +9,15 @@ definePage({ name: 'work-loginlogs', style: { navigationBarTitleText: '登录日
 const toast = useToast()
 const searchName = ref('')
 
-const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<LoginLogItem>({
+const { list, total, loading, pageParams, loadData, toFirst, loadNext } = useListPage<LoginLogItem>({
   fetcher: p => LoginLogAPI.getPage({ ...p, username: searchName.value || undefined }),
   onError: () => toast.error('加载失败'),
 })
+
+function handlePageChange({ value }: { value: number }) {
+  pageParams.value.page_no = value
+  loadData()
+}
 
 function onSearch() {
   toFirst()
@@ -73,9 +78,9 @@ onLoad(() => loadData())
     <template v-else>
       <view class="px-sm">
         <view class="admin-card">
-          <ListEmpty v-if="!loading && list.length === 0" text="暂无登录日志" />
+          <wd-empty v-if="!loading && list.length === 0" tip="暂无登录日志" />
           <wd-cell-group v-else>
-            <wd-cell v-for="item in list" :key="item.id">
+            <wd-cell v-for="item in list" :key="item.id" center>
               <template #title>
                 <view>
                   <text class="text-md font-medium">
@@ -101,7 +106,14 @@ onLoad(() => loadData())
           </wd-cell-group>
         </view>
       </view>
-      <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
+      <wd-pagination
+        :model-value="pageParams.page_no"
+        :total="total"
+        :page-size="pageParams.page_size"
+        button-variant="plain"
+        hide-if-one-page
+        @change="handlePageChange"
+      />
     </template>
   </view>
 </template>

@@ -176,13 +176,13 @@ onLoad(() => {
         </view>
         <SkeletonPage v-if="loading && sessions.length === 0" />
         <view v-for="s in sessions" v-else :key="s.id" class="admin-card">
-          <wd-cell :title="s.title" :label="s.created_at ? String(s.created_at) : ''" is-link @click="selectSession(s.id, s.title)">
+          <wd-cell :title="s.title" :label="s.created_at ? String(s.created_at) : ''" center is-link @click="selectSession(s.id, s.title)">
             <template #default>
               <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="deleteSession(s.id)" />
             </template>
           </wd-cell>
         </view>
-        <ListEmpty v-if="!loading && sessions.length === 0" text="暂无会话，点击右上角新建" />
+        <wd-empty v-if="!loading && sessions.length === 0" tip="暂无会话，点击右上角新建" />
       </view>
     </view>
 
@@ -202,12 +202,16 @@ onLoad(() => {
       </view>
       <view v-for="(msg, i) in visibleMessages" :id="`msg-${i}`" :key="i" style="margin-bottom:24rpx;">
         <view class="flex items-start gap-sm" :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
-          <view v-if="msg.role === 'user'" class="user-avatar">
+          <view
+            v-if="msg.role === 'user'"
+            class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full"
+            style="background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));"
+          >
             <wd-icon name="user" size="18px" color="#FFFFFF" />
           </view>
           <wd-avatar v-else size="32px" shape="round" src="/static/logo.png" />
           <view
-            class="chat-bubble"
+            class="max-w-[72%] break-words px-3 py-2"
             :style="{
               background: msg.role === 'user' ? 'var(--primary-color)' : 'var(--card-bg-color)',
               color: msg.role === 'user' ? 'var(--text-color-inverse)' : 'var(--text-color)',
@@ -228,7 +232,7 @@ onLoad(() => {
       <view v-if="loading" style="margin-bottom:24rpx;">
         <view class="flex items-start gap-sm">
           <wd-avatar size="32px" shape="round" src="/static/logo.png" />
-          <view class="chat-bubble" style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:16rpx 16rpx 16rpx 4rpx;">
+          <view class="max-w-[72%] break-words px-3 py-2" style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:16rpx 16rpx 16rpx 4rpx;">
             <wd-loading />
           </view>
         </view>
@@ -246,22 +250,3 @@ onLoad(() => {
     </view>
   </view>
 </template>
-
-<style scoped>
-.user-avatar {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.chat-bubble {
-  padding: 16rpx 24rpx;
-  max-width: 72%;
-  word-break: break-word;
-}
-</style>

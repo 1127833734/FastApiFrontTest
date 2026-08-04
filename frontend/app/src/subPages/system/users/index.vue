@@ -90,12 +90,22 @@ async function loadOptions() {
   }
 }
 
-const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<UserInfo>({
+const { list, total, loading, pageParams, loadData, toFirst, loadNext } = useListPage<UserInfo>({
   fetcher: p => UserAPI.getUserPage({ ...p, name: searchName.value || undefined }),
   onError: () => toast.error('加载失败'),
 })
 
+function handlePageChange({ value }: { value: number }) {
+  pageParams.value.page_no = value
+  loadData()
+}
+
 function onSearch() {
+  toFirst()
+  loadData()
+}
+function onReset() {
+  searchName.value = ''
   toFirst()
   loadData()
 }
@@ -164,65 +174,75 @@ onLoad(() => loadData())
 </script>
 
 <template>
-  <view class="list-page">
+  <view class="page-wraper">
     <!-- Search bar -->
-    <view class="list-search">
-      <view class="list-search__box">
-        <text class="list-search__icon">
-          🔍
-        </text>
-        <wd-input
-          v-model="searchName"
-          placeholder="搜索姓名或用户名"
-          clearable
-          @confirm="onSearch"
-        />
+    <view class="search-bar">
+      <view class="flex items-center gap-sm">
+        <wd-input v-model="searchName" placeholder="搜索姓名或用户名" clearable class="flex-1" />
+        <wd-button size="small" type="primary" variant="plain" @click="onSearch">
+          搜索
+        </wd-button>
+        <wd-button size="small" variant="plain" @click="onReset">
+          重置
+        </wd-button>
       </view>
     </view>
 
     <!-- Meta bar -->
-    <view class="list-meta">
-      <text class="list-meta__count">
+    <view class="action-bar">
+      <text class="text-md text-muted font-bold">
         共 {{ total }} 条
       </text>
-      <view class="list-meta__add" @click="openCreate">
-        <text class="list-meta__add-icon">
-          +
-        </text>
-        <text class="list-meta__add-text">
-          新增
-        </text>
-      </view>
+      <wd-button size="small" type="primary" @click="openCreate">
+        + 新增
+      </wd-button>
     </view>
 
     <!-- List -->
     <SkeletonPage v-if="loading && list.length === 0" :rows="5" search />
     <template v-else>
-      <ListEmpty v-if="!loading && list.length === 0" text="暂无用户" />
-
-      <view v-for="(item, index) in list" :key="item.id" class="list-item" hover-class="list-item--hover" @click="openEdit(item.id!)">
-        <view class="list-item__avatar" :style="{ background: getAvatarColor(index) }">
-          <text class="list-item__avatar-text">
-            {{ getAvatarInitial(item.name || item.username || '') }}
-          </text>
-        </view>
-        <view class="list-item__info">
-          <text class="list-item__name">
-            {{ item.name || item.username }}
-          </text>
-          <text class="list-item__sub">
-            {{ item.username }} · {{ item.email || '-' }}
-          </text>
-        </view>
-        <StatusBadge :status="item.status" />
-        <view class="list-item__delete" @click.stop="handleDelete(item.id!)">
-          <text class="list-item__delete-icon">
-            🗑
-          </text>
+      <view class="px-sm">
+        <view class="admin-card">
+          <wd-empty v-if="!loading && list.length === 0" tip="暂无用户" />
+          <wd-cell-group v-else>
+            <wd-cell v-for="(item, index) in list" :key="item.id" center @click="openEdit(item.id!)">
+              <template #title>
+                <view class="flex items-center gap-2">
+                  <wd-avatar
+                    size="40px"
+                    round
+                    :text="getAvatarInitial(item.name || item.username || '')"
+                    :bg-color="getAvatarColor(index)"
+                    color="#FFFFFF"
+                  />
+                  <view class="min-w-0">
+                    <view class="truncate text-3.5 font-medium wot-text-text-main">
+                      {{ item.name || item.username }}
+                    </view>
+                    <view class="mt-1 truncate text-2.5 wot-text-text-auxiliary">
+                      {{ item.username }} · {{ item.email || '-' }}
+                    </view>
+                  </view>
+                </view>
+              </template>
+              <template #default>
+                <view class="flex items-center gap-2">
+                  <StatusBadge :status="item.status" />
+                  <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id!)" />
+                </view>
+              </template>
+            </wd-cell>
+          </wd-cell-group>
         </view>
       </view>
-
-      <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
+      <wd-pagination
+        :model-value="pageParams.page_no"
+        :total="total"
+        :page-size="pageParams.page_size"
+        button-variant="plain"
+        hide-if-one-page
+        @change="handlePageChange"
+      />
     </template>
 
     <!-- Form popup -->
@@ -230,54 +250,54 @@ onLoad(() => loadData())
       <view class="p-xl">
         <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
         <wd-form :model="formData" class="mt-lg">
-          <wd-form-item label="用户名">
+          <wd-form-item label="用户名" border>
             <wd-input v-model="formData.username" placeholder="请输入" />
           </wd-form-item>
-          <wd-form-item label="姓名">
+          <wd-form-item label="姓名" border>
             <wd-input v-model="formData.name" placeholder="请输入" />
           </wd-form-item>
-          <wd-form-item v-if="!currentId" label="密码">
+          <wd-form-item v-if="!currentId" label="密码" border>
             <wd-input v-model="formData.password" placeholder="请输入" />
           </wd-form-item>
-          <wd-form-item label="部门">
-            <view @click="showPickerDept = true">
-              <wd-cell title="部门" :value="deptOptions.find(o => o.value === formData.dept_id)?.label || '请选择部门'" is-link :border="false" />
+          <wd-form-item label="部门" border>
+            <view class="flex-1" @click="showPickerDept = true">
+              <wd-cell :value="deptOptions.find(o => o.value === formData.dept_id)?.label || '请选择部门'" is-link :border="false" />
             </view>
             <wd-picker :visible="showPickerDept" :columns="[deptOptions]" @confirm="handleDeptConfirm" @cancel="showPickerDept = false" />
           </wd-form-item>
-          <wd-form-item label="角色">
-            <view @click="showPickerRole = true">
-              <wd-cell title="角色" :value="roleOptions.find(o => o.value === formData.role_ids?.[0])?.label || '请选择角色'" is-link :border="false" />
+          <wd-form-item label="角色" border>
+            <view class="flex-1" @click="showPickerRole = true">
+              <wd-cell :value="roleOptions.find(o => o.value === formData.role_ids?.[0])?.label || '请选择角色'" is-link :border="false" />
             </view>
             <wd-picker :visible="showPickerRole" :columns="[roleOptions]" @confirm="handleRoleConfirm" @cancel="showPickerRole = false" />
           </wd-form-item>
-          <wd-form-item label="岗位">
-            <view @click="showPickerPosition = true">
-              <wd-cell title="岗位" :value="positionOptions.find(o => o.value === formData.position_ids?.[0])?.label || '请选择岗位'" is-link :border="false" />
+          <wd-form-item label="岗位" border>
+            <view class="flex-1" @click="showPickerPosition = true">
+              <wd-cell :value="positionOptions.find(o => o.value === formData.position_ids?.[0])?.label || '请选择岗位'" is-link :border="false" />
             </view>
             <wd-picker :visible="showPickerPosition" :columns="[positionOptions]" @confirm="handlePositionConfirm" @cancel="showPickerPosition = false" />
           </wd-form-item>
-          <wd-form-item label="性别">
+          <wd-form-item label="性别" border>
             <wd-radio-group v-model="formData.gender">
               <wd-radio v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </wd-radio>
             </wd-radio-group>
           </wd-form-item>
-          <wd-form-item label="状态">
+          <wd-form-item label="状态" border>
             <wd-radio-group v-model="formData.status">
               <wd-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </wd-radio>
             </wd-radio-group>
           </wd-form-item>
-          <wd-form-item label="邮箱">
+          <wd-form-item label="邮箱" border>
             <wd-input v-model="formData.email" placeholder="请输入" />
           </wd-form-item>
-          <wd-form-item label="手机号">
+          <wd-form-item label="手机号" border>
             <wd-input v-model="formData.mobile" placeholder="请输入" />
           </wd-form-item>
-          <wd-form-item label="备注">
+          <wd-form-item label="备注" border>
             <wd-textarea v-model="formData.description" placeholder="请输入" />
           </wd-form-item>
         </wd-form>
@@ -293,126 +313,3 @@ onLoad(() => loadData())
     </wd-popup>
   </view>
 </template>
-
-<style lang="scss" scoped>
-.list-page {
-  padding: 0 32rpx;
-  padding-bottom: 40rpx;
-  background: var(--page-bg-color, #F9F9F9);
-  min-height: 100vh;
-}
-
-/* ===== Search ===== */
-.list-search {
-  padding: 24rpx 0;
-
-  &__box {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    background: var(--bg-color-2, #F5F6F8);
-    border-radius: 16rpx;
-    padding: 0 24rpx;
-    height: 80rpx;
-  }
-
-  &__icon {
-    font-size: 28rpx;
-    opacity: 0.4;
-  }
-}
-
-/* ===== Meta ===== */
-.list-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8rpx 0 24rpx;
-
-  &__count {
-    font-size: 26rpx;
-    color: var(--text-color-3, #6B7280);
-  }
-
-  &__add {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-    background: var(--primary-color, #4F8CFF);
-    color: #FFFFFF;
-    padding: 8rpx 24rpx;
-    border-radius: 32rpx;
-
-    &-icon { font-size: 36rpx; font-weight: 300; line-height: 1; }
-
-    &-text { font-size: 24rpx; font-weight: 500; }
-  }
-}
-
-/* ===== List item ===== */
-.list-item {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  background: var(--card-bg-color, #FFFFFF);
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm, 0 1rpx 2rpx rgba(1, 77, 178,0.06));
-  transition: all 0.15s ease;
-
-  &--hover {
-    opacity: 0.9;
-    box-shadow: var(--shadow-md, 0 4rpx 12rpx rgba(1, 77, 178,0.10));
-  }
-
-  &__avatar {
-    width: 80rpx;
-    height: 80rpx;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    &-text {
-      font-size: 32rpx;
-      font-weight: 600;
-      color: #FFFFFF;
-    }
-  }
-
-  &__info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4rpx;
-    overflow: hidden;
-  }
-
-  &__name {
-    font-size: 30rpx;
-    font-weight: 500;
-    color: var(--text-color, #0A1628);
-  }
-
-  &__sub {
-    font-size: 24rpx;
-    color: var(--text-color-3, #6B7280);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__delete {
-    width: 56rpx;
-    height: 56rpx;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &-icon { font-size: 28rpx; opacity: 0.4; }
-  }
-}
-</style>

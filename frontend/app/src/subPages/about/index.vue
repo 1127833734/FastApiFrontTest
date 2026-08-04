@@ -36,13 +36,21 @@ function donate() {
 <template>
   <view class="min-h-screen py-3">
     <!-- 头部介绍 -->
-    <view class="mx-3 mb-3 flex flex-col gap-2">
-      <text class="text-6 font-bold wot-text-text-main">
-        关于我们
-      </text>
-      <text class="text-3.5 leading-snug wot-text-text-secondary">
-        我是不如摸鱼去，一个前端打工仔，我和我的小伙伴们正在致力于开发轻量、高效的uni-app组件库和高效、易用的uni-app快速开发模板。
-      </text>
+    <view class="mx-3 mb-3">
+      <view class="rounded-3 px-5 py-8 text-center wot-bg-filled-oppo">
+        <view class="mb-3 text-10">
+          👋
+        </view>
+        <view class="mb-2 text-6 font-bold wot-text-text-main">
+          关于我们
+        </view>
+        <view class="mb-2 text-3.5 leading-relaxed wot-text-text-secondary">
+          轻量、高效的 uni-app 快速开发模板
+        </view>
+        <view class="text-3 wot-text-text-secondary">
+          致力于开发轻量、高效的组件库与易用的快速开发模板
+        </view>
+      </view>
     </view>
 
     <!-- 核心团队 -->
@@ -51,17 +59,18 @@ function donate() {
         <view
           v-for="member in coreTeam"
           :key="member.name"
-          class="rounded-2 p-4 text-center wot-bg-filled-oppo"
+          class="rounded-2 p-4 text-center wot-bg-filled-oppo active:opacity-70"
           @click="openUrl(member.github)"
         >
           <image
             :src="member.avatar"
-            class="mx-auto mb-2 h-16 w-16 border-2 border-blue-200 rounded-full dark:border-blue-800"
+            mode="aspectFill"
+            class="mx-auto mb-2 h-16 w-16 rounded-full"
           />
           <view class="mb-1 text-3.5 font-bold wot-text-text-main">
             {{ member.name }}
           </view>
-          <view class="mb-2 text-2.5 text-blue-600 dark:text-blue-400">
+          <view class="mb-2 text-2.5" style="color: var(--primary-color, #4F8CFF);">
             {{ member.title }}
           </view>
           <view class="text-2.5 leading-snug wot-text-text-secondary">
@@ -71,11 +80,11 @@ function donate() {
       </view>
     </demo-block>
 
-    <!-- 关于 uni-helper -->
+    <!-- 关于 uni-helper 团队 -->
     <demo-block title="关于 uni-helper 团队" transparent>
-      <view class="rounded-3 p-5 wot-bg-filled-oppo">
+      <view class="rounded-2 p-4 wot-bg-filled-oppo">
         <text class="mb-3 block text-3.5 leading-relaxed wot-text-text-secondary">
-          <text class="text-blue-600" @click="openUrl('https://uni-helper.cn/')">
+          <text style="color: var(--primary-color, #4F8CFF);" @click="openUrl('https://uni-helper.cn/')">
             uni-helper
           </text>
           是一个旨在增强 uni-app 系列产品的开发体验为爱发电的非官方组织。作为靠爱发电的非官方项目，uni-helper 提供了打包工具插件支持、编辑器扩展支持、NPM 包等并尽力维护它们。

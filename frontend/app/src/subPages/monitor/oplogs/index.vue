@@ -11,10 +11,15 @@ const searchPath = ref('')
 const showDetail = ref(false)
 const detailItem = ref<OplogItem>()
 
-const { list, total, loading, pageParams, loadData, toFirst, loadPrev, loadNext } = useListPage<OplogItem>({
+const { list, total, loading, pageParams, loadData, toFirst, loadNext } = useListPage<OplogItem>({
   fetcher: p => OperationLogAPI.getPage({ ...p, request_path: searchPath.value || undefined }),
   onError: () => toast.error('加载失败'),
 })
+
+function handlePageChange({ value }: { value: number }) {
+  pageParams.value.page_no = value
+  loadData()
+}
 
 function onSearch() {
   toFirst()
@@ -79,9 +84,9 @@ onLoad(() => loadData())
     <template v-else>
       <view class="px-sm">
         <view class="admin-card">
-          <ListEmpty v-if="!loading && list.length === 0" text="暂无日志" />
+          <wd-empty v-if="!loading && list.length === 0" tip="暂无日志" />
           <wd-cell-group v-else border>
-            <wd-cell v-for="item in list" :key="item.id" is-link @click="viewDetail(item)">
+            <wd-cell v-for="item in list" :key="item.id" center is-link @click="viewDetail(item)">
               <template #title>
                 <view class="flex flex-wrap items-center gap-sm">
                   <StatusBadge :status="(item.response_code || 0) < 300 ? 'success' : 'failed'" dot />
@@ -103,7 +108,14 @@ onLoad(() => loadData())
           </wd-cell-group>
         </view>
       </view>
-      <PaginationBar :current="pageParams.page_no" :page-size="pageParams.page_size" :total="total" @prev="loadPrev" @next="loadNext" />
+      <wd-pagination
+        :model-value="pageParams.page_no"
+        :total="total"
+        :page-size="pageParams.page_size"
+        button-variant="plain"
+        hide-if-one-page
+        @change="handlePageChange"
+      />
       <wd-popup v-model="showDetail" position="bottom" round closable @close="showDetail = false">
         <view v-if="detailItem" class="p-xl">
           <wd-navbar title="日志详情" left-arrow @click-left="showDetail = false" />
