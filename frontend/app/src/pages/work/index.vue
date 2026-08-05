@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { getTicketStats } from '@/composables/useCachedRequest'
+import { useShare } from '@/composables/useShare'
 import { useUserStore } from '@/store/userStore'
+
+useShare({
+  title: 'FastapiAdmin 工作台 - 通知公告 / 工单管理 / AI 助手',
+  path: '/pages/work/index',
+})
 
 definePage({
   name: 'work',
@@ -15,39 +22,37 @@ function navigateTo(name: string) {
   router.push({ name })
 }
 
+/** 工单统计（共享缓存，与 mine 页面复用，30秒内不重复请求） */
+const pendingTickets = ref<number | null>(null)
+const processingTickets = ref<number | null>(null)
+const doneTickets = ref<number | null>(null)
+
+async function loadTicketStats() {
+  try {
+    const stats = await getTicketStats()
+    pendingTickets.value = stats.pending
+    processingTickets.value = stats.processing
+    doneTickets.value = stats.done
+  }
+  catch { /* silent */ }
+}
+
 onShow(() => {
   const pages = getCurrentPages()
   if (pages.length > 0 && pages[pages.length - 1].route === 'pages/work/index') {
     uni.$emit('updateTabbar', 'work')
+    loadTicketStats()
   }
 })
 
 const groups = [
   {
-    title: '系统管理',
-    color: 'var(--primary-color)',
-    bg: 'var(--primary-color-light)',
-    items: [
-      { icon: 'user', text: '用户管理', name: 'work-users' },
-    ],
-  },
-  {
     title: '业务中心',
     color: '#F59E0B',
     bg: 'var(--warning-color-light)',
     items: [
-      { icon: 'notification', text: '通知公告', name: 'work-notices' },
-      { icon: 'message', text: '工单管理', name: 'work-tickets' },
-    ],
-  },
-  {
-    title: '运维监控',
-    color: '#10B981',
-    bg: 'var(--success-color-light)',
-    items: [
-      { icon: 'file', text: '操作日志', name: 'work-oplogs' },
-      { icon: 'eye-fill', text: '登录日志', name: 'work-loginlogs' },
-      { icon: 'user', text: '在线用户', name: 'work-online' },
+      { icon: 'notification', text: '通知公告', name: 'work-notices', color: '#10B981' },
+      { icon: 'message', text: '工单管理', name: 'work-tickets', color: '#F59E0B' },
     ],
   },
   {
@@ -74,7 +79,7 @@ const filteredGroups = computed(() => {
 </script>
 
 <template>
-  <view class="box-border min-h-screen py-3">
+  <view class="page-wraper py-3">
     <!-- 用户信息卡 -->
     <view class="mx-3 mb-4 flex items-center gap-4 rounded-3 px-5 py-6 wot-bg-filled-oppo">
       <wd-avatar

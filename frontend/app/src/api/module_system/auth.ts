@@ -47,10 +47,12 @@ const AuthAPI = {
 
   /**
    * 登出
-   * @param body 登出请求体
+   * 后端 logout 接口 body 为纯字符串（JWT 原文，Annotated[str, Body]），
+   * 需显式 JSON.stringify 使请求体成为合法 JSON 字符串（uni.request 对字符串原样发送）
+   * @param token 访问令牌
    */
-  logout(body: LogoutBody): Promise<void> {
-    return http.Post(`${AUTH_BASE_URL}/logout`, body)
+  logout(token: string): Promise<void> {
+    return http.Post(`${AUTH_BASE_URL}/logout`, JSON.stringify(token))
   },
 
   /**
@@ -72,6 +74,44 @@ const AuthAPI = {
    */
   completeSliderCaptcha(data: { captcha_key: string, x: number }): Promise<{ captcha_key: string, verified: boolean }> {
     return http.Post(`${AUTH_BASE_URL}/captcha/slider/complete`, data, { meta: { ignoreAuth: true } })
+  },
+
+  /**
+   * 微信小程序登录
+   * 前端通过 uni.login 获取 code，后端调用 code2Session 换取 openid 后返回 JWT
+   * @param data 微信登录数据
+   * @param data.code uni.login 返回的 code
+   * @param data.nickname 用户昵称（可选，来自 getUserProfile）
+   * @param data.avatar 头像 URL（可选）
+   * @returns JWT 登录结果
+   */
+  wxLogin(data: WxLoginData): Promise<LoginResult> {
+    return http.Post(`${AUTH_BASE_URL}/wx-login`, data, { meta: { ignoreAuth: true } })
+  },
+
+  /**
+   * 微信小程序手机号快速登录
+   * 用户点击<button open-type="getPhoneNumber">后，回调 e.detail.code 发送给后端
+   * 后端通过 getuserphonenumber API 直接获取手机号（2023+ 新方案，无需 AES 解密）
+   * @param data 手机号登录数据
+   * @param data.code getPhoneNumber 回调返回的动态令牌 code
+   * @returns JWT 登录结果
+   */
+  wxPhoneLogin(data: WxPhoneLoginData): Promise<LoginResult> {
+    return http.Post(`${AUTH_BASE_URL}/wx-phone-login`, data, { meta: { ignoreAuth: true } })
+  },
+
+  /**
+   * 生成小程序码
+   * 调用后端接口，后端通过微信 getWXACodeUnlimit API 生成无限制小程序码
+   * @param data 生成参数
+   * @param data.scene 场景参数（最大32字符，如 invite_123）
+   * @param data.page 小程序页面路径（可选，默认主页）
+   * @param data.width 图片宽度（px，默认 430）
+   * @returns 包含 base64 图片 URL 的结果
+   */
+  generateWxQrCode(data: WxQrCodeParams): Promise<WxQrCodeResult> {
+    return http.Post(`${AUTH_BASE_URL}/wx-qrcode/generate`, data)
   },
 }
 
@@ -107,7 +147,30 @@ export interface CaptchaInfo {
   img_base: string
 }
 
-/** 退出登录操作 */
-export interface LogoutBody {
-  token: string
+/** 微信小程序登录数据 */
+export interface WxLoginData {
+  code: string
+  nickname?: string
+  avatar?: string
+}
+
+/** 微信手机号登录数据（2023+ 新方案：仅传 code） */
+export interface WxPhoneLoginData {
+  code: string
+}
+
+/** 小程序码生成参数 */
+export interface WxQrCodeParams {
+  /** 场景值（最大32字符，如 invite_123） */
+  scene: string
+  /** 目标页面路径（不带 /，如 pages/index/index），为空则默认主页 */
+  page?: string
+  /** 宽度（px），默认 430，范围 280-1280 */
+  width?: number
+}
+
+/** 小程序码生成结果 */
+export interface WxQrCodeResult {
+  /** 小程序码图片 URL（data:image/png;base64,...） */
+  url: string
 }

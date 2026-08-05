@@ -27,8 +27,6 @@ export default defineConfig({
       dts: 'src/uni-pages.d.ts',
       subPackages: [
         'src/subPages',
-        'src/subEcharts',
-        'src/subAsyncEcharts',
       ],
       /**
        * 排除的页面，相对于 dir 和 subPackages
@@ -42,7 +40,7 @@ export default defineConfig({
     UniHelperComponents({
       resolvers: [WotResolver(), UniEchartsResolver()],
       dts: 'src/components.d.ts',
-      dirs: ['src/components', 'src/business'],
+      dirs: ['src/components'],
       directoryAsNamespace: true,
     }),
     // https://github.com/uni-ku/root
@@ -63,7 +61,7 @@ export default defineConfig({
         imports: ['createRouter', 'useRouter', 'useRoute'],
       }, {
         from: '@wot-ui/ui',
-        imports: ['useToast', 'useDialog', 'useNotify', 'CommonUtil'],
+        imports: ['useToast', 'useDialog', 'useNotify'],
       }, {
         from: 'alova/client',
         imports: ['usePagination', 'useRequest'],

@@ -1,4 +1,4 @@
-import type { LoginFormData, LoginResult, LogoutBody } from '@/api/module_system/auth'
+import type { LoginFormData, LoginResult } from '@/api/module_system/auth'
 import type { UserInfo } from '@/api/module_system/user'
 import { defineStore } from 'pinia'
 import AuthAPI from '@/api/module_system/auth'
@@ -103,6 +103,16 @@ export const useUserStore = defineStore('appUserInfo', {
       return this.handleLogin(() => AuthAPI.login(data), '账号密码')
     },
 
+    // 微信小程序登录（code → 后端换 token）
+    async wxLogin(data: { code: string, nickname?: string, avatar?: string }): Promise<LoginResult> {
+      return this.handleLogin(() => AuthAPI.wxLogin(data), '微信')
+    },
+
+    // 微信手机号快速登录（2023+ 新方案：仅传 code）
+    async wxPhoneLogin(data: { code: string }): Promise<LoginResult> {
+      return this.handleLogin(() => AuthAPI.wxPhoneLogin(data), '微信手机号')
+    },
+
     // 获取用户信息
     async getInfo(): Promise<UserInfo | null> {
       try {
@@ -121,10 +131,7 @@ export const useUserStore = defineStore('appUserInfo', {
     // 登出
     async logout(): Promise<void> {
       try {
-        const logoutBody: LogoutBody = {
-          token: this.getAccessToken() || '',
-        }
-        await AuthAPI.logout(logoutBody) // 调用后台注销接口
+        await AuthAPI.logout(this.getAccessToken() || '') // 调用后台注销接口（body 为 JWT 字符串）
       }
       catch (error) {
         console.error('登出失败', error)

@@ -3,6 +3,13 @@ import type { TicketComment, TicketItem } from '@/api/module_system/ticket'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { reactive, ref } from 'vue'
 import { TicketAPI } from '@/api/module_system/ticket'
+import { useShare } from '@/composables/useShare'
+import { MARKDOWN_TAG_STYLE } from '@/constants/markdown.constant'
+
+useShare(() => ({
+  title: ticket.value ? `工单：${ticket.value.title}` : '工单详情',
+  path: `/subPages/module_system/ticket-detail/index?id=${ticketId.value}`,
+}))
 
 definePage({
   name: 'work-ticket-detail',
@@ -18,6 +25,7 @@ const commentPage = reactive({ page_no: 1, page_size: 20 })
 const commentText = ref('')
 const submitting = ref(false)
 const ticketId = ref(0)
+const previewRef = ref<{ open: (options: { images: string[], startPosition?: number }) => void }>()
 
 async function loadTicket() {
   if (!ticketId.value)
@@ -93,7 +101,7 @@ function parseImages(images?: string): string[] {
 }
 
 function previewImages(images: string[], current: number) {
-  uni.previewImage({ urls: images, current })
+  previewRef.value?.open({ images, startPosition: current })
 }
 
 onPullDownRefresh(async () => {
@@ -134,6 +142,19 @@ onLoad((options) => {
         </view>
       </view>
 
+      <!-- Ticket Status Steps -->
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+          处理进度
+        </text>
+        <wd-steps :active="Number(ticket.status ?? 0)" align-center>
+          <wd-step title="待处理" />
+          <wd-step title="处理中" />
+          <wd-step title="已完成" />
+          <wd-step title="已关闭" />
+        </wd-steps>
+      </view>
+
       <!-- Ticket Info -->
       <view class="mx-3 mb-3">
         <wd-cell-group border custom-class="rounded-2! overflow-hidden">
@@ -145,25 +166,27 @@ onLoad((options) => {
 
       <!-- Ticket Content -->
       <view v-if="ticket.ticket_content || ticket.summary" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+        <text class="block text-3.5 font-bold wot-text-text-main">
           工单内容
         </text>
-        <text class="block text-3 leading-relaxed wot-text-text-secondary">
-          {{ ticket.summary || ticket.ticket_content }}
-        </text>
+        <wd-divider class="my-3!" />
+        <mp-html :content="ticket.summary || ticket.ticket_content" markdown :tag-style="MARKDOWN_TAG_STYLE" />
       </view>
 
       <!-- Images -->
       <view v-if="parseImages(ticket.images).length > 0" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+        <text class="block text-3.5 font-bold wot-text-text-main">
           附件图片
         </text>
+        <wd-divider class="my-3!" />
         <view class="flex flex-wrap gap-3">
-          <image
+          <wd-img
             v-for="(img, idx) in parseImages(ticket.images)"
             :key="img"
             :src="img"
-            class="h-[200rpx] w-[200rpx] rounded-lg wot-bg-filled-oppo"
+            width="200rpx"
+            height="200rpx"
+            radius="16rpx"
             mode="aspectFill"
             lazy-load
             @click="previewImages(parseImages(ticket.images), idx)"
@@ -173,21 +196,21 @@ onLoad((options) => {
 
       <!-- Reply -->
       <view v-if="ticket.reply" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+        <text class="block text-3.5 font-bold wot-text-text-main">
           处理回复
         </text>
+        <wd-divider class="my-3!" />
         <view class="rounded-lg p-3" style="background: var(--primary-color-light, rgba(1, 77, 178, 0.06));">
-          <text class="block text-3 leading-relaxed wot-text-text-secondary">
-            {{ ticket.reply }}
-          </text>
+          <mp-html :content="ticket.reply" markdown :tag-style="MARKDOWN_TAG_STYLE" />
         </view>
       </view>
 
       <!-- Comments -->
       <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
+        <text class="block text-3.5 font-bold wot-text-text-main">
           评论 ({{ commentTotal }})
         </text>
+        <wd-divider class="my-3!" />
         <wd-empty v-if="comments.length === 0" tip="暂无评论，快来抢沙发" />
         <view v-else class="flex flex-col gap-4">
           <view v-for="comment in comments" :key="comment.id" class="flex gap-3">
@@ -221,6 +244,9 @@ onLoad((options) => {
     </template>
 
     <wd-empty v-else tip="工单不存在或已删除" />
+
+    <!-- 图片预览 -->
+    <wd-image-preview ref="previewRef" />
 
     <!-- Comment Input -->
     <view

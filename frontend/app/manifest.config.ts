@@ -64,13 +64,41 @@ export default defineManifestConfig({
     optimization: {
       subPackages: true,
     },
-    appid: '',
+    // TODO: 替换为实际的微信小程序 appid（在微信公众平台 → 开发管理 → 开发设置 中获取）
+    appid: 'wx0000000000000000',
     setting: {
       urlCheck: false,
+      // 压缩代码
+      minified: true,
+      // 启用 ES6 转 ES5
+      es6: true,
+      // 启用样式补全
+      postcss: true,
+      // 启用自动注入 wxss 文件
+      minifyWXML: true,
     },
     usingComponents: true,
     darkmode: true,
     themeLocation: 'theme.json',
+    // 微信小程序权限配置
+    permission: {
+      // 保存图片到相册
+      'scope.writePhotosAlbum': {
+        desc: '用于保存分享海报到相册',
+      },
+      // 获取用户位置（如需要）
+      'scope.userLocation': {
+        desc: '用于获取您的地理位置信息',
+      },
+    },
+    // 接口权限声明（微信小程序隐私合规）
+    requiredPrivateInfos: [
+      'getLocation',
+    ],
+    // 订阅消息模板配置（在微信公众平台 → 订阅消息 中配置后填入）
+    // subscribeMessage: {
+    //   tmplIds: ['', '', ''],
+    // },
   },
   'app-harmony': {},
   'mp-harmony': {},

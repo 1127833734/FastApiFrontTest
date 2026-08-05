@@ -94,7 +94,6 @@ export const useManualThemeStore = defineStore('manualTheme', {
     initTheme() {
       // 如果用户已手动设置且不跟随系统，保持当前主题
       if (this.hasUserSet && !this.followSystem) {
-        console.log('使用用户设置的主题:', this.theme)
         this.setNavigationBarColor()
         return
       }
@@ -105,13 +104,8 @@ export const useManualThemeStore = defineStore('manualTheme', {
       // 如果是首次启动或跟随系统，使用系统主题
       if (!this.hasUserSet || this.followSystem) {
         this.theme = systemTheme
-        if (!this.hasUserSet) {
+        if (!this.hasUserSet)
           this.followSystem = true
-          console.log('首次启动，使用系统主题:', this.theme)
-        }
-        else {
-          console.log('跟随系统主题:', this.theme)
-        }
       }
 
       this.setNavigationBarColor()

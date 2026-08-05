@@ -5,6 +5,8 @@ const route = useRoute()
 
 const { activeTabbar, getTabbarItemValue, setTabbarItemActive, tabbarList } = useTabbar()
 
+const { enabled: watermarkEnabled, content: watermarkContent } = useWatermark()
+
 function handleTabbarChange({ value }: { value: string }) {
   setTabbarItemActive(value)
   router.pushTab({ name: value })
@@ -44,4 +46,7 @@ export default {
       :value="getTabbarItemValue(item.name)" :title="item.title" :icon="item.icon"
     />
   </wd-tabbar>
+  <!-- #ifdef MP-WEIXIN -->
+  <wd-watermark v-if="watermarkEnabled" :content="watermarkContent" />
+  <!-- #endif -->
 </template>

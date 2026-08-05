@@ -8,27 +8,17 @@ type _LocationUrl =
   "/pages/login/index" |
   "/pages/mine/index" |
   "/pages/work/index" |
+  "/pages/login/forget/index" |
+  "/pages/login/register/index" |
   "/subPages/about/index" |
   "/subPages/setting/index" |
-  "/subPages/biz/dashboard/index" |
-  "/subPages/biz/notices/index" |
-  "/subPages/biz/ticket-detail/index" |
-  "/subPages/biz/tickets/index" |
-  "/subPages/biz/user-detail/index" |
-  "/subPages/dev/ai-models/index" |
-  "/subPages/dev/chat/index" |
-  "/subPages/monitor/loginlogs/index" |
-  "/subPages/monitor/online/index" |
-  "/subPages/monitor/oplogs/index" |
-  "/subPages/setting/echarts/index" |
-  "/subPages/setting/echarts-async/index" |
-  "/subPages/setting/feedback/index" |
-  "/subPages/setting/icon/index" |
-  "/subPages/setting/pinia/index" |
-  "/subPages/setting/request/index" |
-  "/subPages/setting/styles/index" |
-  "/subPages/setting/uni-ku-root/index" |
-  "/subPages/system/users/index";
+  "/subPages/module_ai/ai-models/index" |
+  "/subPages/module_ai/chat/index" |
+  "/subPages/module_system/account/index" |
+  "/subPages/module_system/notices/index" |
+  "/subPages/module_system/profile/index" |
+  "/subPages/module_system/ticket-detail/index" |
+  "/subPages/module_system/tickets/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;

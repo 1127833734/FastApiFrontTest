@@ -21,6 +21,12 @@ export const DICT_CACHE_KEY = 'dict_cache'
 export const THEME_KEY = 'theme'
 export const THEME_COLOR_KEY = 'themeColor'
 
+// 🛡️ 功能开关相关
+export const WATERMARK_KEY = 'watermark_switch'
+
+// 🌍 国际化相关
+export const LANG_KEY = 'lang'
+
 // 🎯 角色常量
 export const ROLE_ROOT = 'ADMIN'
 
@@ -41,6 +47,8 @@ export const CACHE_KEYS = {
 export const SETTINGS_KEYS = {
   THEME: THEME_KEY,
   THEME_COLOR: THEME_COLOR_KEY,
+  WATERMARK: WATERMARK_KEY,
+  LANG: LANG_KEY,
 } as const
 
 // 📦 所有存储键的统一集合

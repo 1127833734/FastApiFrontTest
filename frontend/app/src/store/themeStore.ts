@@ -46,7 +46,6 @@ export const useThemeStore = defineStore('theme', {
       this.themeVars = {
         ...themeColorOptions[0].primaryShades,
       }
-      console.log('初始化系统主题:', this.theme)
     },
   },
 })

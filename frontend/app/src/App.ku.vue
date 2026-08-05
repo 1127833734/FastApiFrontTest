@@ -16,6 +16,7 @@ const buttonConfig: ConfigProviderProps['button'] = {
     <wd-toast />
     <global-loading />
     <global-toast />
+    <global-message />
     <global-dialog />
     <!-- #ifdef MP-WEIXIN -->
     <privacy-popup />

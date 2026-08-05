@@ -26,5 +26,14 @@ export interface DashboardStats {
   today_login_count: number
   today_unique_users: number
   week_user_created: number
+  login_trend: LoginTrendItem[]
   recent_logins: RecentLoginItem[]
+}
+
+/** 登录趋势（按天聚合，近7天） */
+export interface LoginTrendItem {
+  day: string
+  logins: number
+  unique_users: number
+  new_users: number
 }

@@ -25,7 +25,9 @@ function persist({ store }: PiniaPluginContext, excludedIds: string[]) {
   if (storageState) {
     persistState = storageState
   }
-  store.$state = persistState
+  // 使用 $patch 回填持久化状态：响应式更新且保留当前默认值（浅合并），
+  // 避免直接赋值 $state 绕过 Pinia 内部状态管理（DevTools 状态异常/丢失响应式）
+  store.$patch(persistState)
   store.$subscribe(() => {
     // 在存储变化的时候将store缓存
     uni.setStorageSync(store.$id, CommonUtil.deepClone(store.$state))

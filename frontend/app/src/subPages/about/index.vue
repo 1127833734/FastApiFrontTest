@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTeam } from '@/composables/useTeam'
+import { useConfigStore } from '@/store/configStore'
 
 definePage({
   name: 'about',
@@ -8,28 +8,35 @@ definePage({
   },
 })
 
-const { data: coreTeam } = useTeam()
+const configStore = useConfigStore()
+// 拉取系统参数（系统名称/版本/版权/链接），幂等 + 本地持久化缓存
+configStore.getConfig()
 
-function openUrl(url?: string) {
-  if (!url) {
+/** 关于页参数（来自后端系统参数，带默认值兜底；web 端消费方式：configData?.[key]?.config_value） */
+const sysName = computed(() => configStore.configData?.sys_name?.config_value?.trim() || 'FastapiAdmin')
+const version = computed(() => configStore.configData?.version?.config_value?.trim() || '')
+const loginSubtitle = computed(() => configStore.configData?.login_subtitle?.config_value?.trim() || '')
+const copyright = computed(() => configStore.configData?.copyright?.config_value?.trim() || '')
+const helpDoc = computed(() => configStore.configData?.help_doc?.config_value?.trim() || '')
+const gitCode = computed(() => configStore.configData?.git_code?.config_value?.trim() || '')
+
+// 链接导航处理（H5 新窗口打开，非 H5 复制到剪贴板）
+function handleNavigate(url: string) {
+  if (!url)
     return
-  }
-
+  // #ifdef H5
   window.open(url, '_blank')
-}
-
-// 打开公众号二维码
-function openWeChat() {
-  uni.previewImage({
-    urls: ['https://wot-ui.cn/wechatPublicAccount.png'],
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({
+    data: url,
+    showToast: false,
+    success: () => {
+      uni.hideToast()
+      uni.showToast({ title: '链接已复制到剪贴板', icon: 'none' })
+    },
   })
-}
-
-// 打开捐赠二维码
-function donate() {
-  uni.previewImage({
-    urls: ['https://wot-ui.cn/weixinQrcode.jpg'],
-  })
+  // #endif
 }
 </script>
 
@@ -42,77 +49,36 @@ function donate() {
           👋
         </view>
         <view class="mb-2 text-6 font-bold wot-text-text-main">
-          关于我们
+          {{ sysName }}
         </view>
-        <view class="mb-2 text-3.5 leading-relaxed wot-text-text-secondary">
-          轻量、高效的 uni-app 快速开发模板
+        <view v-if="version" class="mb-2 text-3.5 wot-text-text-secondary">
+          {{ $t('about.currentVersion', { version }) }}
         </view>
-        <view class="text-3 wot-text-text-secondary">
-          致力于开发轻量、高效的组件库与易用的快速开发模板
+        <view v-if="loginSubtitle" class="text-3 leading-relaxed wot-text-text-secondary">
+          {{ loginSubtitle }}
         </view>
       </view>
     </view>
 
-    <!-- 核心团队 -->
-    <demo-block title="核心团队" transparent>
-      <view class="grid grid-cols-2 gap-3">
-        <view
-          v-for="member in coreTeam"
-          :key="member.name"
-          class="rounded-2 p-4 text-center wot-bg-filled-oppo active:opacity-70"
-          @click="openUrl(member.github)"
-        >
-          <image
-            :src="member.avatar"
-            mode="aspectFill"
-            class="mx-auto mb-2 h-16 w-16 rounded-full"
-          />
-          <view class="mb-1 text-3.5 font-bold wot-text-text-main">
-            {{ member.name }}
-          </view>
-          <view class="mb-2 text-2.5" style="color: var(--primary-color, #4F8CFF);">
-            {{ member.title }}
-          </view>
-          <view class="text-2.5 leading-snug wot-text-text-secondary">
-            {{ member.desc }}
-          </view>
-        </view>
-      </view>
-    </demo-block>
-
-    <!-- 关于 uni-helper 团队 -->
-    <demo-block title="关于 uni-helper 团队" transparent>
-      <view class="rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 leading-relaxed wot-text-text-secondary">
-          <text style="color: var(--primary-color, #4F8CFF);" @click="openUrl('https://uni-helper.cn/')">
-            uni-helper
-          </text>
-          是一个旨在增强 uni-app 系列产品的开发体验为爱发电的非官方组织。作为靠爱发电的非官方项目，uni-helper 提供了打包工具插件支持、编辑器扩展支持、NPM 包等并尽力维护它们。
-        </text>
-        <text class="text-3.5 leading-relaxed wot-text-text-secondary">
-          在此我们特别向 uni-helper 团队表示感谢，他们为 uni-app 系列产品提供了强大的支持，包括打包工具插件支持、编辑器扩展支持等，这使我们得以站在巨人的巨人的肩膀上完成此项目。
-        </text>
-      </view>
-    </demo-block>
-
     <!-- 更多信息 -->
-    <demo-block title="更多信息" transparent>
+    <view class="mx-3">
+      <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
+        {{ $t('about.moreInfo') }}
+      </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell
-          title="关注公众号"
-          title-width="200px"
-          label="uni-app教程、组件库讯息一手掌握！"
-          is-link
-          @click="openWeChat"
-        />
-        <wd-cell
-          title="捐赠"
-          title-width="200px"
-          label="每一份捐赠都是对我们莫大的鼓励！"
-          is-link
-          @click="donate"
-        />
+        <wd-cell :title="$t('about.docs')" is-link @click="handleNavigate(helpDoc)" />
+        <wd-cell :title="$t('about.github')" is-link @click="handleNavigate(gitCode)" />
       </wd-cell-group>
-    </demo-block>
+    </view>
+
+    <!-- 版权信息 -->
+    <view v-if="copyright" class="mx-3 mt-8 text-center">
+      <text class="text-2.5 wot-text-text-auxiliary">
+        {{ copyright }}
+      </text>
+    </view>
+
+    <!-- 底部安全区（全面屏 Home 条避让） -->
+    <wd-gap height="100rpx" safe-area-bottom />
   </view>
 </template>

@@ -3,19 +3,30 @@ import type { FormSchema } from '@wot-ui/ui/components/wd-form/types'
 import type { SlideVerifyInstance } from '@wot-ui/ui/components/wd-slide-verify/types'
 import type { CaptchaInfo, LoginFormData, OAuthProvider } from '@/api/module_system/auth'
 import { onLoad } from '@dcloudio/uni-app'
-import { nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AuthAPI from '@/api/module_system/auth'
 import { REMEMBER_ME_KEY } from '@/constants'
+import { useWxLogin } from '@/composables/useWxLogin'
+import { useConfigStore } from '@/store/configStore'
 import { useUserStore } from '@/store/userStore'
 import { Storage } from '@/utils/storage'
 
 definePage({ name: 'login', style: { navigationBarTitleText: '登录' } })
 
+const { t } = useI18n()
 const loginFormRef = ref()
 const sliderCaptchaRef = ref<SlideVerifyInstance>()
 const loading = ref(false)
 const userStore = useUserStore()
+const configStore = useConfigStore()
+const { wxLogin, wxPhoneLogin } = useWxLogin()
 const redirect = ref('/pages/index/index')
+
+/** 品牌区参数（来自后端系统参数，带默认值兜底；web 端消费方式：configData?.[key]?.config_value） */
+const brandLogo = computed(() => configStore.configData?.logo_url?.config_value?.trim() || '/static/logo.png')
+const brandTitle = computed(() => configStore.configData?.sys_name?.config_value?.trim() || 'FastapiAdmin')
+const brandSubtitle = computed(() => configStore.configData?.login_title?.config_value?.trim() || '高效的企业管理移动平台')
 
 /** 表单验证 schema — 用户名/密码字段级错误提示（wot-ui 函数式校验） */
 const loginSchema: FormSchema = {
@@ -24,13 +35,13 @@ const loginSchema: FormSchema = {
     const username = String(model.username ?? '')
     const password = String(model.password ?? '')
     if (!username)
-      errors.push({ path: ['username'], message: '请输入用户名' })
+      errors.push({ path: ['username'], message: t('login.usernameRequired') })
     else if (username.length < 3 || username.length > 20)
-      errors.push({ path: ['username'], message: '用户名长度为 3-20 个字符' })
+      errors.push({ path: ['username'], message: t('login.usernameLength') })
     if (!password)
-      errors.push({ path: ['password'], message: '请输入密码' })
+      errors.push({ path: ['password'], message: t('login.passwordRequired') })
     else if (password.length < 6 || password.length > 20)
-      errors.push({ path: ['password'], message: '密码长度为 6-20 个字符' })
+      errors.push({ path: ['password'], message: t('login.passwordLength') })
     return errors
   },
 }
@@ -109,7 +120,7 @@ async function getLoginCaptcha() {
  */
 async function handleSliderSuccess() {
   if (!captchaState.key) {
-    uni.showToast({ title: '验证码已过期，请刷新', icon: 'none' })
+    uni.showToast({ title: t('login.captchaExpired'), icon: 'none' })
     sliderCaptchaRef.value?.reset()
     return
   }
@@ -124,13 +135,13 @@ async function handleSliderSuccess() {
       loginFormData.captcha = 'verified' // 占位值，后端只校验 captcha_key 状态
     }
     else {
-      uni.showToast({ title: '验证失败，请重试', icon: 'none' })
+      uni.showToast({ title: t('login.sliderFailed'), icon: 'none' })
       sliderCaptchaRef.value?.reset()
     }
   }
   catch (e) {
     console.error('滑块验证失败', e)
-    uni.showToast({ title: '验证失败，请重试', icon: 'none' })
+    uni.showToast({ title: t('login.sliderFailed'), icon: 'none' })
     sliderCaptchaRef.value?.reset()
   }
 }
@@ -150,6 +161,8 @@ onLoad((options) => {
   }
   restoreRememberedUser()
   getLoginCaptcha()
+  // 拉取系统参数（品牌区 logo/标题/副标题），幂等 + 本地持久化缓存
+  configStore.getConfig()
 })
 
 /** 登录提交 — 防抖 + 字段验证 + 滑块校验 + 错误提示 + 记住密码 */
@@ -159,7 +172,7 @@ async function handleSubmit() {
 
   // 滑块验证前置校验
   if (captchaState.enable && !sliderPassed.value) {
-    uni.showToast({ title: '请先完成滑块验证', icon: 'none' })
+    uni.showToast({ title: t('login.sliderRequired'), icon: 'none' })
     return
   }
 
@@ -181,7 +194,7 @@ async function handleSubmit() {
     uni.reLaunch({ url: redirect.value })
   }
   catch {
-    uni.showToast({ title: '登录失败，请检查账号密码', icon: 'none', duration: 2500 })
+    uni.showToast({ title: t('login.loginFailed'), icon: 'none', duration: 2500 })
     // 登录失败后自动刷新验证码并重置滑块
     if (captchaState.enable)
       getLoginCaptcha()
@@ -189,6 +202,16 @@ async function handleSubmit() {
   finally {
     loading.value = false
   }
+}
+
+/** 跳转注册页 */
+function goRegister() {
+  uni.navigateTo({ url: '/pages/login/register/index' })
+}
+
+/** 跳转忘记密码页 */
+function goForget() {
+  uni.navigateTo({ url: '/pages/login/forget/index' })
 }
 
 /** 第三方 OAuth 登录 */
@@ -203,14 +226,51 @@ async function handleOAuth(provider: OAuthProvider) {
       uni.setClipboardData({
         data: result.url,
         success: () => {
-          uni.showToast({ title: '链接已复制，请在浏览器中打开', icon: 'none' })
+          uni.showToast({ title: t('login.oauthCopyTip'), icon: 'none' })
         },
       })
       // #endif
     }
   }
   catch {
-    uni.showToast({ title: 'OAuth登录失败', icon: 'none' })
+    uni.showToast({ title: t('login.oauthFailed'), icon: 'none' })
+  }
+}
+
+/** 微信一键登录（仅小程序端显示按钮） */
+const wxLoading = ref(false)
+async function handleWxLogin() {
+  if (wxLoading.value)
+    return
+  wxLoading.value = true
+  try {
+    await wxLogin()
+    uni.reLaunch({ url: redirect.value })
+  }
+  catch {
+    uni.showToast({ title: '微信登录失败，请重试', icon: 'none' })
+  }
+  finally {
+    wxLoading.value = false
+  }
+}
+
+/** 微信手机号登录（配合 open-type="getPhoneNumber"） */
+async function handleWxPhoneLogin(e: any) {
+  if (e.detail.errMsg !== 'getPhoneNumber:ok') {
+    uni.showToast({ title: '已取消手机号授权', icon: 'none' })
+    return
+  }
+  wxLoading.value = true
+  try {
+    await wxPhoneLogin(e.detail.code)
+    uni.reLaunch({ url: redirect.value })
+  }
+  catch {
+    uni.showToast({ title: '手机号登录失败，请重试', icon: 'none' })
+  }
+  finally {
+    wxLoading.value = false
   }
 }
 </script>
@@ -219,27 +279,55 @@ async function handleOAuth(provider: OAuthProvider) {
   <view class="login-page">
     <!-- Brand area -->
     <view class="login-brand">
-      <image class="brand-logo" src="/static/logo.png" mode="aspectFit" />
+      <image class="brand-logo" :src="brandLogo" mode="aspectFit" />
       <text class="brand-title">
-        FastapiAdmin
+        {{ brandTitle }}
       </text>
       <text class="brand-subtitle">
-        高效的企业管理移动平台
+        {{ brandSubtitle }}
       </text>
     </view>
 
     <!-- Form card -->
     <view class="login-card">
       <text class="login-card__title">
-        账号登录
+        {{ $t('login.cardTitle') }}
       </text>
+
+      <!-- 微信一键登录（仅小程序端显示） -->
+      <!-- #ifdef MP-WEIXIN -->
+      <view class="wx-login-section">
+        <wd-button
+          type="primary"
+          :loading="wxLoading"
+          round
+          block
+          @click="handleWxLogin"
+        >
+          <wd-icon name="wechat" size="18px" color="#FFFFFF" />
+          <text class="ml-1">微信一键登录</text>
+        </wd-button>
+        <wd-button
+          plain
+          round
+          block
+          custom-class="mt-3"
+          :loading="wxLoading"
+          open-type="getPhoneNumber"
+          @getphonenumber="handleWxPhoneLogin"
+        >
+          手机号快速登录
+        </wd-button>
+      </view>
+      <wd-divider>或账号密码登录</wd-divider>
+      <!-- #endif -->
 
       <wd-form ref="loginFormRef" :model="loginFormData" :schema="loginSchema">
         <!-- Username — wot 原生 wd-input，前缀图标走 prefix-icon 属性 -->
         <wd-form-item prop="username">
           <wd-input
             v-model="loginFormData.username"
-            placeholder="请输入用户名"
+            :placeholder="$t('login.usernamePlaceholder')"
             clearable
             confirm-type="next"
             :compact="false"
@@ -252,9 +340,9 @@ async function handleOAuth(provider: OAuthProvider) {
         <wd-form-item prop="password">
           <wd-input
             v-model="loginFormData.password"
-            placeholder="请输入密码"
-            show-password
+            :placeholder="$t('login.passwordPlaceholder')"
             clearable
+            show-password
             confirm-type="go"
             :compact="false"
             prefix-icon="lock"
@@ -266,8 +354,8 @@ async function handleOAuth(provider: OAuthProvider) {
         <wd-form-item v-if="captchaState.enable">
           <wd-slide-verify
             ref="sliderCaptchaRef"
-            text="向右滑动滑块验证"
-            success-text="验证成功"
+            :text="$t('login.sliderText')"
+            :success-text="$t('login.sliderSuccessText')"
             @success="handleSliderSuccess"
             @fail="resetSliderCaptcha"
           />
@@ -276,10 +364,10 @@ async function handleOAuth(provider: OAuthProvider) {
         <!-- 记住密码 + 忘记密码 -->
         <view class="login-options">
           <wd-checkbox v-model="loginFormData.remember" size="18px">
-            记住密码
+            {{ $t('login.remember') }}
           </wd-checkbox>
-          <text class="forgot-link wot-text-primary">
-            忘记密码？
+          <text class="forgot-link wot-text-primary" @click="goForget">
+            {{ $t('login.forgot') }}
           </text>
         </view>
 
@@ -291,67 +379,64 @@ async function handleOAuth(provider: OAuthProvider) {
           block
           @click="handleSubmit"
         >
-          {{ loading ? '登录中...' : '登 录' }}
+          {{ loading ? $t('login.submitting') : $t('login.submit') }}
         </wd-button>
       </wd-form>
     </view>
 
     <!-- OAuth Login -->
     <view class="oauth-section">
-      <view class="oauth-divider">
-        <view class="oauth-divider__line" />
-        <text class="oauth-divider__text">
-          第三方登录
-        </text>
-        <view class="oauth-divider__line" />
-      </view>
-      <view class="oauth-buttons">
+      <wd-divider>{{ $t('login.thirdParty') }}</wd-divider>
+      <wd-grid :column="4" clickable :gutter="10">
         <!-- WeChat -->
-        <view class="oauth-btn" @click="handleOAuth('wechat')">
+        <wd-grid-item @click="handleOAuth('wechat')">
           <view class="oauth-btn__icon" style="background: #07C160">
             <image class="oauth-btn__iconify" src="/static/icons/wechat.svg" />
           </view>
           <text class="oauth-btn__label">
-            微信
+            {{ $t('login.wechat') }}
           </text>
-        </view>
+        </wd-grid-item>
 
         <!-- GitHub -->
-        <view class="oauth-btn" @click="handleOAuth('github')">
+        <wd-grid-item @click="handleOAuth('github')">
           <view class="oauth-btn__icon" style="background: #24292F">
             <image class="oauth-btn__iconify" src="/static/icons/github.svg" />
           </view>
           <text class="oauth-btn__label">
-            GitHub
+            {{ $t('login.github') }}
           </text>
-        </view>
+        </wd-grid-item>
 
         <!-- Gitee -->
-        <view class="oauth-btn" @click="handleOAuth('gitee')">
+        <wd-grid-item @click="handleOAuth('gitee')">
           <view class="oauth-btn__icon" style="background: #C71D23">
             <image class="oauth-btn__iconify" src="/static/icons/gitee.svg" />
           </view>
           <text class="oauth-btn__label">
-            Gitee
+            {{ $t('login.gitee') }}
           </text>
-        </view>
+        </wd-grid-item>
 
         <!-- QQ -->
-        <view class="oauth-btn" @click="handleOAuth('qq')">
+        <wd-grid-item @click="handleOAuth('qq')">
           <view class="oauth-btn__icon" style="background: #12B7F5">
             <image class="oauth-btn__iconify" src="/static/icons/qq.svg" />
           </view>
           <text class="oauth-btn__label">
-            QQ
+            {{ $t('login.qq') }}
           </text>
-        </view>
-      </view>
+        </wd-grid-item>
+      </wd-grid>
     </view>
 
     <!-- Footer -->
     <view class="login-footer">
       <text class="login-footer__text">
-        立即注册 | 游客访问
+        {{ $t('login.noAccount') }}
+      </text>
+      <text class="login-footer__link wot-text-primary" @click="goRegister">
+        {{ $t('login.toRegister') }}
       </text>
     </view>
   </view>
@@ -370,7 +455,7 @@ async function handleOAuth(provider: OAuthProvider) {
   height: 100vh;
   /* #endif */
   padding: 0 64rpx;
-  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
   background: var(--page-bg-color, #F9F9F9);
   overflow: hidden;
   box-sizing: border-box;
@@ -386,15 +471,14 @@ async function handleOAuth(provider: OAuthProvider) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 72rpx;
-  padding-bottom: 40rpx;
-  gap: 12rpx;
+  padding-top: 48rpx;
+  padding-bottom: 32rpx;
+  gap: 10rpx;
   flex-shrink: 0;
 
   .brand-logo {
-    width: 140rpx;
-    height: 140rpx;
-    margin-bottom: 4rpx;
+    width: 104rpx;
+    height: 104rpx;
   }
 
   .brand-title {
@@ -424,10 +508,10 @@ async function handleOAuth(provider: OAuthProvider) {
   width: 100%;
   background: var(--card-bg-color, #FFFFFF);
   border-radius: var(--radius-xl, 32rpx);
-  padding: 40rpx 36rpx;
+  padding: 28rpx 36rpx;
   border: 2rpx solid var(--border-color, #EAECF0);
   box-shadow: var(--shadow-md, 0 8rpx 32rpx rgba(15, 23, 42, 0.04));
-  margin-bottom: 20rpx;
+  margin-bottom: 12rpx;
   flex-shrink: 0;
 
   /* 暗黑模式：卡片用深色 2 级，页面背景用深色 1 级，形成细微层级差 */
@@ -442,7 +526,7 @@ async function handleOAuth(provider: OAuthProvider) {
     font-size: var(--font-xl, 36rpx);
     font-weight: 600;
     color: var(--text-color, #0A1628);
-    margin-bottom: 28rpx;
+    margin-bottom: 18rpx;
 
     /* 暗黑模式下使用纯白，提升卡片标题醒目度 */
     .wot-theme-dark & {
@@ -467,7 +551,10 @@ async function handleOAuth(provider: OAuthProvider) {
 }
 
 :deep(.wd-form-item) {
-  margin-bottom: 20rpx;
+  margin-bottom: 14rpx;
+  /* 去掉 wd-cell 自带左右内边距，使输入框/滑块与登录按钮同宽 */
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* ===== 记住密码 + 忘记密码 ===== */
@@ -475,8 +562,7 @@ async function handleOAuth(provider: OAuthProvider) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28rpx;
-  margin-top: 4rpx;
+  margin-bottom: 16rpx;
 }
 
 .forgot-link {
@@ -486,77 +572,61 @@ async function handleOAuth(provider: OAuthProvider) {
 /* ===== OAuth Section ===== */
 .oauth-section {
   width: 100%;
-  margin-top: 16rpx;
+  margin-top: 8rpx;
   flex-shrink: 0;
-}
 
-.oauth-divider {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  margin-bottom: 24rpx;
-
-  &__line {
-    flex: 1;
-    height: 1rpx;
-    background: var(--border-color, #EAEAEA);
-  }
-
-  &__text {
-    font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-4, #B0B0B0);
-    flex-shrink: 0;
+  /* 去掉宫格项默认填充背景，仅保留图标/文字与轻量点击反馈 */
+  :deep(.wd-grid-item) {
+    --wot-grid-item-bg: transparent;
   }
 }
 
-.oauth-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 48rpx;
-}
+/* ===== 微信一键登录区域 ===== */
+.wx-login-section {
+  margin-bottom: 16rpx;
 
-.oauth-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-
-  &__icon {
-    width: 88rpx;
+  :deep(.wd-button) {
     height: 88rpx;
-    border-radius: 44rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform var(--transition-fast, 0.15s ease);
+    font-size: 30rpx;
   }
+}
 
-  &:active &__icon {
-    transform: scale(0.92);
-  }
+.oauth-btn__icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  &__iconify {
-    width: 48rpx;
-    height: 48rpx;
-  }
+.oauth-btn__iconify {
+  width: 40rpx;
+  height: 40rpx;
+}
 
-  &__label {
-    font-size: var(--font-xs, 20rpx);
-    color: var(--text-color-3, #6B7280);
-  }
+.oauth-btn__label {
+  font-size: var(--font-xs, 20rpx);
+  color: var(--text-color-3, #6B7280);
 }
 
 /* ===== Footer ===== */
 .login-footer {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  padding: 24rpx 0 0;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 12rpx 0 0;
   flex-shrink: 0;
 
   &__text {
     font-size: var(--font-sm, 24rpx);
-    color: var(--text-color-4, #B0B0B0);
+    color: var(--text-color-3, #6B7280);
+  }
+
+  &__link {
+    font-size: var(--font-sm, 24rpx);
   }
 }
 </style>

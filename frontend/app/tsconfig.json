@@ -24,16 +24,7 @@
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
-    "src/**/*.vue",
-    "../src/components/DateQuery.vue",
-    "../src/components/DemoBlock.vue",
-    "../src/components/GlobalMessage.vue",
-    "../src/components/ListEmpty.vue",
-    "../src/components/PaginationBar.vue",
-    "../src/components/PrivacyPopup.vue",
-    "../src/components/SkeletonPage.vue",
-    "../src/components/SliderCaptcha.vue",
-    "../src/components/StatusBadge.vue"
+    "src/**/*.vue"
   ],
   "exclude": ["src/uni_modules"]
 }

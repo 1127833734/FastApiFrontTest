@@ -16,6 +16,9 @@ export const API_DOMAINS = {
   SECONDARY: import.meta.env.VITE_SERVER_BASEURL_SECONDARY || '',
 }
 
+/** 未登录重定向防抖标记：并发请求失败时只跳转一次登录页 */
+let redirectingToLogin = false
+
 /**
  * 创建请求实例
  */
@@ -81,8 +84,17 @@ const alovaInstance = createAlova({
     // 需要认证的请求：校验 token 并注入 Authorization 头
     const userStore = useUserStore()
     const token = userStore.getAccessToken()
-    if (!token)
+    if (!token) {
+      // 未登录：引导到登录页（防抖，避免并发请求重复重定向），并终止请求
+      if (!redirectingToLogin) {
+        redirectingToLogin = true
+        toLoginPage({ mode: 'reLaunch' })
+        setTimeout(() => {
+          redirectingToLogin = false
+        }, 1500)
+      }
       throw new Error('[请求错误]：未登录')
+    }
     method.config.headers.Authorization = `Bearer ${token}`
   }),
 

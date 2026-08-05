@@ -166,6 +166,8 @@ onLoad(() => loadData())
         hide-if-one-page
         @change="handlePageChange"
       />
+      <!-- 底部安全区（全面屏 Home 条避让） -->
+      <wd-gap height="100rpx" safe-area-bottom />
       <wd-popup v-model="showForm" position="bottom" round custom-style="max-height: 80vh; overflow-y: auto;" @close="showForm = false">
         <view class="p-xl">
           <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />

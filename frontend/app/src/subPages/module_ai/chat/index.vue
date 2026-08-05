@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import type { ChatMessage, ChatSession } from '@/api/module_ai/chat'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { computed, nextTick, ref } from 'vue'
 import { ChatAPI } from '@/api/module_ai/chat'
+import { useAiChat } from '@/composables/useAiChat'
+import { useShare } from '@/composables/useShare'
+import { MARKDOWN_TAG_STYLE } from '@/constants/markdown.constant'
+
+useShare({
+  title: 'FastapiAdmin AI 助手 - 智能对话，随时答疑',
+  path: '/subPages/module_ai/chat/index',
+})
 
 definePage({ name: 'work-chat', style: { navigationBarTitleText: 'AI 助手' } })
 
@@ -14,6 +22,10 @@ const messages = ref<ChatMessage[]>([])
 const inputText = ref('')
 const loading = ref(false)
 const showSessions = ref(false)
+
+/** 流式对话（WebSocket） */
+const streamChat = useAiChat()
+const streaming = streamChat.isStreaming
 
 // ===== 消息窗口化渲染 =====
 // 长会话只渲染最近 MAX_VISIBLE_MESSAGES 条，避免消息过多时 DOM 节点与 setData 数据量膨胀导致卡顿；
@@ -109,38 +121,74 @@ async function deleteSession(id: number) {
 }
 
 async function sendMessage() {
-  if (!inputText.value.trim())
+  const text = inputText.value.trim()
+  if (!text || streaming.value)
     return
-  if (!currentSession.value) {
-    toast.info('请先创建或选择会话')
-    return
+  // 无会话时自动创建，避免"请先创建会话"的额外步骤
+  let sid = currentSession.value
+  if (!sid) {
+    try {
+      const res = await ChatAPI.createSession()
+      // 兼容后端可能返回 { data: ChatSession } 或直接 ChatSession 两种结构
+      const newSession = (res as { data?: ChatSession })?.data ?? (res as ChatSession)
+      if (newSession?.id) {
+        sessions.value.unshift(newSession)
+        sid = newSession.id
+        currentSession.value = sid
+        currentTitle.value = newSession.title || 'AI 助手'
+      }
+      else {
+        return toast.error('创建会话失败')
+      }
+    }
+    catch {
+      return toast.error('创建会话失败')
+    }
   }
 
-  const text = inputText.value.trim()
   messages.value.push({ role: 'user', content: text, time: new Date().toLocaleTimeString() })
   inputText.value = ''
-  loading.value = true
-
-  // Scroll to bottom
-  nextTick(() => {
-    // scroll-view auto-scroll
-  })
+  // 占位 AI 消息，流式分片实时追加（打字机效果）
+  const aiMsg: ChatMessage = { role: 'ai', content: '', time: new Date().toLocaleTimeString() }
+  messages.value.push(aiMsg)
+  scrollToBottom()
 
   try {
-    const res = await ChatAPI.sendMessage(currentSession.value, text)
-    // 兼容后端可能返回 ChatMessage 或 { data: { content } } 或 { reply } 多种结构
-    const replyRes = res as { content?: string, reply?: string, data?: { content?: string } }
-    const reply = replyRes?.content || replyRes?.reply || replyRes?.data?.content || '已收到您的消息。'
-    messages.value.push({ role: 'ai', content: reply, time: new Date().toLocaleTimeString() })
-  }
-  catch {
-    // 错误内联展示为 AI 消息
-    messages.value.push({ role: 'ai', content: '请求失败，请稍后重试。', time: new Date().toLocaleTimeString() })
+    await streamChat.sendMessage({ message: text, session_id: String(sid) }, {
+      onChunk: (chunk) => {
+        aiMsg.content += chunk
+        scrollToBottom()
+      },
+      onDone: () => {
+        if (!aiMsg.content)
+          aiMsg.content = '（无回复内容）'
+      },
+      onError: (err) => {
+        aiMsg.content = err || '请求失败，请稍后重试。'
+      },
+    })
   }
   finally {
-    loading.value = false
+    streaming.value = false
   }
 }
+
+/** 停止当前生成 */
+function stopGenerate() {
+  streamChat.stop()
+}
+
+/** 滚动到最新一条消息 */
+function scrollToBottom() {
+  scrollTarget.value = `msg-${visibleMessages.value.length - 1}`
+  nextTick(() => {
+    scrollTarget.value = ''
+  })
+}
+
+onUnload(() => {
+  streamChat.close()
+})
 
 onLoad(() => {
   loadSessions()
@@ -219,7 +267,12 @@ onLoad(() => {
               border: msg.role === 'user' ? 'none' : '1px solid var(--border-color)',
             }"
           >
-            <text style="white-space:pre-wrap;font-size:var(--font-sm,24rpx);line-height:1.7;">
+            <!-- AI 消息渲染 markdown；用户消息保持纯文本 -->
+            <template v-if="msg.role !== 'user'">
+              <wd-loading v-if="streaming && !msg.content" />
+              <mp-html v-else :content="msg.content" markdown :tag-style="MARKDOWN_TAG_STYLE" />
+            </template>
+            <text v-else style="white-space:pre-wrap;font-size:var(--font-sm,24rpx);line-height:1.7;">
               {{ msg.content }}
             </text>
             <text v-if="msg.time" style="font-size:var(--font-xs,20rpx);opacity:0.6;margin-top:8rpx;display:block;" :style="msg.role === 'user' ? 'text-align:right' : 'text-align:left'">
@@ -228,22 +281,16 @@ onLoad(() => {
           </view>
         </view>
       </view>
-      <!-- Loading indicator -->
-      <view v-if="loading" style="margin-bottom:24rpx;">
-        <view class="flex items-start gap-sm">
-          <wd-avatar size="32px" shape="round" src="/static/logo.png" />
-          <view class="max-w-[72%] break-words px-3 py-2" style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:16rpx 16rpx 16rpx 4rpx;">
-            <wd-loading />
-          </view>
-        </view>
-      </view>
     </scroll-view>
 
     <!-- Input -->
     <view style="border-top:1px solid var(--border-color);padding:var(--spacing-md,16rpx);background:var(--card-bg-color);padding-bottom:calc(var(--spacing-md) + env(safe-area-inset-bottom));">
       <view class="flex items-center gap-sm">
-        <wd-input v-model="inputText" placeholder="输入消息..." :disabled="loading" class="flex-1" confirm-type="send" @confirm="sendMessage" />
-        <wd-button :loading="loading" :disabled="!inputText.trim() || !currentSession" type="primary" @click="sendMessage">
+        <wd-input v-model="inputText" placeholder="输入消息..." :disabled="streaming" class="flex-1" confirm-type="send" @confirm="sendMessage" />
+        <wd-button v-if="streaming" type="danger" variant="plain" @click="stopGenerate">
+          停止
+        </wd-button>
+        <wd-button v-else :disabled="!inputText.trim()" type="primary" @click="sendMessage">
           发送
         </wd-button>
       </view>

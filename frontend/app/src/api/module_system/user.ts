@@ -1,5 +1,4 @@
 import { http } from '@/http'
-import { ContentTypeEnum } from '@/http/tools/enum'
 
 const USER_BASE_URL = '/system/user'
 
@@ -20,15 +19,13 @@ const UserAPI = {
   /**
    * 当前用户头像上传
    *
-   * @param body
-   * @returns 上传后的文件路径
+   * @param body 上传参数
+   * @param body.filePath 本地临时文件路径（uni.chooseImage 选择结果）
+   * @param body.name 上传字段名，后端约定为 file
+   * @returns uni.uploadFile 成功回调（statusCode + data 响应体字符串，需调用方解析）
    */
-  uploadCurrentUserAvatar(body: Record<string, any>): Promise<UploadFileResult> {
-    return http.Post(`${USER_BASE_URL}/current/avatar/upload`, body, {
-      headers: {
-        'Content-Type': ContentTypeEnum.FORM_DATA,
-      },
-    })
+  uploadCurrentUserAvatar(body: { filePath: string, name?: string }): Promise<{ statusCode: number, data: string }> {
+    return http.Post(`${USER_BASE_URL}/current/avatar/upload`, body, { requestType: 'upload' })
   },
 
   /**
@@ -52,23 +49,28 @@ const UserAPI = {
   },
 
   /**
-   * 注册用户
+   * 注册用户（公开接口）
    *
-   * @param body
-   * @returns 忘记密码结果
+   * @param body 注册参数
+   * @param body.username 用户名（字母开头，3-32 位）
+   * @param body.password 密码（6-128 位）
+   * @param body.name 昵称（可选）
+   * @returns 注册结果
    */
   registerUser(body: RegisterForm): Promise<void> {
-    return http.Post(`${USER_BASE_URL}/register`, body)
+    return http.Post(`${USER_BASE_URL}/register`, body, { meta: { ignoreAuth: true } })
   },
 
   /**
-   * 忘记密码
+   * 忘记密码（公开接口）
    *
-   * @param body
-   * @returns 忘记密码结果
+   * @param body 重置参数
+   * @param body.username 用户名（字母开头，3-32 位）
+   * @param body.new_password 新密码（6-128 位）
+   * @returns 重置结果
    */
   forgetPassword(body: ForgetPasswordForm): Promise<void> {
-    return http.Post(`${USER_BASE_URL}/password/forget`, body)
+    return http.Post(`${USER_BASE_URL}/password/forget`, body, { meta: { ignoreAuth: true } })
   },
 
   /**
@@ -167,18 +169,17 @@ const UserAPI = {
 
 export default UserAPI
 
-/* 忘记密码表单 */
+/* 忘记密码表单（与后端 UserForgetPasswordSchema 一致，confirmPassword 为前端校验字段不提交） */
 export interface ForgetPasswordForm {
   username: string
   new_password: string
-  confirmPassword: string
 }
 
 /* 注册表单 */
 export interface RegisterForm {
   username: string
   password: string
-  confirmPassword: string
+  name?: string
 }
 
 /* 分页查询表单 */
@@ -213,6 +214,7 @@ export interface UserForm extends BaseFormType {
   gender?: number
   email?: string
   mobile?: string
+  avatar?: string
   is_superuser?: boolean
   status?: number
   description?: string

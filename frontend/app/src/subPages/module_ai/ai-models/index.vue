@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AIModelConfig, AIModelForm } from '@/api/module_ai/chat'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { ChatAPI } from '@/api/module_ai/chat'
 
 definePage({
@@ -17,12 +17,22 @@ const showForm = ref(false)
 const formTitle = ref('新建模型配置')
 const editingId = ref<number | null>(null)
 const submitting = ref(false)
+/** 表单分组折叠：默认全部展开 */
+const activeCollapse = ref<string[]>(['basic', 'advanced'])
 const form = reactive<AIModelForm>({
   name: '',
   base_url: '',
   api_key: '',
   model_id: '',
   temperature: 0.7,
+})
+
+/** 温度绑定（wd-slider 需 number 类型，保留 1 位小数） */
+const temperature = computed<number>({
+  get: () => form.temperature ?? 0.7,
+  set: (v) => {
+    form.temperature = Math.round(v * 10) / 10
+  },
 })
 
 async function loadModels() {
@@ -192,21 +202,32 @@ onLoad(() => {
       <view class="p-xl">
         <wd-navbar :title="formTitle" left-arrow @click-left="showForm = false" />
         <wd-form :model="form" class="mt-lg">
-          <wd-form-item label="配置名称" border>
-            <wd-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable />
-          </wd-form-item>
-          <wd-form-item label="模型 ID" border>
-            <wd-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable />
-          </wd-form-item>
-          <wd-form-item label="API 地址" border>
-            <wd-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable />
-          </wd-form-item>
-          <wd-form-item label="API Key" border>
-            <wd-input v-model="form.api_key" placeholder="sk-..." show-password clearable />
-          </wd-form-item>
-          <wd-form-item label="温度 (0-2)" border>
-            <wd-input v-model="form.temperature" type="number" placeholder="0.7" />
-          </wd-form-item>
+          <wd-collapse v-model="activeCollapse" :border="false">
+            <wd-collapse-item title="基础配置" name="basic" :border="false">
+              <wd-form-item label="配置名称" border>
+                <wd-input v-model="form.name" placeholder="如：生产环境 GPT-4" clearable />
+              </wd-form-item>
+              <wd-form-item label="模型 ID" border>
+                <wd-input v-model="form.model_id" placeholder="如：gpt-4o / deepseek-chat" clearable />
+              </wd-form-item>
+              <wd-form-item label="API 地址" border>
+                <wd-input v-model="form.base_url" placeholder="https://api.openai.com/v1" clearable />
+              </wd-form-item>
+            </wd-collapse-item>
+            <wd-collapse-item title="安全与参数" name="advanced" :border="false">
+              <wd-form-item label="API Key" border>
+                <wd-input v-model="form.api_key" placeholder="sk-..." show-password clearable />
+              </wd-form-item>
+              <wd-form-item label="温度 (0-2)" border>
+                <view class="w-full flex items-center gap-3">
+                  <wd-slider v-model="temperature" class="flex-1" :min="0" :max="2" :step="0.1" show-extreme-value active-color="var(--primary-color)" />
+                  <text class="w-16 text-right text-3 font-semibold wot-text-text-main">
+                    {{ temperature.toFixed(1) }}
+                  </text>
+                </view>
+              </wd-form-item>
+            </wd-collapse-item>
+          </wd-collapse>
         </wd-form>
         <view class="gap-md mt-xl flex">
           <wd-button variant="plain" block @click="showForm = false">
@@ -218,5 +239,8 @@ onLoad(() => {
         </view>
       </view>
     </wd-popup>
+
+    <!-- 底部安全区（全面屏 Home 条避让） -->
+    <wd-gap height="100rpx" safe-area-bottom />
   </view>
 </template>

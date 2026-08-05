@@ -1,24 +1,31 @@
 <script setup lang="ts">
 import type { SwiperItem } from '@wot-ui/ui/components/wd-swiper/types'
-import type { DashboardStats } from '@/api/module_monitor/dashboard'
+import type { DashboardStats, LoginTrendItem } from '@/api/module_monitor/dashboard'
 import type { NoticeItem } from '@/api/module_system/notice'
 import { onPullDownRefresh, onReady, onShow } from '@dcloudio/uni-app'
-import { BarChart, PieChart } from 'echarts/charts'
+import { LineChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import * as echarts from 'echarts/core'
+import { LegacyGridContainLabel } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import { computed, ref } from 'vue'
 import { DashboardAPI } from '@/api/module_monitor/dashboard'
 import { NoticeAPI } from '@/api/module_system/notice'
 import { TicketAPI } from '@/api/module_system/ticket'
+import { useShare } from '@/composables/useShare'
 import { useUserStore } from '@/store/userStore'
+
+useShare(() => ({
+  title: `${getGreeting()}！${userStore.userInfo?.name || '管理员'} 邀你使用 FastapiAdmin`,
+  path: '/pages/index/index',
+}))
 
 echarts.use([
   GridComponent,
   LegendComponent,
   TooltipComponent,
-  BarChart,
-  PieChart,
+  LegacyGridContainLabel,
+  LineChart,
   CanvasRenderer,
 ])
 
@@ -44,6 +51,10 @@ const dashboardStats = ref<DashboardStats | null>(null)
 const pendingTickets = ref(0)
 const recentNotices = ref<NoticeItem[]>([])
 const userStore = useUserStore()
+
+/** 最新公告标题（通知栏展示，无公告则隐藏通知栏） */
+const latestNotice = computed(() => recentNotices.value[0]?.notice_title || '')
+
 /** 页面滚动距离（供 wd-backtop 判断显示） */
 const scrollTop = ref(0)
 onPageScroll((e) => {
@@ -51,8 +62,10 @@ onPageScroll((e) => {
 })
 
 const NAV_LIST = [
-  { icon: 'user', title: '用户管理', name: 'work-users', color: '#4F8CFF' },
   { icon: 'notification', title: '通知公告', name: 'work-notices', color: '#10B981' },
+  { icon: 'message', title: '工单管理', name: 'work-tickets', color: '#F59E0B' },
+  { icon: 'interaction', title: 'AI 助手', name: 'work-chat', color: '#06B6D4' },
+  { icon: 'robot', title: 'AI 模型', name: 'work-ai-models', color: '#8B5CF6' },
 ]
 
 /** 轮播 Banner 条目 */
@@ -80,7 +93,7 @@ const banners = computed<BannerItem[]>(() => [
     subtitle: getDateString(),
     desc: '欢迎回来，开启高效的一天',
     cta: '数据概览',
-    onClick: () => navigateTo('dashboard'),
+    onClick: () => scrollToMonitor(),
   },
   {
     key: 'ticket',
@@ -100,7 +113,7 @@ const banners = computed<BannerItem[]>(() => [
     subtitle: '系统运行状态与趋势分析',
     desc: `总用户 ${dashboardStats.value?.total_users ?? '-'} · 在线 ${dashboardStats.value?.online_users ?? '-'} · 今日登录 ${dashboardStats.value?.today_login_count ?? '-'}`,
     cta: '查看详情',
-    onClick: () => navigateTo('dashboard'),
+    onClick: () => scrollToMonitor(),
   },
 ])
 
@@ -110,62 +123,111 @@ function navigateTo(name: string) {
     r.push({ name })
 }
 
-/** 运营概览图表：在线占比环形图（真实数据，未加载时以 0 值占位） */
-const onlineDonutOption = computed(() => {
-  const s = dashboardStats.value
-  const online = s?.online_users ?? 0
-  const total = s?.total_users ?? 0
-  return {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
-      textStyle: { fontSize: 12 },
-    },
-    legend: { show: false },
-    series: [{
-      type: 'pie',
-      radius: ['58%', '82%'],
-      center: ['50%', '50%'],
-      avoidLabelOverlap: false,
-      label: { show: false },
-      emphasis: { scale: false },
-      data: [
-        { value: online, name: '在线用户', itemStyle: { color: '#4F8CFF' } },
-        { value: Math.max(total - online, 0), name: '离线用户', itemStyle: { color: 'rgba(79, 140, 255, 0.14)' } },
-      ],
-    }],
-  }
-})
+// ===== 系统监控（原数据概览 dashboard 合并） =====
 
-/** 运营概览图表：今日数据柱状图（真实数据，未加载时以 0 值占位） */
-const todayBarOption = computed(() => {
-  const s = dashboardStats.value
+/** 近7天登录趋势（后端 monitor/online/stats 返回，含今日） */
+const loginTrend = ref<LoginTrendItem[]>([])
+
+/** 登录趋势折线图（真实数据：登录次数 / 独立访客 / 新增用户） */
+const loginTrendOption = computed(() => {
+  const days = loginTrend.value.length > 0
+    ? loginTrend.value.map(i => i.day.slice(5)) // 仅显示 MM-DD
+    : []
+  const logins = loginTrend.value.map(i => i.logins)
+  const uniques = loginTrend.value.map(i => i.unique_users)
+  const news = loginTrend.value.map(i => i.new_users)
   return {
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow' },
       textStyle: { fontSize: 12 },
     },
-    grid: { left: 4, right: 4, top: 18, bottom: 0, containLabel: true },
+    legend: {
+      top: 0,
+      right: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 8,
+      textStyle: { fontSize: 10, color: '#909399' },
+      data: ['登录次数', '独立访客', '新增用户'],
+    },
+    grid: { left: 8, right: 8, top: 34, bottom: 0, containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['今日登录', '本周新增', '独立用户'],
+      boundaryGap: false,
+      data: days,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { fontSize: 10, color: '#999' },
     },
-    yAxis: { type: 'value', show: false },
-    series: [{
-      type: 'bar',
-      barWidth: 14,
-      data: [
-        { value: s?.today_login_count ?? 0, itemStyle: { color: '#4F8CFF', borderRadius: [6, 6, 0, 0] } },
-        { value: s?.week_user_created ?? 0, itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] } },
-        { value: s?.today_unique_users ?? 0, itemStyle: { color: '#F59E0B', borderRadius: [6, 6, 0, 0] } },
-      ],
-    }],
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 10, color: '#999' },
+      splitLine: { lineStyle: { color: 'rgba(128, 128, 128, 0.12)', type: 'dashed' } },
+    },
+    series: [
+      {
+        name: '登录次数',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        data: logins,
+        lineStyle: { width: 3, color: '#4F8CFF' },
+        itemStyle: { color: '#4F8CFF' },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(79, 140, 255, 0.28)' },
+              { offset: 1, color: 'rgba(79, 140, 255, 0.02)' },
+            ],
+          },
+        },
+      },
+      {
+        name: '独立访客',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        data: uniques,
+        lineStyle: { width: 2.5, color: '#10B981' },
+        itemStyle: { color: '#10B981' },
+      },
+      {
+        name: '新增用户',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        data: news,
+        lineStyle: { width: 2.5, color: '#F59E0B' },
+        itemStyle: { color: '#F59E0B' },
+      },
+    ],
   }
 })
+
+/** 滚动定位到系统监控区块（dashboard 合并后无独立页面，Banner 点击改为页内定位） */
+function scrollToMonitor() {
+  const query = uni.createSelectorQuery()
+  query.select('#monitor-section').boundingClientRect()
+  query.exec((res) => {
+    const rect = res[0] as UniApp.NodeInfo | null
+    if (rect && typeof rect.top === 'number') {
+      uni.pageScrollTo({
+        scrollTop: Math.max(rect.top + scrollTop.value - 12, 0),
+        duration: 300,
+      })
+    }
+  })
+}
 
 async function loadData() {
   loading.value = true
@@ -174,8 +236,10 @@ async function loadData() {
       DashboardAPI.getStats(),
       TicketAPI.getPage({ page_no: 1, page_size: 1, status: '0' }),
     ])
-    if (statsRes.status === 'fulfilled')
+    if (statsRes.status === 'fulfilled') {
       dashboardStats.value = statsRes.value
+      loginTrend.value = statsRes.value.login_trend || []
+    }
     if (ticketRes.status === 'fulfilled')
       pendingTickets.value = ticketRes.value.total || 0
   }
@@ -231,22 +295,24 @@ function getGreeting() {
 </script>
 
 <template>
-  <view class="box-border min-h-screen">
-    <!-- 顶部通知栏（info 类型跟随主题色：背景 --wot-primary-1 / 文字 --wot-primary-6；暗黑模式下经 home-notice 覆盖为半透明主色底） -->
+  <view class="page-wraper">
+    <!-- 顶部通知栏：接入最新一条公告（无公告自动隐藏），点击进入公告列表 -->
     <wd-notice-bar
-      text="这是一条消息提示信息，这是一条消息提示信息，这是一条消息提示信息"
+      v-if="latestNotice"
+      :text="latestNotice"
       closable
       type="info"
       prefix="notification"
       custom-class="home-notice"
       class="mb-3"
+      @click="navigateTo('work-notices')"
     />
 
     <!-- 轮播 Banner -->
     <view class="mx-3 mb-3">
       <wd-swiper
         :list="banners"
-        height="100"
+        height="120"
         radius="14"
         :interval="4500"
         :autoplay="true"
@@ -371,19 +437,23 @@ function getGreeting() {
       </wd-row>
     </view>
 
-    <!-- 运营图表（未加载数据时以 0 值占位渲染） -->
-    <view class="grid grid-cols-2 mx-3 mt-3 gap-3">
-      <view class="rounded-2 p-3 wot-bg-filled-oppo">
-        <view class="mb-1 text-center text-3 font-bold wot-text-text-main">
-          在线占比
-        </view>
-        <uni-echarts custom-class="h-44 w-full" :option="onlineDonutOption" />
+    <!-- 系统监控（原数据概览 dashboard 合并，Banner 点击可滚动到此区块） -->
+    <view id="monitor-section" class="mt-4">
+      <view class="mb-2 flex items-center gap-2 px-3">
+        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--danger-color, #EF4444);" />
+        <text class="text-3.5 font-bold wot-text-text-main">
+          系统监控
+        </text>
       </view>
-      <view class="rounded-2 p-3 wot-bg-filled-oppo">
-        <view class="mb-1 text-center text-3 font-bold wot-text-text-main">
-          今日数据
+
+      <!-- 登录趋势折线图 -->
+      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+        <view class="mb-4 flex items-center gap-2">
+          <text class="text-3.5 font-bold wot-text-text-main">
+            登录趋势 (近7天)
+          </text>
         </view>
-        <uni-echarts custom-class="h-44 w-full" :option="todayBarOption" />
+        <uni-echarts custom-class="h-52 w-full" :option="loginTrendOption" />
       </view>
     </view>
 
@@ -417,50 +487,6 @@ function getGreeting() {
       </wd-cell-group>
     </view>
 
-    <!-- 最近登录 -->
-    <view v-if="dashboardStats?.recent_logins?.length" class="mb-2 mt-4 flex items-center justify-between px-3">
-      <view class="flex items-center gap-2">
-        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--warning-color, #F59E0B);" />
-        <text class="text-3.5 font-bold wot-text-text-main">
-          最近登录
-        </text>
-      </view>
-      <text class="text-3 wot-text-primary" @click="navigateTo('work-loginlogs')">
-        全部
-      </text>
-    </view>
-    <view v-if="dashboardStats?.recent_logins?.length" class="mx-3">
-      <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell
-          v-for="(item, i) in dashboardStats.recent_logins.slice(0, 5)"
-          :key="i"
-          :title="item.username"
-        >
-          <template #label>
-            <text class="text-2.5 wot-text-text-auxiliary">
-              {{ item.login_time || '' }}{{ item.login_ip ? ` · ${item.login_ip}` : '' }}
-            </text>
-          </template>
-          <template #value>
-            <StatusBadge :status="item.status === 1 ? 'success' : 'failed'" />
-          </template>
-        </wd-cell>
-      </wd-cell-group>
-      <wd-loadmore state="finished">
-        <template #finished>
-          <view
-            class="flex items-center justify-center py-1"
-            @click="navigateTo('work-loginlogs')"
-          >
-            <text class="text-3 wot-text-primary">
-              加载更多
-            </text>
-            <wd-icon name="arrow-right" size="14px" custom-class="wot-text-primary" />
-          </view>
-        </template>
-      </wd-loadmore>
-    </view>
-
     <!-- Bottom safe area -->
     <wd-gap height="100rpx" safe-area-bottom />
     <wd-backtop :scroll-top="scrollTop" :top="80" />
@@ -480,7 +506,7 @@ function getGreeting() {
   color: #FFFFFF;
   overflow: hidden;
 
-  /* 装饰圆环 */
+  /* 装饰圆环（极光浮动动效） */
   &::before {
     content: '';
     position: absolute;
@@ -490,6 +516,7 @@ function getGreeting() {
     height: 300rpx;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.10);
+    animation: banner-orbit 7s ease-in-out infinite;
   }
 
   &::after {
@@ -501,6 +528,13 @@ function getGreeting() {
     height: 240rpx;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.08);
+    animation: banner-orbit 9s ease-in-out infinite reverse;
+  }
+
+  /* 极光呼吸：装饰圆环缓慢浮动，增强 Banner 层次感（transform 动画，真机性能友好） */
+  @keyframes banner-orbit {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-14rpx) scale(1.06); }
   }
 
   &--greet { background: linear-gradient(135deg, #4F8CFF, #2563EB); }
