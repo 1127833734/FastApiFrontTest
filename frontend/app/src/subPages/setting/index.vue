@@ -51,8 +51,8 @@ const gitCode = computed(() => configStore.configData?.git_code?.config_value?.t
 /** 当前系统版本（后端 version 参数） */
 const version = computed(() => configStore.configData?.version?.config_value?.trim() || '')
 
-/** 本地水印偏好，默认开启，由本页开关控制 */
-const watermarkSwitch = ref(Storage.get<boolean>(WATERMARK_KEY) ?? true)
+/** 本地水印偏好，默认开启，由本页开关控制（历史脏数据统一兜底为布尔，避免脏值传给 switch） */
+const watermarkSwitch = ref(Boolean(Storage.get<boolean>(WATERMARK_KEY) ?? true))
 
 function handleWatermarkChange(value: boolean) {
   Storage.set(WATERMARK_KEY, value)

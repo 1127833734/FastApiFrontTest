@@ -1,10 +1,13 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import { useGlobalDialog } from '@/composables/useGlobalDialog'
 import { getTicketStats } from '@/composables/useCachedRequest'
+import { useGlobalDialog } from '@/composables/useGlobalDialog'
 import { useShare } from '@/composables/useShare'
 import { useSharePoster } from '@/composables/useSharePoster'
 import { useUserStore } from '@/store/userStore'
+
+const userStore = useUserStore()
+const userInfo = computed(() => userStore.userInfo)
 
 useShare(() => ({
   title: `${userInfo.value?.name || '管理员'} 邀请你加入 FastapiAdmin`,
@@ -19,8 +22,6 @@ definePage({
 
 const router = useRouter()
 const { t } = useI18n()
-const userStore = useUserStore()
-const userInfo = computed(() => userStore.userInfo)
 
 function navigateTo(name: string) {
   router.push({ name })
@@ -76,37 +77,10 @@ const quickLinks = [
   { title: 'AI 模型', name: 'work-ai-models', icon: 'robot', color: '#8B5CF6' },
 ]
 
-/** 邀请海报（获客）：生成小程序码 → 预览 → 保存相册 */
-const { generateQrCode, saveImageToAlbum } = useSharePoster()
+/** 邀请海报（获客）：保存小程序码到相册 */
+const { saveImageToAlbum } = useSharePoster()
 const showPoster = ref(false)
 const posterUrl = ref('')
-const posterLoading = ref(false)
-
-async function handleGeneratePoster() {
-  // #ifdef MP-WEIXIN
-  if (posterLoading.value)
-    return
-  posterLoading.value = true
-  try {
-    // 带参小程序码：scene 携带用户 ID（invite_xxx），扫码进入首页
-    const scene = `invite_${userInfo.value?.id || 0}`
-    const qr = await generateQrCode({ scene, page: 'pages/index/index' })
-    if (!qr) {
-      uni.showToast({ title: '生成失败，请稍后重试', icon: 'none' })
-      return
-    }
-    posterUrl.value = qr
-    showPoster.value = true
-  }
-  finally {
-    posterLoading.value = false
-  }
-  // #endif
-
-  // #ifndef MP-WEIXIN
-  uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })
-  // #endif
-}
 
 /** 保存海报到相册（base64 → 临时文件 → 相册） */
 async function handleSavePoster() {
@@ -134,61 +108,52 @@ async function handleSavePoster() {
 
 <template>
   <view class="page-wraper py-3">
-    <!-- 用户信息卡 -->
-    <view class="mx-3 mb-3 flex items-center gap-4 rounded-3 px-5 py-6 wot-bg-filled-oppo">
+    <!-- 用户信息卡（品牌渐变 + 极光装饰圆环，与工作台一致） -->
+    <view class="mine-user-card mx-3 mb-3 flex items-center gap-4 rounded-3 px-5 py-6">
       <wd-badge is-dot>
         <wd-avatar
           size="64px"
           round
-          :text="(userInfo?.name || '管').charAt(0)"
-          bg-color="#4F8CFF"
-          color="#FFFFFF"
+          :src="userInfo?.avatar || ''"
+          bg-color="rgba(255, 255, 255, 0.25)"
+          custom-class="mine-user-card__avatar"
         />
       </wd-badge>
       <view class="min-w-0 flex-1">
-        <view class="text-4 font-bold wot-text-text-main">
+        <view class="text-4 text-white font-bold">
           {{ userInfo?.name || '管理员' }}
         </view>
-        <view class="mt-1 truncate text-3 wot-text-text-secondary">
+        <view class="mt-1 truncate text-3" style="color: rgba(255, 255, 255, 0.75);">
           {{ userInfo?.roles?.map(r => r.name).join(', ') || '超级管理员 · 技术部' }}
         </view>
       </view>
       <!-- 设置入口（纯 icon，打开设置页：内含主题设置） -->
       <view
-        class="h-9 w-9 flex shrink-0 items-center justify-center rounded-full active:opacity-70"
+        class="relative z-10 h-9 w-9 flex shrink-0 items-center justify-center rounded-full active:opacity-70"
         hover-class="none"
         @click="navigateTo('setting')"
       >
-        <wd-icon name="settings" size="20px" custom-class="wot-text-text-secondary" />
+        <wd-icon name="settings" size="20px" color="rgba(255, 255, 255, 0.9)" />
       </view>
     </view>
 
     <!-- 邀请好友（获客入口：转发 / 邀请海报） -->
     <view class="mx-3 mb-3 flex items-center gap-3 rounded-2 p-4 wot-bg-filled-oppo">
       <view class="h-10 w-10 flex shrink-0 items-center justify-center rounded-xl" style="background-color: #4F8CFF1a;">
-        <wd-icon name="share" size="20px" color="#4F8CFF" />
+        <wd-icon name="share-external" size="20px" color="#4F8CFF" />
       </view>
       <view class="min-w-0 flex-1">
         <view class="text-3.5 font-bold wot-text-text-main">
           邀请好友
         </view>
         <view class="mt-0.5 truncate text-2.5 wot-text-text-auxiliary">
-          分享小程序给同事，一起高效办公
+          分享小程序，一起高效办公
         </view>
       </view>
       <!-- 微信原生转发按钮（useShare 已配置分享卡片） -->
       <button class="invite-share-btn" open-type="share" size="mini">
         立即邀请
       </button>
-      <view class="flex shrink-0 flex-col items-center gap-1" @click="handleGeneratePoster">
-        <view class="flex h-8 w-8 items-center justify-center rounded-lg" style="background-color: #10B9811a;">
-          <wd-icon v-if="!posterLoading" name="picture" size="16px" color="#10B981" />
-          <wd-loading v-else :size="16" />
-        </view>
-        <text class="text-2 wot-text-text-auxiliary">
-          海报
-        </text>
-      </view>
     </view>
 
     <!-- 工单统计 -->
@@ -322,6 +287,40 @@ async function handleSavePoster() {
 
   &::after {
     border: none;
+  }
+}
+
+/* 用户信息卡：品牌渐变 + 极光装饰圆环（与工作台一致） */
+.mine-user-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4F8CFF 0%, #2563EB 100%);
+  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.25);
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: -60rpx;
+    top: -70rpx;
+    width: 220rpx;
+    height: 220rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 60rpx;
+    bottom: -90rpx;
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  :deep(.mine-user-card__avatar) {
+    border: 3rpx solid rgba(255, 255, 255, 0.6);
   }
 }
 </style>

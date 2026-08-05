@@ -6,8 +6,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AuthAPI from '@/api/module_system/auth'
-import { REMEMBER_ME_KEY } from '@/constants'
 import { useWxLogin } from '@/composables/useWxLogin'
+import { REMEMBER_ME_KEY } from '@/constants'
 import { useConfigStore } from '@/store/configStore'
 import { useUserStore } from '@/store/userStore'
 import { Storage } from '@/utils/storage'
@@ -305,7 +305,9 @@ async function handleWxPhoneLogin(e: any) {
           @click="handleWxLogin"
         >
           <wd-icon name="wechat" size="18px" color="#FFFFFF" />
-          <text class="ml-1">微信一键登录</text>
+          <text class="ml-1">
+            微信一键登录
+          </text>
         </wd-button>
         <wd-button
           plain

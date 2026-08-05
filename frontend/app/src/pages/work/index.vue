@@ -80,20 +80,20 @@ const filteredGroups = computed(() => {
 
 <template>
   <view class="page-wraper py-3">
-    <!-- 用户信息卡 -->
-    <view class="mx-3 mb-4 flex items-center gap-4 rounded-3 px-5 py-6 wot-bg-filled-oppo">
+    <!-- 用户信息卡（品牌渐变 + 极光装饰圆环） -->
+    <view class="work-user-card mx-3 mb-4 flex items-center gap-4 rounded-3 px-5 py-6">
       <wd-avatar
         size="64px"
         round
-        :text="(userInfo?.name || '管').charAt(0)"
-        bg-color="#4F8CFF"
-        color="#FFFFFF"
+        :src="userInfo?.avatar || ''"
+        bg-color="rgba(255, 255, 255, 0.25)"
+        custom-class="work-user-card__avatar"
       />
       <view class="min-w-0 flex-1">
-        <view class="text-4 font-bold wot-text-text-main">
+        <view class="text-4 text-white font-bold">
           {{ userInfo?.name || 'FastapiAdmin' }}
         </view>
-        <view class="mt-1 truncate text-3 wot-text-text-secondary">
+        <view class="mt-1 truncate text-3" style="color: rgba(255, 255, 255, 0.75);">
           {{ userInfo?.roles?.map(r => r.name).join(', ') || '超级管理员' }}
         </view>
       </view>
@@ -145,3 +145,41 @@ const filteredGroups = computed(() => {
     <wd-gap height="100rpx" safe-area-bottom />
   </view>
 </template>
+
+<style lang="scss" scoped>
+/* 用户信息卡：品牌渐变 + 极光装饰圆环（与首页 Banner 视觉呼应） */
+.work-user-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4F8CFF 0%, #2563EB 100%);
+  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.25);
+
+  /* 右上角装饰圆环 */
+  &::before {
+    content: '';
+    position: absolute;
+    right: -60rpx;
+    top: -70rpx;
+    width: 220rpx;
+    height: 220rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 60rpx;
+    bottom: -90rpx;
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* 头像白色描边，在渐变底上更清晰 */
+  :deep(.work-user-card__avatar) {
+    border: 3rpx solid rgba(255, 255, 255, 0.6);
+  }
+}
+</style>

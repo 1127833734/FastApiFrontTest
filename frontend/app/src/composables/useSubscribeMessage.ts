@@ -107,7 +107,7 @@ export function useSubscribeMessage() {
     // #ifdef MP-WEIXIN
     try {
       const settings = await uni.getSetting({})
-      const subscription = (settings as any).authSetting?.['subscribeMessage']
+      const subscription = (settings as any).authSetting?.subscribeMessage
       // 如果用户曾经拒绝过，引导去设置页开启
       if (subscription === false) {
         uni.showModal({

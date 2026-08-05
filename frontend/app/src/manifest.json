@@ -48,16 +48,31 @@
   },
   "quickapp": {},
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx0000000000000000",
     "setting": {
-      "urlCheck": false
+      "urlCheck": false,
+      "minified": true,
+      "es6": true,
+      "postcss": true,
+      "minifyWXML": true
     },
     "usingComponents": true,
     "optimization": {
       "subPackages": true
     },
     "darkmode": true,
-    "themeLocation": "theme.json"
+    "themeLocation": "theme.json",
+    "permission": {
+      "scope.writePhotosAlbum": {
+        "desc": "用于保存分享海报到相册"
+      },
+      "scope.userLocation": {
+        "desc": "用于获取您的地理位置信息"
+      }
+    },
+    "requiredPrivateInfos": [
+      "getLocation"
+    ]
   },
   "mp-alipay": {
     "usingComponents": true,

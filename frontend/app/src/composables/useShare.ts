@@ -41,10 +41,8 @@ export function useShare(configOrGetter?: ShareConfig | (() => ShareConfig)) {
     return { ...DEFAULT_SHARE }
   }
 
-  onShareAppMessage((options) => {
+  onShareAppMessage(() => {
     const cfg = getConfig()
-    // 从分享来源判断：如果是按钮分享，可携带额外参数
-    const fromButton = options?.from === 'button'
     return {
       title: cfg.title,
       path: cfg.path || DEFAULT_SHARE.path,

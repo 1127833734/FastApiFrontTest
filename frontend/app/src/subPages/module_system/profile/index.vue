@@ -139,32 +139,40 @@ onLoad(() => {
     <SkeletonPage v-if="loading && !userProfile" :rows="6" />
 
     <template v-else>
-      <!-- 头像 + 昵称 -->
+      <!-- 头像 + 昵称（点击头像即上传更换） -->
       <view class="mx-3 mb-3 flex flex-col items-center gap-2 py-4">
-        <wd-avatar
-          size="80px"
-          round
-          :src="userProfile?.avatar || ''"
-          :text="(userProfile?.name || userProfile?.username || '?').charAt(0)"
-          bg-color="var(--primary-color)"
-          color="#FFFFFF"
-        />
+        <wd-upload
+          v-model:file-list="avatarFileList"
+          :action="uploadAvatarAction"
+          :header="uploadHeader"
+          :limit="1"
+          accept="image"
+          :max-size="5242880"
+          :source-type="['album', 'camera']"
+          @success="handleAvatarSuccess"
+          @fail="handleAvatarFail"
+        >
+          <view class="relative">
+            <wd-avatar
+              size="80px"
+              round
+              :src="userProfile?.avatar || ''"
+              :text="(userProfile?.name || userProfile?.username || '?').charAt(0)"
+              bg-color="var(--primary-color)"
+              color="#FFFFFF"
+            />
+            <!-- 相机角标：示意可更换头像 -->
+            <view
+              class="absolute h-6 w-6 flex items-center justify-center rounded-full -bottom-0.5 -right-0.5"
+              style="background-color: var(--primary-color, #4F8CFF); border: 3rpx solid var(--wot-filled-content, #FFFFFF);"
+            >
+              <wd-icon name="camera" size="12px" color="#FFFFFF" />
+            </view>
+          </view>
+        </wd-upload>
         <text class="text-4 font-bold wot-text-text-main">
           {{ userProfile?.name || userProfile?.username || '-' }}
         </text>
-        <view class="mt-2 w-full px-10">
-          <wd-upload
-            v-model="avatarFileList"
-            :action="uploadAvatarAction"
-            :header="uploadHeader"
-            :limit="1"
-            accept="image"
-            :max-size="5242880"
-            :source-type="['album', 'camera']"
-            @success="handleAvatarSuccess"
-            @fail="handleAvatarFail"
-          />
-        </view>
       </view>
 
       <!-- 资料列表 -->

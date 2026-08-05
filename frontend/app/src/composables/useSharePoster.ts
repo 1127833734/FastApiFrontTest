@@ -220,7 +220,7 @@ export function useSharePoster() {
               height: H,
               destWidth: W * 2,
               destHeight: H * 2,
-              success: (res) => resolve(res.tempFilePath),
+              success: res => resolve(res.tempFilePath),
               fail: () => resolve(''),
             })
           }, 200)

@@ -15,6 +15,8 @@ import { TicketAPI } from '@/api/module_system/ticket'
 import { useShare } from '@/composables/useShare'
 import { useUserStore } from '@/store/userStore'
 
+const userStore = useUserStore()
+
 useShare(() => ({
   title: `${getGreeting()}！${userStore.userInfo?.name || '管理员'} 邀你使用 FastapiAdmin`,
   path: '/pages/index/index',
@@ -50,10 +52,9 @@ const loading = ref(false)
 const dashboardStats = ref<DashboardStats | null>(null)
 const pendingTickets = ref(0)
 const recentNotices = ref<NoticeItem[]>([])
-const userStore = useUserStore()
 
 /** 最新公告标题（通知栏展示，无公告则隐藏通知栏） */
-const latestNotice = computed(() => recentNotices.value[0]?.notice_title || '')
+const latestNotice = computed(() => recentNotices.value[0]?.notice_title || '欢迎使用 FastapiAdmin')
 
 /** 页面滚动距离（供 wd-backtop 判断显示） */
 const scrollTop = ref(0)
@@ -298,7 +299,6 @@ function getGreeting() {
   <view class="page-wraper">
     <!-- 顶部通知栏：接入最新一条公告（无公告自动隐藏），点击进入公告列表 -->
     <wd-notice-bar
-      v-if="latestNotice"
       :text="latestNotice"
       closable
       type="info"

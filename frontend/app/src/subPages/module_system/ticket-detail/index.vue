@@ -6,6 +6,9 @@ import { TicketAPI } from '@/api/module_system/ticket'
 import { useShare } from '@/composables/useShare'
 import { MARKDOWN_TAG_STYLE } from '@/constants/markdown.constant'
 
+const ticket = ref<TicketItem | null>(null)
+const ticketId = ref(0)
+
 useShare(() => ({
   title: ticket.value ? `工单：${ticket.value.title}` : '工单详情',
   path: `/subPages/module_system/ticket-detail/index?id=${ticketId.value}`,
@@ -18,13 +21,11 @@ definePage({
 
 const toast = useToast()
 const loading = ref(false)
-const ticket = ref<TicketItem | null>(null)
 const comments = ref<TicketComment[]>([])
 const commentTotal = ref(0)
 const commentPage = reactive({ page_no: 1, page_size: 20 })
 const commentText = ref('')
 const submitting = ref(false)
-const ticketId = ref(0)
 const previewRef = ref<{ open: (options: { images: string[], startPosition?: number }) => void }>()
 
 async function loadTicket() {
