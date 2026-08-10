@@ -112,12 +112,8 @@ const filteredGroups = computed(() => {
     <view v-for="(group, gi) in filteredGroups" :key="gi" class="mb-4">
       <view class="mb-2 mt-1 flex items-center gap-2 px-3">
         <view class="h-3.5 w-1 rounded-full" :style="{ backgroundColor: group.color }" />
-        <text class="text-3.5 font-bold wot-text-text-main">
-          {{ t(group.titleKey) }}
-        </text>
-        <text class="text-2.5 wot-text-text-auxiliary">
-          {{ group.items.length }}
-        </text>
+        <wd-text class="text-3.5 wot-text-text-main" :text="t(group.titleKey)" bold />
+        <wd-text class="text-2.5 wot-text-text-auxiliary" :text="group.items.length" />
       </view>
       <wd-cell-group border custom-class="mx-3 rounded-2! overflow-hidden">
         <wd-cell
@@ -135,7 +131,9 @@ const filteredGroups = computed(() => {
               >
                 <wd-icon :name="item.icon" size="16px" :color="group.color" />
               </view>
-              <text>{{ t(item.titleKey) }}</text>
+              <text>
+                {{ t(item.titleKey) }}
+              </text>
             </view>
           </template>
         </wd-cell>

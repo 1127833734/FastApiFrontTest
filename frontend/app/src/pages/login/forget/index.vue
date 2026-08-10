@@ -85,7 +85,7 @@ function goLogin() {
 
       <view class="forget-form">
         <wd-form ref="forgetFormRef" :model="forgetForm" :schema="forgetSchema">
-          <wd-form-item prop="username">
+          <wd-form-item prop="username" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="forgetForm.username"
               :placeholder="t('common.form.usernamePlaceholder')"
@@ -94,7 +94,7 @@ function goLogin() {
               prefix-icon="user"
             />
           </wd-form-item>
-          <wd-form-item prop="new_password">
+          <wd-form-item prop="new_password" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="forgetForm.new_password"
               :placeholder="t('common.form.newPasswordPlaceholder')"
@@ -104,7 +104,7 @@ function goLogin() {
               prefix-icon="lock"
             />
           </wd-form-item>
-          <wd-form-item prop="confirmPassword">
+          <wd-form-item prop="confirmPassword" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="forgetForm.confirmPassword"
               :placeholder="t('common.form.confirmNewPlaceholder')"
@@ -121,9 +121,7 @@ function goLogin() {
       </view>
 
       <view class="forget-footer">
-        <text class="forget-footer__link wot-text-primary" @click="goLogin">
-          {{ t('forget.toLogin') }}
-        </text>
+        <wd-text class="forget-footer__link" :text="t('forget.toLogin')" type="primary" @click="goLogin" />
       </view>
     </view>
   </view>
@@ -213,5 +211,14 @@ function goLogin() {
   &__link {
     font-size: var(--font-md, 28rpx);
   }
+}
+</style>
+
+<style lang="scss">
+/* MP 端兼容：wd-form-item 内部 wd-cell 因 uni-app 插槽静态声明（u-s）误判 label/title 插槽被使用，
+   showLeft=true 渲染空 left 区域（flex:1 占半宽），H5 端运行时插槽判定无此问题。
+   本页 form-item 无 title/label/prefix 内容，隐藏 left 安全，保证输入框与登录按钮同宽 */
+.forget-card .wd-form-item .wd-cell__left {
+  display: none;
 }
 </style>

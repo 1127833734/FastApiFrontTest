@@ -139,9 +139,7 @@ onLoad((options) => {
     <template v-else-if="ticket">
       <!-- Ticket Header -->
       <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="block text-4 font-bold wot-text-text-main">
-          {{ ticket.title || t('ticketDetail.unnamed') }}
-        </text>
+        <wd-text class="block text-4 wot-text-text-main" :text="ticket.title || t('ticketDetail.unnamed')" bold />
         <view class="mt-3 flex gap-2">
           <wd-tag size="small" round :bg-color="`${getTypeColor(ticket.ticket_type)}18`" :color="getTypeColor(ticket.ticket_type)">
             {{ getTypeLabel(ticket.ticket_type) }}
@@ -154,9 +152,7 @@ onLoad((options) => {
 
       <!-- Ticket Status Steps -->
       <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="mb-3 block text-3.5 font-bold wot-text-text-main">
-          {{ t('ticketDetail.progress') }}
-        </text>
+        <wd-text class="mb-3 block text-3.5 wot-text-text-main" :text="t('ticketDetail.progress')" bold />
         <wd-steps :active="Number(ticket.status ?? 0)" align-center>
           <wd-step :title="t('common.status.pending')" />
           <wd-step :title="t('common.status.processing')" />
@@ -176,18 +172,14 @@ onLoad((options) => {
 
       <!-- Ticket Content -->
       <view v-if="ticket.ticket_content || ticket.summary" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="block text-3.5 font-bold wot-text-text-main">
-          {{ t('ticketDetail.content') }}
-        </text>
+        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.content')" bold />
         <wd-divider class="my-3!" />
         <mp-html :content="ticket.summary || ticket.ticket_content" markdown :tag-style="MARKDOWN_TAG_STYLE" />
       </view>
 
       <!-- Images -->
       <view v-if="parseImages(ticket.images).length > 0" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="block text-3.5 font-bold wot-text-text-main">
-          {{ t('ticketDetail.attachments') }}
-        </text>
+        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.attachments')" bold />
         <wd-divider class="my-3!" />
         <view class="flex flex-wrap gap-3">
           <wd-img
@@ -206,9 +198,7 @@ onLoad((options) => {
 
       <!-- Reply -->
       <view v-if="ticket.reply" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="block text-3.5 font-bold wot-text-text-main">
-          {{ t('ticketDetail.replies') }}
-        </text>
+        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.replies')" bold />
         <wd-divider class="my-3!" />
         <view class="rounded-lg p-3" style="background: var(--primary-color-light, rgba(1, 77, 178, 0.06));">
           <mp-html :content="ticket.reply" markdown :tag-style="MARKDOWN_TAG_STYLE" />
@@ -217,9 +207,7 @@ onLoad((options) => {
 
       <!-- Comments -->
       <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <text class="block text-3.5 font-bold wot-text-text-main">
-          {{ t('ticketDetail.comments', { count: commentTotal }) }}
-        </text>
+        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.comments', { count: commentTotal })" bold />
         <wd-divider class="my-3!" />
         <wd-empty v-if="comments.length === 0" :tip="t('ticketDetail.emptyComments')" />
         <view v-else class="flex flex-col gap-4">
@@ -231,23 +219,15 @@ onLoad((options) => {
             />
             <view class="min-w-0 flex-1">
               <view class="flex items-center gap-3">
-                <text class="text-3 font-semibold wot-text-text-main">
-                  {{ comment.username || t('ticketDetail.anonymous') }}
-                </text>
-                <text class="text-2.5 wot-text-text-auxiliary">
-                  {{ comment.created_time || '' }}
-                </text>
+                <wd-text class="text-3 font-semibold wot-text-text-main" :text="comment.username || t('ticketDetail.anonymous')" />
+                <wd-text class="text-2.5 wot-text-text-auxiliary" :text="comment.created_time || ''" />
               </view>
-              <text class="mt-1 block text-3 leading-relaxed wot-text-text-secondary">
-                {{ comment.content }}
-              </text>
+              <wd-text class="mt-1 block text-3 leading-relaxed wot-text-text-secondary" :text="comment.content" />
             </view>
           </view>
 
           <view v-if="commentTotal > comments.length" class="flex items-center justify-center py-1" @click="commentPage.page_no++; loadComments()">
-            <text class="text-3 wot-text-primary">
-              {{ t('ticketDetail.loadMore') }}
-            </text>
+            <wd-text class="text-3" :text="t('ticketDetail.loadMore')" type="primary" />
           </view>
         </view>
       </view>

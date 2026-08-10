@@ -208,9 +208,7 @@ onLoad(() => {
       <wd-button size="small" variant="plain" @click="showSessions = !showSessions">
         <wd-icon name="menu" size="16px" />
       </wd-button>
-      <text class="text-md flex-1 truncate text-center font-bold">
-        {{ currentTitle }}
-      </text>
+      <wd-text class="text-md flex-1 truncate text-center" :text="currentTitle" bold />
       <wd-button size="small" type="primary" variant="plain" @click="createSession">
         <wd-icon name="plus" size="16px" />
       </wd-button>
@@ -220,9 +218,7 @@ onLoad(() => {
     <view v-if="showSessions" class="session-overlay" style="position:absolute;top:88rpx;left:0;right:0;bottom:0;background:var(--bg-color);z-index:100;overflow-y:auto;">
       <view class="p-sm">
         <view class="mb-md flex items-center justify-between px-xs">
-          <text class="text-lg font-bold">
-            {{ t('chat.sessionList') }}
-          </text>
+          <wd-text class="text-lg" :text="t('chat.sessionList')" bold />
           <wd-button size="small" type="primary" @click="createSession">
             {{ t('chat.new') }}
           </wd-button>
@@ -277,12 +273,8 @@ onLoad(() => {
               <wd-loading v-if="streaming && !msg.content" />
               <mp-html v-else :content="msg.content" markdown :tag-style="MARKDOWN_TAG_STYLE" />
             </template>
-            <text v-else style="white-space:pre-wrap;font-size:var(--font-sm,24rpx);line-height:1.7;">
-              {{ msg.content }}
-            </text>
-            <text v-if="msg.time" style="font-size:var(--font-xs,20rpx);opacity:0.6;margin-top:8rpx;display:block;" :style="msg.role === 'user' ? 'text-align:right' : 'text-align:left'">
-              {{ msg.time }}
-            </text>
+            <wd-text v-else style="white-space:pre-wrap;font-size:var(--font-sm,24rpx);line-height:1.7;" :text="msg.content" />
+            <wd-text v-if="msg.time" style="font-size:var(--font-xs,20rpx);opacity:0.6;margin-top:8rpx;display:block;" :style="msg.role === 'user' ? 'text-align:right' : 'text-align:left'" :text="msg.time" />
           </view>
         </view>
       </view>

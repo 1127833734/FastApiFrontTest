@@ -155,18 +155,12 @@ onLoad(() => {
           <wd-cell :title="t('aiModels.groupTitle')" :value="t('aiModels.count', { count: models.length })" border />
           <wd-cell v-for="model in models" :key="model.config_id" center>
             <template #title>
-              <text class="truncate text-3.5 font-medium wot-text-text-main">
-                {{ model.name || t('aiModels.unnamed') }}
-              </text>
+              <wd-text class="truncate text-3.5 font-medium wot-text-text-main" :text="model.name || t('aiModels.unnamed')" />
             </template>
             <template #label>
               <view class="flex flex-col">
-                <text class="truncate text-2.5 wot-text-text-auxiliary">
-                  {{ model.model_id }} · {{ t('aiModels.temperature') }} {{ model.temperature ?? '—' }}
-                </text>
-                <text class="truncate text-2.5 wot-text-text-auxiliary">
-                  {{ model.base_url }}
-                </text>
+                <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="`${model.model_id} · ${t('aiModels.temperature')} ${model.temperature ?? '—'}`" />
+                <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="model.base_url" />
               </view>
             </template>
             <template #default>
@@ -219,9 +213,7 @@ onLoad(() => {
               <wd-form-item :label="t('aiModels.temperatureLabel')" border>
                 <view class="w-full flex items-center gap-3">
                   <wd-slider v-model="temperature" class="flex-1" :min="0" :max="2" :step="0.1" show-extreme-value active-color="var(--primary-color)" />
-                  <text class="w-16 text-right text-3 font-semibold wot-text-text-main">
-                    {{ temperature.toFixed(1) }}
-                  </text>
+                  <wd-text class="w-16 text-right text-3 font-semibold wot-text-text-main" :text="temperature.toFixed(1)" />
                 </view>
               </wd-form-item>
             </wd-collapse-item>

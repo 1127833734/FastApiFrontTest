@@ -330,6 +330,7 @@ function getGreeting() {
         :interval="4500"
         :autoplay="true"
         :loop="true"
+        :adjust-height="false"
       >
         <template #default="{ index }">
           <view class="banner-slide" :class="banners[index].cls" @click="banners[index].onClick">
@@ -398,9 +399,7 @@ function getGreeting() {
     <!-- 运营概览 -->
     <view class="mb-2 mt-4 flex items-center gap-2 px-3">
       <view class="h-3.5 w-1 rounded-full" style="background-color: var(--primary-color, #4F8CFF);" />
-      <text class="text-3.5 font-bold wot-text-text-main">
-        {{ t('index.opsOverview') }}
-      </text>
+      <wd-text class="text-3.5 wot-text-text-main" :text="t('index.opsOverview')" bold />
     </view>
     <SkeletonPage v-if="loading && !dashboardStats" :rows="3" />
     <view v-else class="mx-3">
@@ -454,17 +453,13 @@ function getGreeting() {
     <view id="monitor-section" class="mt-4">
       <view class="mb-2 flex items-center gap-2 px-3">
         <view class="h-3.5 w-1 rounded-full" style="background-color: var(--danger-color, #EF4444);" />
-        <text class="text-3.5 font-bold wot-text-text-main">
-          {{ t('index.sysMonitor') }}
-        </text>
+        <wd-text class="text-3.5 wot-text-text-main" :text="t('index.sysMonitor')" bold />
       </view>
 
       <!-- 登录趋势折线图 -->
       <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
         <view class="mb-4 flex items-center gap-2">
-          <text class="text-3.5 font-bold wot-text-text-main">
-            {{ t('index.loginTrend') }}
-          </text>
+          <wd-text class="text-3.5 wot-text-text-main" :text="t('index.loginTrend')" bold />
         </view>
         <uni-echarts custom-class="h-52 w-full" :option="loginTrendOption" />
       </view>
@@ -474,13 +469,9 @@ function getGreeting() {
     <view v-if="recentNotices.length > 0" class="mb-2 mt-4 flex items-center justify-between px-3">
       <view class="flex items-center gap-2">
         <view class="h-3.5 w-1 rounded-full" style="background-color: var(--success-color, #10B981);" />
-        <text class="text-3.5 font-bold wot-text-text-main">
-          {{ t('index.latestNotice') }}
-        </text>
+        <wd-text class="text-3.5 wot-text-text-main" :text="t('index.latestNotice')" bold />
       </view>
-      <text class="text-3 wot-text-primary" @click="navigateTo('work-notices')">
-        {{ t('common.all') }}
-      </text>
+      <wd-text class="text-3" :text="t('common.all')" type="primary" @click="navigateTo('work-notices')" />
     </view>
     <view v-if="recentNotices.length > 0" class="mx-3">
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
@@ -492,9 +483,7 @@ function getGreeting() {
           @click="navigateTo('work-notices')"
         >
           <template #label>
-            <text class="text-2.5 wot-text-text-auxiliary">
-              {{ item.created_time || '' }}
-            </text>
+            <wd-text class="text-2.5 wot-text-text-auxiliary" :text="item.created_time || ''" />
           </template>
         </wd-cell>
       </wd-cell-group>

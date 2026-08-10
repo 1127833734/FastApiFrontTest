@@ -78,9 +78,7 @@ function handleNavigate(url: string) {
 
     <!-- 版权信息 -->
     <view v-if="copyright" class="mx-3 mt-8 text-center">
-      <text class="text-2.5 wot-text-text-auxiliary">
-        {{ copyright }}
-      </text>
+      <wd-text class="text-2.5 wot-text-text-auxiliary" :text="copyright" />
     </view>
 
     <!-- 底部安全区（全面屏 Home 条避让） -->

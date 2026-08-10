@@ -159,12 +159,10 @@ function handleNavigate(url: string) {
       <text class="mb-3 block text-left text-5 font-bold wot-text-text-main">
         {{ brandTitle }}
       </text>
-      <text class="mb-3 block text-left text-30rpx leading-relaxed wot-text-text-secondary">
-        {{ brandDesc }}
-      </text>
+      <wd-text class="mb-3 block text-left wot-text-text-secondary" size="30rpx" line-height="1.6" :text="brandDesc" />
     </view>
 
-    <view class="mx-3 mb-3">
+    <view class="mx-3 mb-3 mt-3">
       <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
         {{ t('setting.basic') }}
       </view>
@@ -183,13 +181,11 @@ function handleNavigate(url: string) {
               class="h-4 w-4 rounded-full"
               :style="{ backgroundColor: currentThemeColor.primary }"
             />
-            <text>{{ currentThemeName }}</text>
+            <wd-text :text="currentThemeName" />
           </view>
         </wd-cell>
         <wd-cell :title="t('setting.language')" is-link @click="showLangSheet = true">
-          <text class="text-3 wot-text-text-secondary">
-            {{ currentLang }}
-          </text>
+          <wd-text class="text-3 wot-text-text-secondary" :text="currentLang" />
         </wd-cell>
         <wd-cell :title="t('setting.watermark')" :is-link="false">
           <wd-switch
@@ -217,9 +213,7 @@ function handleNavigate(url: string) {
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
         <wd-cell :title="t('setting.version')" :is-link="false">
-          <text class="text-3 wot-text-text-secondary">
-            v{{ version || '--' }}
-          </text>
+          <wd-text class="text-3 wot-text-text-secondary" :text="`v${version || '--'}`" />
         </wd-cell>
         <wd-cell :title="t('common.aboutUs')" is-link @click="navigateToAbout" />
         <wd-cell :title="t('setting.clearCache')" is-link :value="cacheSize" @click="handleClearCache" />
@@ -248,9 +242,7 @@ function handleNavigate(url: string) {
               class="h-6 w-6 border-2 rounded-full wot-border-border-main"
               :style="{ backgroundColor: option.primary }"
             />
-            <text class="text-4 wot-text-text-main">
-              {{ t(option.labelKey) }}
-            </text>
+            <wd-text class="text-4 wot-text-text-main" :text="t(option.labelKey)" />
           </view>
           <wd-icon
             v-if="currentThemeColor.value === option.value"
@@ -277,9 +269,7 @@ function handleNavigate(url: string) {
           class="flex items-center justify-between border-b py-3 wot-border-border-main last:border-b-0"
           @click="handleLangSelect(option)"
         >
-          <text class="text-4 wot-text-text-main">
-            {{ t(option.labelKey) }}
-          </text>
+          <wd-text :text="t(option.labelKey)" class="text-4 wot-text-text-main" />
           <wd-icon
             v-if="currentLocale === option.value"
             name="check"

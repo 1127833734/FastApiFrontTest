@@ -9,6 +9,11 @@
  */
 import { defineUniPages } from '@uni-helper/vite-plugin-uni-pages'
 
+// 按构建平台动态裁剪配置（vite-plugin-uni-pages 不处理条件编译注释，用 JS 逻辑）
+const UNI_PLATFORM = process.env.UNI_PLATFORM || ''
+const isWeixin = UNI_PLATFORM === 'mp-weixin'
+const isAlipay = UNI_PLATFORM === 'mp-alipay'
+
 export default defineUniPages({
   pages: [],
   globalStyle: {
@@ -27,17 +32,13 @@ export default defineUniPages({
     enablePullDownRefresh: false,
     onReachBottomDistance: 50,
 
-    // 动画配置
-    animationType: 'pop-in',
-    animationDuration: 300,
+    // 页面切换动画（微信小程序 window 不支持 animationType/animationDuration，构建时排除）
+    ...(isWeixin ? {} : { animationType: 'pop-in', animationDuration: 300 }),
   },
   tabBar: {
     custom: true,
-    // #ifdef MP-ALIPAY
-    customize: true,
-    // 暂时不生效。4.71.2025061206-alpha已修复：https://uniapp.dcloud.net.cn/release-note-alpha.html#_4-71-2025061206-alpha，我们等正式版发布后更新。
-    overlay: true,
-    // #endif
+    // customize/overlay 为支付宝小程序 tabBar 配置（微信端编译进 app.json 会告警，按平台裁剪）
+    ...(isAlipay ? { customize: true, overlay: true } : {}),
     height: '0',
     color: '@tabColor',
     selectedColor: '@tabSelectedColor',

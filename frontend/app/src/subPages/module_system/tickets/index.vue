@@ -225,9 +225,7 @@ onLoad(() => loadData())
           >
             <template #right>
               <view class="h-full flex items-center justify-center px-6" style="background-color: var(--danger-color); color: #fff;">
-                <text class="text-3">
-                  {{ t('common.delete') }}
-                </text>
+                <wd-text class="text-3" :text="t('common.delete')" />
               </view>
             </template>
             <wd-cell
@@ -239,9 +237,7 @@ onLoad(() => loadData())
             >
               <template #value>
                 <view class="flex flex-col items-end gap-1">
-                  <text class="text-2.5 wot-text-text-auxiliary">
-                    {{ (item.created_time || '').slice(0, 10) }}
-                  </text>
+                  <wd-text class="text-2.5 wot-text-text-auxiliary" :text="(item.created_time || '').slice(0, 10)" />
                   <StatusBadge :status="ticketStatus(item.status)" />
                 </view>
               </template>
@@ -251,9 +247,7 @@ onLoad(() => loadData())
       </view>
       <!-- 触底加载更多提示 -->
       <wd-loading v-if="loading && list.length > 0" size="20px" class="mx-auto my-2 block" />
-      <text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary">
-        {{ t('common.noMore') }}
-      </text>
+      <wd-text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary" :text="t('common.noMore')" />
       <!-- 底部安全区（全面屏 Home 条避让） -->
       <wd-gap height="100rpx" safe-area-bottom />
     </template>

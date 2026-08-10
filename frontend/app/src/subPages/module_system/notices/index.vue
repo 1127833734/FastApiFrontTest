@@ -137,9 +137,7 @@ onLoad(() => loadData())
 
     <!-- 列表头部：总数 -->
     <view class="mx-3 mb-2 mt-3 flex items-center justify-between px-1">
-      <text class="text-3 wot-text-text-secondary">
-        {{ t('notices.count', { count: total }) }}
-      </text>
+      <wd-text class="text-3 wot-text-text-secondary" :text="t('notices.count', { count: total })" />
     </view>
 
     <SkeletonPage v-if="loading && list.length === 0" :rows="5" search />
@@ -151,17 +149,11 @@ onLoad(() => loadData())
             <template #title>
               <view class="min-w-0 flex-1">
                 <view class="flex items-center justify-between gap-2">
-                  <text class="truncate text-3.5 font-medium wot-text-text-main">
-                    {{ item.notice_title }}
-                  </text>
-                  <text class="shrink-0 text-2.5 wot-text-text-auxiliary">
-                    {{ (item.created_time || '').slice(0, 10) }}
-                  </text>
+                  <wd-text class="truncate text-3.5 font-medium wot-text-text-main" :text="item.notice_title" />
+                  <wd-text class="shrink-0 text-2.5 wot-text-text-auxiliary" :text="(item.created_time || '').slice(0, 10)" />
                 </view>
                 <view class="mt-1 flex items-center justify-between gap-2">
-                  <text class="truncate text-2.5 wot-text-text-auxiliary">
-                    {{ item.description || '' }}
-                  </text>
+                  <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="item.description || ''" />
                   <view class="flex shrink-0 items-center gap-2">
                     <StatusBadge :status="statusLabel(item.status)" />
                     <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id!)" />
@@ -174,9 +166,7 @@ onLoad(() => loadData())
       </view>
       <!-- 触底加载更多提示 -->
       <wd-loading v-if="loading && list.length > 0" size="20px" class="mx-auto my-2 block" />
-      <text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary">
-        {{ t('common.noMore') }}
-      </text>
+      <wd-text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary" :text="t('common.noMore')" />
       <!-- 底部安全区（全面屏 Home 条避让） -->
       <wd-gap height="100rpx" safe-area-bottom />
     </template>

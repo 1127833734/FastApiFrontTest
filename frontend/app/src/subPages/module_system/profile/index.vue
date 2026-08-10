@@ -170,34 +170,24 @@ onLoad(() => {
             </view>
           </view>
         </wd-upload>
-        <text class="text-4 font-bold wot-text-text-main">
-          {{ userProfile?.name || userProfile?.username || '-' }}
-        </text>
+        <wd-text class="text-4 wot-text-text-main" :text="userProfile?.name || userProfile?.username || '-'" bold />
       </view>
 
       <!-- 资料列表 -->
       <view class="mx-3 mb-3">
         <wd-cell-group border custom-class="rounded-2! overflow-hidden">
           <wd-cell :title="t('profile.nickname')" is-link @click="openEdit('name')">
-            <text class="wot-text-text-secondary">
-              {{ userProfile?.name || t('profile.notSet') }}
-            </text>
+            <wd-text class="wot-text-text-secondary" :text="userProfile?.name || t('profile.notSet')" />
           </wd-cell>
           <wd-cell :title="t('profile.gender')" is-link @click="openEdit('gender')">
-            <text class="wot-text-text-secondary">
-              {{ genderText }}
-            </text>
+            <wd-text class="wot-text-text-secondary" :text="genderText" />
           </wd-cell>
           <wd-cell :title="t('profile.username')" :value="userProfile?.username || '-'" />
           <wd-cell :title="t('profile.mobile')">
-            <text class="wot-text-text-secondary">
-              {{ userProfile?.mobile || t('profile.notBound') }}
-            </text>
+            <wd-text class="wot-text-text-secondary" :text="userProfile?.mobile || t('profile.notBound')" />
           </wd-cell>
           <wd-cell :title="t('profile.email')">
-            <text class="wot-text-text-secondary">
-              {{ userProfile?.email || t('profile.notBound') }}
-            </text>
+            <wd-text class="wot-text-text-secondary" :text="userProfile?.email || t('profile.notBound')" />
           </wd-cell>
           <wd-cell :title="t('profile.dept')" :value="deptText" />
           <wd-cell :title="t('profile.roles')" :value="roleText" />

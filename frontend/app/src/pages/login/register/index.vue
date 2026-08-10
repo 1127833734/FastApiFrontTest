@@ -148,7 +148,7 @@ function goLogin() {
 
       <view class="register-form">
         <wd-form ref="registerFormRef" :model="registerForm" :schema="registerSchema">
-          <wd-form-item prop="username">
+          <wd-form-item prop="username" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="registerForm.username"
               :placeholder="t('common.form.usernamePlaceholder')"
@@ -157,7 +157,7 @@ function goLogin() {
               prefix-icon="user"
             />
           </wd-form-item>
-          <wd-form-item prop="name">
+          <wd-form-item prop="name" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="registerForm.name"
               :placeholder="t('common.form.nicknamePlaceholder')"
@@ -166,7 +166,7 @@ function goLogin() {
               prefix-icon="user"
             />
           </wd-form-item>
-          <wd-form-item prop="password">
+          <wd-form-item prop="password" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="registerForm.password"
               :placeholder="t('common.form.passwordPlaceholder')"
@@ -176,7 +176,7 @@ function goLogin() {
               prefix-icon="lock"
             />
           </wd-form-item>
-          <wd-form-item prop="confirmPassword">
+          <wd-form-item prop="confirmPassword" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
             <wd-input
               v-model="registerForm.confirmPassword"
               :placeholder="t('common.form.confirmPlaceholder')"
@@ -193,9 +193,7 @@ function goLogin() {
           <wd-checkbox v-model="agreeRead" size="18px">
             {{ t('register.agree') }}
           </wd-checkbox>
-          <text class="register-agreement__link wot-text-primary" @click="handleAgreementOpen">
-            {{ t('register.userAgreement') }}
-          </text>
+          <wd-text class="register-agreement__link" :text="t('register.userAgreement')" type="primary" @click="handleAgreementOpen" />
         </view>
 
         <wd-button type="primary" round block :loading="submitting" @click="handleSubmit">
@@ -204,12 +202,8 @@ function goLogin() {
       </view>
 
       <view class="register-footer">
-        <text class="register-footer__text">
-          {{ t('register.hasAccount') }}
-        </text>
-        <text class="register-footer__link wot-text-primary" @click="goLogin">
-          {{ t('register.toLogin') }}
-        </text>
+        <wd-text class="register-footer__text" :text="t('register.hasAccount')" />
+        <wd-text class="register-footer__link" :text="t('register.toLogin')" type="primary" @click="goLogin" />
       </view>
     </view>
   </view>
@@ -321,5 +315,14 @@ function goLogin() {
   &__link {
     font-size: var(--font-md, 28rpx);
   }
+}
+</style>
+
+<style lang="scss">
+/* MP 端兼容：wd-form-item 内部 wd-cell 因 uni-app 插槽静态声明（u-s）误判 label/title 插槽被使用，
+   showLeft=true 渲染空 left 区域（flex:1 占半宽），H5 端运行时插槽判定无此问题。
+   本页 form-item 无 title/label/prefix 内容，隐藏 left 安全，保证输入框与登录按钮同宽 */
+.register-card .wd-form-item .wd-cell__left {
+  display: none;
 }
 </style>

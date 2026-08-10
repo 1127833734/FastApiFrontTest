@@ -7,7 +7,6 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AuthAPI from '@/api/module_system/auth'
 import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
-import { useWxLogin } from '@/composables/useWxLogin'
 import { REMEMBER_ME_KEY } from '@/constants'
 import { useConfigStore } from '@/store/configStore'
 import { useUserStore } from '@/store/userStore'
@@ -22,7 +21,6 @@ const sliderCaptchaRef = ref<SlideVerifyInstance>()
 const loading = ref(false)
 const userStore = useUserStore()
 const configStore = useConfigStore()
-const { wxLogin, wxPhoneLogin } = useWxLogin()
 const redirect = ref('/pages/index/index')
 
 /** 规范化 BASE_URL（保证以 / 结尾），用于拼接静态资源路径：H5 下避免 base '/app' 拼出 /appstatic/xxx */
@@ -241,43 +239,6 @@ async function handleOAuth(provider: OAuthProvider) {
     uni.showToast({ title: t('login.oauthFailed'), icon: 'none' })
   }
 }
-
-/** 微信一键登录（仅小程序端显示按钮） */
-const wxLoading = ref(false)
-async function handleWxLogin() {
-  if (wxLoading.value)
-    return
-  wxLoading.value = true
-  try {
-    await wxLogin()
-    uni.reLaunch({ url: redirect.value })
-  }
-  catch {
-    uni.showToast({ title: t('login.wxLoginFailed'), icon: 'none' })
-  }
-  finally {
-    wxLoading.value = false
-  }
-}
-
-/** 微信手机号登录（配合 open-type="getPhoneNumber"） */
-async function handleWxPhoneLogin(e: any) {
-  if (e.detail.errMsg !== 'getPhoneNumber:ok') {
-    uni.showToast({ title: t('login.phoneAuthCancel'), icon: 'none' })
-    return
-  }
-  wxLoading.value = true
-  try {
-    await wxPhoneLogin(e.detail.code)
-    uni.reLaunch({ url: redirect.value })
-  }
-  catch {
-    uni.showToast({ title: t('login.phoneLoginFailed'), icon: 'none' })
-  }
-  finally {
-    wxLoading.value = false
-  }
-}
 </script>
 
 <template>
@@ -288,9 +249,7 @@ async function handleWxPhoneLogin(e: any) {
       <text class="brand-title">
         {{ brandTitle }}
       </text>
-      <text class="brand-subtitle">
-        {{ brandSubtitle }}
-      </text>
+      <wd-text class="brand-subtitle" :text="brandSubtitle" />
     </view>
 
     <!-- Form card -->
@@ -299,39 +258,9 @@ async function handleWxPhoneLogin(e: any) {
         {{ t('login.cardTitle') }}
       </text>
 
-      <!-- 微信一键登录（仅小程序端显示） -->
-      <!-- #ifdef MP-WEIXIN -->
-      <view class="wx-login-section">
-        <wd-button
-          type="primary"
-          :loading="wxLoading"
-          round
-          block
-          @click="handleWxLogin"
-        >
-          <wd-icon name="wechat" size="18px" color="#FFFFFF" />
-          <text class="ml-1">
-            {{ t('login.wxLogin') }}
-          </text>
-        </wd-button>
-        <wd-button
-          plain
-          round
-          block
-          custom-class="mt-3"
-          :loading="wxLoading"
-          open-type="getPhoneNumber"
-          @getphonenumber="handleWxPhoneLogin"
-        >
-          {{ t('login.phoneLogin') }}
-        </wd-button>
-      </view>
-      <wd-divider>{{ t('login.orAccount') }}</wd-divider>
-      <!-- #endif -->
-
       <wd-form ref="loginFormRef" :model="loginFormData" :schema="loginSchema">
         <!-- Username — wot 原生 wd-input，前缀图标走 prefix-icon 属性 -->
-        <wd-form-item prop="username">
+        <wd-form-item prop="username" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
           <wd-input
             v-model="loginFormData.username"
             :placeholder="t('common.form.usernamePlaceholder')"
@@ -344,7 +273,7 @@ async function handleWxPhoneLogin(e: any) {
         </wd-form-item>
 
         <!-- Password — show-password 自动启用密码可见性切换 -->
-        <wd-form-item prop="password">
+        <wd-form-item prop="password" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
           <wd-input
             v-model="loginFormData.password"
             :placeholder="t('common.form.passwordPlaceholder')"
@@ -358,7 +287,7 @@ async function handleWxPhoneLogin(e: any) {
         </wd-form-item>
 
         <!-- Slider Captcha — wd-slide-verify 滑块拖动验证（条件显示） -->
-        <wd-form-item v-if="captchaState.enable">
+        <wd-form-item v-if="captchaState.enable" custom-style="margin-bottom: 14rpx; padding-left: 0; padding-right: 0;">
           <wd-slide-verify
             ref="sliderCaptchaRef"
             :text="t('login.sliderText')"
@@ -373,9 +302,7 @@ async function handleWxPhoneLogin(e: any) {
           <wd-checkbox v-model="loginFormData.remember" size="18px">
             {{ t('login.remember') }}
           </wd-checkbox>
-          <text class="forgot-link wot-text-primary" @click="goForget">
-            {{ t('login.forgot') }}
-          </text>
+          <wd-text class="forgot-link" :text="t('login.forgot')" type="primary" @click="goForget" />
         </view>
 
         <!-- Submit -->
@@ -400,9 +327,7 @@ async function handleWxPhoneLogin(e: any) {
           <view class="oauth-btn__icon" style="background: #07C160">
             <image class="oauth-btn__iconify" src="/static/icons/wechat.svg" />
           </view>
-          <text class="oauth-btn__label">
-            {{ t('login.wechat') }}
-          </text>
+          <wd-text class="oauth-btn__label" :text="t('login.wechat')" />
         </wd-grid-item>
 
         <!-- GitHub -->
@@ -410,9 +335,7 @@ async function handleWxPhoneLogin(e: any) {
           <view class="oauth-btn__icon" style="background: #24292F">
             <image class="oauth-btn__iconify" src="/static/icons/github.svg" />
           </view>
-          <text class="oauth-btn__label">
-            {{ t('login.github') }}
-          </text>
+          <wd-text class="oauth-btn__label" :text="t('login.github')" />
         </wd-grid-item>
 
         <!-- Gitee -->
@@ -420,9 +343,7 @@ async function handleWxPhoneLogin(e: any) {
           <view class="oauth-btn__icon" style="background: #C71D23">
             <image class="oauth-btn__iconify" src="/static/icons/gitee.svg" />
           </view>
-          <text class="oauth-btn__label">
-            {{ t('login.gitee') }}
-          </text>
+          <wd-text class="oauth-btn__label" :text="t('login.gitee')" />
         </wd-grid-item>
 
         <!-- QQ -->
@@ -430,21 +351,15 @@ async function handleWxPhoneLogin(e: any) {
           <view class="oauth-btn__icon" style="background: #12B7F5">
             <image class="oauth-btn__iconify" src="/static/icons/qq.svg" />
           </view>
-          <text class="oauth-btn__label">
-            {{ t('login.qq') }}
-          </text>
+          <wd-text class="oauth-btn__label" :text="t('login.qq')" />
         </wd-grid-item>
       </wd-grid>
     </view>
 
     <!-- Footer -->
     <view class="login-footer">
-      <text class="login-footer__text">
-        {{ t('login.noAccount') }}
-      </text>
-      <text class="login-footer__link wot-text-primary" @click="goRegister">
-        {{ t('login.toRegister') }}
-      </text>
+      <wd-text class="login-footer__text" :text="t('login.noAccount')" />
+      <wd-text class="login-footer__link" :text="t('login.toRegister')" type="primary" @click="goRegister" />
     </view>
   </view>
 </template>
@@ -635,5 +550,14 @@ async function handleWxPhoneLogin(e: any) {
   &__link {
     font-size: var(--font-md, 28rpx);
   }
+}
+</style>
+
+<style lang="scss">
+/* MP 端兼容：wd-form-item 内部 wd-cell 因 uni-app 插槽静态声明（u-s）误判 label/title 插槽被使用，
+   showLeft=true 渲染空 left 区域（flex:1 占半宽），H5 端运行时插槽判定无此问题。
+   本页 form-item 无 title/label/prefix 内容，隐藏 left 安全，保证输入框与登录按钮同宽 */
+.login-card .wd-form-item .wd-cell__left {
+  display: none;
 }
 </style>

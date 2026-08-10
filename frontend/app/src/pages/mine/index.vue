@@ -231,9 +231,7 @@ async function handleSubmitPassword() {
     <view class="mx-3 mb-3">
       <view class="mb-2 mt-1 flex items-center gap-2 px-3">
         <view class="h-3.5 w-1 rounded-full" style="background-color: var(--primary-color, #4F8CFF);" />
-        <text class="text-3.5 font-bold wot-text-text-main">
-          {{ t('common.settings') }}
-        </text>
+        <wd-text class="text-3.5 wot-text-text-main" :text="t('common.settings')" bold />
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
         <wd-cell

@@ -99,11 +99,9 @@ export default {
         </view>
       </view>
       <view class="wd-privacy-popup__container">
-        <text>{{ desc }}</text>
-        <text class="wd-privacy-popup__container-protocol" @click="openPrivacyContract">
-          {{ protocol }}
-        </text>
-        <text>{{ subDesc }}</text>
+        <wd-text :text="desc" />
+        <wd-text class="wd-privacy-popup__container-protocol" @click="openPrivacyContract" :text="protocol" />
+        <wd-text :text="subDesc" />
       </view>
       <view class="wd-privacy-popup__footer">
         <button id="disagree-btn" class="is-block is-round is-medium is-plain wd-privacy-popup__footer-disagree wd-button" @click="handleDisagree">
@@ -122,15 +120,19 @@ export default {
   </view>
 </template>
 
-<style lang="scss" scoped>
-:deep(.wd-privacy-popup) {
+<style lang="scss">
+// 非 scoped：wd-popup 通过 custom-class 传入根类名，弹窗挂载层级不受组件作用域约束，
+// :deep() 在小程序端对 virtualHost 组件不可靠，改用全局类名直接命中（H5/MP 均生效）
+.wd-privacy-popup {
   width: 600rpx;
   padding: 0 24rpx;
   box-sizing: border-box;
   border-radius: 32rpx;
   overflow: hidden;
 }
+</style>
 
+<style lang="scss" scoped>
 .wd-privacy-popup {
   &__header {
     width: 100%;
@@ -163,7 +165,9 @@ export default {
     justify-content: space-between;
     padding-bottom: 36rpx;
 
-    button {
+    /* 组件 wxss 不允许标签选择器（微信小程序限制），改用类选择器 */
+    &-disagree,
+    &-agree {
       border: none;
       outline: none;
     }
