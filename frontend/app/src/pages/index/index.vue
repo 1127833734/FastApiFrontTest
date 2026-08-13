@@ -67,10 +67,10 @@ onPageScroll((e) => {
 })
 
 const NAV_LIST = [
-  { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices', color: '#10B981' },
-  { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets', color: '#F59E0B' },
-  { icon: 'interaction', titleKey: 'common.nav.aiChat', name: 'work-chat', color: '#06B6D4' },
-  { icon: 'robot', titleKey: 'common.nav.aiModels', name: 'work-ai-models', color: '#8B5CF6' },
+  { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices', color: 'var(--brand-green)', soft: 'var(--brand-green-soft)' },
+  { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets', color: 'var(--brand-orange)', soft: 'var(--brand-orange-soft)' },
+  { icon: 'interaction', titleKey: 'common.nav.aiChat', name: 'work-chat', color: 'var(--brand-cyan)', soft: 'var(--brand-cyan-soft)' },
+  { icon: 'robot', titleKey: 'common.nav.aiModels', name: 'work-ai-models', color: 'var(--brand-purple)', soft: 'var(--brand-purple-soft)' },
 ]
 
 /** 轮播 Banner 条目 */
@@ -255,7 +255,6 @@ async function loadData() {
   catch { /* silent */ }
   finally {
     loading.value = false
-    uni.stopPullDownRefresh()
   }
 }
 
@@ -267,11 +266,11 @@ async function loadNotices() {
   catch { /* silent */ }
 }
 
-onPullDownRefresh(() => {
+onReady(() => {
   Promise.all([loadData(), loadNotices()])
 })
 
-onReady(() => {
+onPullDownRefresh(() => {
   Promise.all([loadData(), loadNotices()])
 })
 
@@ -384,7 +383,7 @@ function getGreeting() {
           <view class="w-full flex flex-col items-center">
             <view
               class="h-11 w-11 flex items-center justify-center rounded-xl"
-              :style="{ backgroundColor: `${item.color}1a` }"
+              :style="{ backgroundColor: item.soft }"
             >
               <wd-icon :name="item.icon" size="20px" :color="item.color" />
             </view>
@@ -405,7 +404,10 @@ function getGreeting() {
     <view v-else class="mx-3">
       <wd-row :gutter="12">
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+          <view class="stat-card wot-bg-filled-oppo">
+            <view class="stat-card__icon" style="background: var(--primary-color, #4F8CFF);">
+              <wd-icon name="user-group" size="18px" color="#FFFFFF" />
+            </view>
             <wd-count-to v-if="dashboardStats?.total_users != null" :end-val="dashboardStats.total_users" type="primary" custom-class="stat-count" />
             <view v-else class="text-5 font-bold wot-text-text-main">
               -
@@ -419,7 +421,10 @@ function getGreeting() {
           </view>
         </wd-col>
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+          <view class="stat-card wot-bg-filled-oppo">
+            <view class="stat-card__icon" style="background: var(--success-color, #10B981);">
+              <wd-icon name="eye" size="18px" color="#FFFFFF" />
+            </view>
             <wd-count-to v-if="dashboardStats?.online_users != null" :end-val="dashboardStats.online_users" type="success" custom-class="stat-count" />
             <view v-else class="text-5 font-bold wot-text-text-main">
               -
@@ -433,7 +438,10 @@ function getGreeting() {
           </view>
         </wd-col>
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo">
+          <view class="stat-card wot-bg-filled-oppo">
+            <view class="stat-card__icon" style="background: var(--warning-color, #F59E0B);">
+              <wd-icon name="clock-circle" size="18px" color="#FFFFFF" />
+            </view>
             <wd-count-to v-if="dashboardStats?.today_login_count != null" :end-val="dashboardStats.today_login_count" type="warning" custom-class="stat-count" />
             <view v-else class="text-5 font-bold wot-text-text-main">
               -
@@ -494,11 +502,56 @@ function getGreeting() {
 </template>
 
 <style lang="scss" scoped>
+/* ===== 运营概览指标卡片（图标徽章 + 数据层级） ===== */
+.stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+
+  /* 图标徽章 */
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56rpx;
+    height: 56rpx;
+    border-radius: 16rpx;
+    margin-bottom: 20rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  }
+
+  /* 数字区域（count-to 输出文本，用类控制字号字重） */
+  :deep(.stat-count) {
+    font-size: 40rpx;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  /* 右下角装饰浅圆（增强层次，暗黑下自动降低存在感） */
+  &::after {
+    content: '';
+    position: absolute;
+    right: -40rpx;
+    bottom: -40rpx;
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 50%;
+    background: var(--primary-color, #4F8CFF);
+    opacity: 0.06;
+  }
+}
+
 /* ===== 轮播 Banner（渐变装饰 + 文字布局，其余布局全部走 UnoCSS 原子类） ===== */
 .banner-slide {
   position: relative;
   width: 100%;
   height: 100%;
+  /* box-sizing: border-box 让 padding 算入 height，避免 flex item 溢出 swiper-item 导致内容偏上 + 底部裁切（微信 swiper-item 高度固定 100% 与 H5 swiper-item 行为不同所致） */
+  box-sizing: border-box;
   padding: 36rpx 40rpx;
   display: flex;
   align-items: center;
@@ -537,10 +590,10 @@ function getGreeting() {
     50% { transform: translateY(-14rpx) scale(1.06); }
   }
 
-  &--greet { background: linear-gradient(135deg, #4F8CFF, #2563EB); }
-  &--ticket { background: linear-gradient(135deg, #F59E0B, #D97706); }
-  &--ticket-empty { background: linear-gradient(135deg, #10B981, #059669); }
-  &--stats { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
+  &--greet { background: var(--brand-gradient-blue); }
+  &--ticket { background: var(--brand-gradient-orange); }
+  &--ticket-empty { background: var(--brand-gradient-green); }
+  &--stats { background: var(--brand-gradient-purple); }
 
   &__body {
     position: relative;

@@ -53,17 +53,17 @@ onShow(() => {
 const groups = [
   {
     titleKey: 'work.businessCenter',
-    color: '#F59E0B',
-    bg: 'var(--warning-color-light)',
+    color: 'var(--brand-orange)',
+    bg: 'var(--brand-orange-soft)',
     items: [
-      { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices', color: '#10B981' },
-      { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets', color: '#F59E0B' },
+      { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices' },
+      { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets' },
     ],
   },
   {
     titleKey: 'work.devTools',
-    color: '#8B5CF6',
-    bg: 'var(--bg-color-2)',
+    color: 'var(--brand-purple)',
+    bg: 'var(--brand-purple-soft)',
     items: [
       { icon: 'message', titleKey: 'common.nav.aiChat', name: 'work-chat' },
       { icon: 'robot', titleKey: 'common.nav.aiModels', name: 'work-ai-models' },
@@ -150,7 +150,7 @@ const filteredGroups = computed(() => {
 .work-user-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #4F8CFF 0%, #2563EB 100%);
+  background: var(--brand-gradient-blue);
   box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.25);
 
   /* 右上角装饰圆环 */
@@ -176,4 +176,8 @@ const filteredGroups = computed(() => {
     background: rgba(255, 255, 255, 0.08);
   }
 }
+</style>
+
+
+<style lang="scss">
 </style>

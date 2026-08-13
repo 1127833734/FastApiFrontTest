@@ -75,10 +75,10 @@ const settingsList = [
 ]
 
 const quickLinks = [
-  { titleKey: 'common.nav.notices', name: 'work-notices', icon: 'notification', color: '#10B981' },
-  { titleKey: 'common.nav.tickets', name: 'work-tickets', icon: 'message', color: '#F59E0B' },
-  { titleKey: 'common.nav.aiChat', name: 'work-chat', icon: 'interaction', color: '#06B6D4' },
-  { titleKey: 'common.nav.aiModels', name: 'work-ai-models', icon: 'robot', color: '#8B5CF6' },
+  { titleKey: 'common.nav.notices', name: 'work-notices', icon: 'notification', color: 'var(--brand-green)', soft: 'var(--brand-green-soft)' },
+  { titleKey: 'common.nav.tickets', name: 'work-tickets', icon: 'message', color: 'var(--brand-orange)', soft: 'var(--brand-orange-soft)' },
+  { titleKey: 'common.nav.aiChat', name: 'work-chat', icon: 'interaction', color: 'var(--brand-cyan)', soft: 'var(--brand-cyan-soft)' },
+  { titleKey: 'common.nav.aiModels', name: 'work-ai-models', icon: 'robot', color: 'var(--brand-purple)', soft: 'var(--brand-purple-soft)' },
 ]
 
 /** 修改密码弹窗（内嵌于「我的」页，免跳转） */
@@ -216,7 +216,7 @@ async function handleSubmitPassword() {
         >
           <view
             class="h-11 w-11 flex items-center justify-center rounded-xl"
-            :style="{ backgroundColor: `${item.color}1a` }"
+            :style="{ backgroundColor: item.soft }"
           >
             <wd-icon :name="item.icon" size="20px" :color="item.color" />
           </view>
@@ -302,7 +302,7 @@ async function handleSubmitPassword() {
 .mine-user-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #4F8CFF 0%, #2563EB 100%);
+  background: var(--brand-gradient-blue);
   box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.25);
 
   &::before {
@@ -327,4 +327,8 @@ async function handleSubmitPassword() {
     background: rgba(255, 255, 255, 0.08);
   }
 }
+</style>
+
+
+<style lang="scss">
 </style>

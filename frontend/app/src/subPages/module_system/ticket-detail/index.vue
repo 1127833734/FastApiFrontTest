@@ -88,16 +88,16 @@ function getTypeLabel(type?: string) {
   return t(map[type || ''] || 'common.type.other')
 }
 function getTypeColor(type?: string) {
-  const map: Record<string, string> = { suggestion: '#4F8CFF', bug: '#EF4444', optimize: '#F59E0B', other: '#6B7280' }
-  return map[type || ''] || '#6B7280'
+  const map: Record<string, string> = { suggestion: 'var(--brand-blue)', bug: 'var(--error-color)', optimize: 'var(--brand-orange)', other: 'var(--text-color-3)' }
+  return map[type || ''] || 'var(--text-color-3)'
 }
 function getStatusLabel(status?: string | number) {
   const map: Record<string, string> = { 0: 'pending', 1: 'processing', 2: 'completed', 3: 'closed' }
   return t(`common.status.${map[String(status ?? '')] || 'unknown'}`)
 }
 function getStatusColor(status?: string | number) {
-  const map: Record<string, string> = { 0: '#F59E0B', 1: '#4F8CFF', 2: '#10B981', 3: '#6B7280' }
-  return map[String(status ?? '')] || '#6B7280'
+  const map: Record<string, string> = { 0: 'var(--brand-orange)', 1: 'var(--brand-blue)', 2: 'var(--success-color)', 3: 'var(--text-color-3)' }
+  return map[String(status ?? '')] || 'var(--text-color-3)'
 }
 function parseImages(images?: string): string[] {
   if (!images)
