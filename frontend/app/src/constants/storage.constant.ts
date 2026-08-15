@@ -11,9 +11,6 @@ export const ACCESS_TOKEN_KEY = 'access_token'
 export const REFRESH_TOKEN_KEY = 'refresh_token'
 export const REMEMBER_ME_KEY = 'remember_me'
 
-// 👤 用户数据相关
-export const USER_INFO_KEY = 'user_info'
-
 // 📊 数据缓存相关
 export const DICT_CACHE_KEY = 'dict_cache'
 
@@ -40,7 +37,6 @@ export const AUTH_KEYS = {
 // 📦 缓存相关键集合
 export const CACHE_KEYS = {
   DICT_CACHE: DICT_CACHE_KEY,
-  USER_INFO: USER_INFO_KEY,
 } as const
 
 // 🎨 设置相关键集合

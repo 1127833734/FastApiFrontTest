@@ -8,8 +8,8 @@ const SYSTEM_BASE = '/system'
  * 与 web 端 module_system/notice.ts 对齐（完整字段定义）
  */
 export const NoticeAPI = {
-  getPage(params?: Record<string, any>): Promise<PageResult<NoticeItem>> {
-    return http.Get(`${SYSTEM_BASE}/notice/list`, params)
+  getPage(params?: Record<string, any>) {
+    return http.Get<PageResult<NoticeItem>>(`${SYSTEM_BASE}/notice/list`, params)
   },
   getDetail(id: number): Promise<NoticeItem> {
     return http.Get(`${SYSTEM_BASE}/notice/detail/${id}`)

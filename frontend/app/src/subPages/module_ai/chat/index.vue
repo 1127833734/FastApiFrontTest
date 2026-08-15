@@ -204,7 +204,7 @@ onLoad(() => {
 <template>
   <view class="page-wraper" style="display:flex;flex-direction:column;">
     <!-- Header -->
-    <view style="display:flex;align-items:center;gap:var(--spacing-sm,12rpx);padding:var(--spacing-md,16rpx);border-bottom:1px solid var(--border-color);background:var(--card-bg-color);">
+    <view class="wot-bg-filled-oppo wot-border-border-main wot-gap-extra-tight wot-p-tight flex items-center" style="border-bottom:1px solid;">
       <wd-button size="small" variant="plain" @click="showSessions = !showSessions">
         <wd-icon name="menu" size="16px" />
       </wd-button>
@@ -215,7 +215,7 @@ onLoad(() => {
     </view>
 
     <!-- Session panel overlay -->
-    <view v-if="showSessions" class="session-overlay" style="position:absolute;top:88rpx;left:0;right:0;bottom:0;background:var(--bg-color);z-index:100;overflow-y:auto;">
+    <view v-if="showSessions" class="session-overlay wot-bg-filled-oppo" style="position:absolute;top:88rpx;left:0;right:0;bottom:0;z-index:100;overflow-y:auto;">
       <view class="p-sm">
         <view class="mb-md flex items-center justify-between px-xs">
           <wd-text class="text-lg" :text="t('chat.sessionList')" bold />
@@ -227,7 +227,7 @@ onLoad(() => {
         <view v-for="s in sessions" v-else :key="s.id" class="admin-card">
           <wd-cell :title="s.title" :label="s.created_at ? String(s.created_at) : ''" center is-link @click="selectSession(s.id, s.title)">
             <template #default>
-              <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="deleteSession(s.id)" />
+              <wd-icon name="delete" size="18px" color="var(--wot-danger-main)" @click.stop="deleteSession(s.id)" />
             </template>
           </wd-cell>
         </view>
@@ -238,8 +238,8 @@ onLoad(() => {
     <!-- Messages -->
     <scroll-view
       scroll-y
-      class="chat-messages"
-      style="flex:1;padding:var(--spacing-md,16rpx);"
+      class="chat-messages wot-p-tight"
+      style="flex:1;"
       :scroll-into-view="scrollTarget || `msg-${visibleMessages.length - 1}`"
       :scroll-with-animation="true"
     >
@@ -254,18 +254,17 @@ onLoad(() => {
           <view
             v-if="msg.role === 'user'"
             class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full"
-            style="background: linear-gradient(135deg, var(--primary-color, #4F8CFF), var(--primary-color-dark, #2970FF));"
+            style="background: linear-gradient(135deg, var(--wot-primary-6), var(--wot-primary-7));"
           >
             <wd-icon name="user" size="18px" color="#FFFFFF" />
           </view>
           <wd-avatar v-else size="32px" shape="round" src="/static/logo.png" />
           <view
             class="max-w-[72%] break-words px-3 py-2"
+            :class="msg.role === 'user' ? 'wot-bg-primary-6 wot-text-text-white' : 'wot-bg-filled-oppo wot-text-text-main wot-border-border-main'"
             :style="{
-              background: msg.role === 'user' ? 'var(--primary-color)' : 'var(--card-bg-color)',
-              color: msg.role === 'user' ? 'var(--text-color-inverse)' : 'var(--text-color)',
               borderRadius: msg.role === 'user' ? '16rpx 16rpx 4rpx 16rpx' : '16rpx 16rpx 16rpx 4rpx',
-              border: msg.role === 'user' ? 'none' : '1px solid var(--border-color)',
+              border: msg.role === 'user' ? 'none' : '1px solid',
             }"
           >
             <!-- AI 消息渲染 markdown；用户消息保持纯文本 -->
@@ -281,7 +280,7 @@ onLoad(() => {
     </scroll-view>
 
     <!-- Input -->
-    <view style="border-top:1px solid var(--border-color);padding:var(--spacing-md,16rpx);background:var(--card-bg-color);padding-bottom:calc(24rpx + env(safe-area-inset-bottom, 0px));">
+    <view class="wot-bg-filled-oppo wot-border-border-main wot-p-tight" style="border-top:1px solid;padding-bottom:calc(24rpx + env(safe-area-inset-bottom, 0px));">
       <view class="flex items-center gap-sm">
         <wd-input v-model="inputText" :placeholder="t('chat.inputPlaceholder')" :disabled="streaming" class="flex-1" confirm-type="send" @confirm="sendMessage" />
         <wd-button v-if="streaming" type="danger" variant="plain" @click="stopGenerate">

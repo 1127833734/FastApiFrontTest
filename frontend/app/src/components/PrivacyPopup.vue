@@ -100,7 +100,7 @@ export default {
       </view>
       <view class="wd-privacy-popup__container">
         <wd-text :text="desc" />
-        <wd-text class="wd-privacy-popup__container-protocol" @click="openPrivacyContract" :text="protocol" />
+        <wd-text class="wd-privacy-popup__container-protocol" :text="protocol" @click="openPrivacyContract" />
         <wd-text :text="subDesc" />
       </view>
       <view class="wd-privacy-popup__footer">
@@ -138,7 +138,7 @@ export default {
     width: 100%;
     height: 128rpx;
     line-height: 128rpx;
-    color: var(--text-color, rgba(0, 0, 0, 0.85));
+    @apply wot-text-text-main;
     font-size: 30rpx;
     padding: 0 12rpx;
     box-sizing: border-box;
@@ -152,11 +152,11 @@ export default {
 
     font-size: 28rpx;
     line-height: 1.8;
-    color: var(--text-color-2, #3e3e3e);
+    @apply wot-text-text-secondary;
     text-align: left;
     font-weight: 550;
     &-protocol {
-      color: var(--primary-color, #4d80f0);
+      @apply wot-text-primary-6;
     }
   }
 

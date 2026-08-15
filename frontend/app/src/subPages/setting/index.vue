@@ -8,7 +8,6 @@ import {
   LANG_KEY,
   REFRESH_TOKEN_KEY,
   REMEMBER_ME_KEY,
-  USER_INFO_KEY,
   WATERMARK_KEY,
 } from '@/constants'
 import { useConfigStore } from '@/store/configStore'
@@ -38,9 +37,10 @@ const langOptions = [
 ]
 /** 当前语言值（解包 vue-i18n 的 locale ref，供模板类型安全的比较） */
 const currentLocale = computed(() => locale.value)
-const currentLang = computed(() => {
+/** 当前语言 i18n key（仅数据查找，翻译交给模板的 t() 处理） */
+const currentLangKey = computed(() => {
   const opt = langOptions.find(o => o.value === locale.value)
-  return t(opt?.labelKey || langOptions[0].labelKey)
+  return opt?.labelKey || langOptions[0].labelKey
 })
 
 function handleLangSelect(option: { labelKey: string, value: string }) {
@@ -83,7 +83,7 @@ onShow(() => {
 
 /** 清除本地缓存：清认证与数据缓存（保留主题、水印偏好），清除后回到登录页 */
 function clearLocalCache() {
-  ;[ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_INFO_KEY, REMEMBER_ME_KEY, DICT_CACHE_KEY, 'appUserInfo', 'appConfig']
+  ;[ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, REMEMBER_ME_KEY, DICT_CACHE_KEY, 'appUserInfo', 'appConfig']
     .forEach(key => Storage.remove(key))
   cacheSize.value = Storage.getSize()
   uni.reLaunch({ url: '/pages/login/index' })
@@ -110,7 +110,7 @@ const {
   closeThemeColorPicker,
   selectThemeColor,
   setFollowSystem,
-} = useManualTheme()
+} = useTheme()
 
 const isDark = computed({
   get() {
@@ -121,11 +121,11 @@ const isDark = computed({
   },
 })
 
-// 当前主题色名称（按 value 从预设中解析，兼容历史持久化数据缺失 labelKey 的情况）
-const currentThemeName = computed(() => {
+// 当前主题色 i18n key（按 value 从预设中解析，兼容历史持久化数据缺失 labelKey 的情况；翻译交给模板的 t() 处理）
+const currentThemeNameKey = computed(() => {
   const current = currentThemeColor.value
   const option = themeColorOptions.find(o => o.value === current.value) || themeColorOptions[0]
-  return t(option.labelKey)
+  return option.labelKey
 })
 
 // 处理主题色选择
@@ -154,16 +154,16 @@ function handleNavigate(url: string) {
 </script>
 
 <template>
-  <view class="box-border py-3">
-    <view class="mx-3 box-border rounded-3 px-4 py-6 text-center wot-bg-filled-oppo">
-      <text class="mb-3 block text-left text-5 font-bold wot-text-text-main">
+  <view class="page-wraper box-border py-3">
+    <view class="wot-bg-filled-oppo mx-3 box-border rounded-3 px-4 py-6 text-center">
+      <text class="wot-text-text-main mb-3 block text-left text-5 font-bold">
         {{ brandTitle }}
       </text>
-      <wd-text class="mb-3 block text-left wot-text-text-secondary" size="30rpx" line-height="1.6" :text="brandDesc" />
+      <wd-text class="wot-text-text-secondary mb-3 block text-left" size="30rpx" line-height="1.6" :text="brandDesc" />
     </view>
 
     <view class="mx-3 mb-3 mt-3">
-      <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
+      <view class="wot-text-text-main mb-2 px-1 text-3.5 font-bold">
         {{ t('setting.basic') }}
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
@@ -181,11 +181,11 @@ function handleNavigate(url: string) {
               class="h-4 w-4 rounded-full"
               :style="{ backgroundColor: currentThemeColor.primary }"
             />
-            <wd-text :text="currentThemeName" />
+            <wd-text :text="t(currentThemeNameKey)" />
           </view>
         </wd-cell>
         <wd-cell :title="t('setting.language')" is-link @click="showLangSheet = true">
-          <wd-text class="text-3 wot-text-text-secondary" :text="currentLang" />
+          <wd-text class="wot-text-text-secondary text-3" :text="t(currentLangKey)" />
         </wd-cell>
         <wd-cell :title="t('setting.watermark')" :is-link="false">
           <wd-switch
@@ -198,7 +198,7 @@ function handleNavigate(url: string) {
     </view>
 
     <view class="mx-3">
-      <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
+      <view class="wot-text-text-main mb-2 px-1 text-3.5 font-bold">
         {{ t('setting.links') }}
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
@@ -208,12 +208,12 @@ function handleNavigate(url: string) {
     </view>
 
     <view class="mx-3 mt-3">
-      <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
+      <view class="wot-text-text-main mb-2 px-1 text-3.5 font-bold">
         {{ t('setting.general') }}
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
         <wd-cell :title="t('setting.version')" :is-link="false">
-          <wd-text class="text-3 wot-text-text-secondary" :text="`v${version || '--'}`" />
+          <wd-text class="wot-text-text-secondary text-3" :text="`v${version || '--'}`" />
         </wd-cell>
         <wd-cell :title="t('common.aboutUs')" is-link @click="navigateToAbout" />
         <wd-cell :title="t('setting.clearCache')" is-link :value="cacheSize" @click="handleClearCache" />
@@ -234,15 +234,15 @@ function handleNavigate(url: string) {
         <view
           v-for="option in themeColorOptions"
           :key="option.value"
-          class="flex items-center justify-between border-b py-3 wot-border-border-main last:border-b-0"
+          class="wot-border-border-main flex items-center justify-between border-b py-3 last:border-b-0"
           @click="handleThemeColorSelect(option)"
         >
           <view class="flex items-center gap-3">
             <view
-              class="h-6 w-6 border-2 rounded-full wot-border-border-main"
+              class="wot-border-border-main h-6 w-6 border-2 rounded-full"
               :style="{ backgroundColor: option.primary }"
             />
-            <wd-text class="text-4 wot-text-text-main" :text="t(option.labelKey)" />
+            <wd-text class="wot-text-text-main text-4" :text="t(option.labelKey)" />
           </view>
           <wd-icon
             v-if="currentThemeColor.value === option.value"
@@ -266,14 +266,14 @@ function handleNavigate(url: string) {
         <view
           v-for="option in langOptions"
           :key="option.value"
-          class="flex items-center justify-between border-b py-3 wot-border-border-main last:border-b-0"
+          class="wot-border-border-main flex items-center justify-between border-b py-3 last:border-b-0"
           @click="handleLangSelect(option)"
         >
-          <wd-text :text="t(option.labelKey)" class="text-4 wot-text-text-main" />
+          <wd-text :text="t(option.labelKey)" class="wot-text-text-main text-4" />
           <wd-icon
             v-if="currentLocale === option.value"
             name="check"
-            color="var(--primary-color, #4F8CFF)"
+            color="var(--wot-primary-6)"
             size="20px"
           />
         </view>

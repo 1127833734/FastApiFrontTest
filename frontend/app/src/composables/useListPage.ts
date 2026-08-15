@@ -1,4 +1,4 @@
-import type { Method } from 'alova'
+import type { AlovaGenerics, Method } from 'alova'
 import { usePagination } from 'alova/client'
 import { computed, ref } from 'vue'
 
@@ -7,8 +7,8 @@ export interface ListPageParams {
   page_size: number
 }
 
-export interface ListPageOptions<T> {
-  fetcher: (params: ListPageParams) => Promise<PageResult<T>>
+export interface ListPageOptions<AG extends AlovaGenerics = AlovaGenerics> {
+  fetcher: (params: ListPageParams) => Method<AG>
   pageSize?: number
   onError?: (error: unknown) => void
 }
@@ -16,10 +16,10 @@ export interface ListPageOptions<T> {
 /**
  * 通用列表分页逻辑（基于 alova usePagination 封装）
  * 底层使用 alova 状态管理，统一暴露 list/total/loading/error 三态与翻页动作
- * 说明：fetcher 运行时返回的是 alova Method（http 层 get/post 均为 Method 实例，Method extends Promise），
- *      这里仅做类型桥接，请求发送与错误处理完全交给 alova hook 管理
+ * 说明：fetcher 需返回 alova Method（http 层 get/post 均为 Method 实例），
+ *      请求发送与错误处理完全交给 alova hook 管理
  */
-export function useListPage<T>(options: ListPageOptions<T>) {
+export function useListPage<T, AG extends AlovaGenerics = AlovaGenerics>(options: ListPageOptions<AG>) {
   const { fetcher, pageSize = 10, onError } = options
 
   const pageParams = ref<ListPageParams>({ page_no: 1, page_size: pageSize })
@@ -31,9 +31,8 @@ export function useListPage<T>(options: ListPageOptions<T>) {
     error,
     send,
     onError: onPageError,
-  } = usePagination<any, T[], any>(
-    (pageNo: number, pageSizeNo: number) =>
-      fetcher({ page_no: pageNo, page_size: pageSizeNo }) as unknown as Method,
+  } = usePagination<AG, T[], any[]>(
+    (pageNo: number, pageSizeNo: number) => fetcher({ page_no: pageNo, page_size: pageSizeNo }),
     {
       initialPage: 1,
       initialPageSize: pageSize,

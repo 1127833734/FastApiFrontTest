@@ -3,20 +3,18 @@ import type { UserInfo } from '@/api/module_system/user'
 import { defineStore } from 'pinia'
 import AuthAPI from '@/api/module_system/auth'
 import UserAPI from '@/api/module_system/user'
-import {
-  ACCESS_TOKEN_KEY,
-  REFRESH_TOKEN_KEY,
-  USER_INFO_KEY,
-} from '@/constants'
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/constants'
 import { Storage } from '@/utils/storage'
 
 export const useUserStore = defineStore('appUserInfo', {
   state: () => ({
-    userInfo: Storage.get<UserInfo>(USER_INFO_KEY),
+    // userInfo 由 persist 插件自动持久化（存储 key 即 store id：appUserInfo），无需手动读写 Storage
+    userInfo: null as UserInfo | null,
     isLoggingIn: false,
   }),
 
   getters: {
+    /** 是否已登录（唯一口径：以用户信息为准） */
     isLogin: state => !!state.userInfo,
   },
 
@@ -48,19 +46,19 @@ export const useUserStore = defineStore('appUserInfo', {
       Storage.remove(REFRESH_TOKEN_KEY)
     },
 
-    // 获取用户信息
-    getUserInfo(): UserInfo | undefined {
-      return Storage.get<UserInfo>(USER_INFO_KEY)
+    // 获取用户信息（直接读取响应式 state）
+    getUserInfo(): UserInfo | null {
+      return this.userInfo
     },
 
-    // 设置用户信息
+    // 设置用户信息（合并更新 state，由 persist 插件自动持久化）
     setUserInfo(userInfo: Partial<UserInfo>): void {
-      Storage.set(USER_INFO_KEY, userInfo)
+      this.userInfo = { ...(this.userInfo ?? {}), ...userInfo } as UserInfo
     },
 
-    // 清除用户信息
+    // 清除用户信息（置空 state，由 persist 插件自动同步存储）
     clearUserInfo(): void {
-      Storage.remove(USER_INFO_KEY)
+      this.userInfo = null
     },
 
     // 清除所有缓存信息
@@ -118,8 +116,6 @@ export const useUserStore = defineStore('appUserInfo', {
       try {
         const userInfoData = await UserAPI.getCurrentUserInfo()
         this.setUserInfo(userInfoData)
-        // 确保响应式数据更新
-        this.userInfo = userInfoData
         return userInfoData
       }
       catch (error) {
@@ -137,8 +133,7 @@ export const useUserStore = defineStore('appUserInfo', {
         console.error('登出失败', error)
       }
       finally {
-        this.clearAll() // 清除本地的 token
-        this.userInfo = {} // 清空用户信息
+        this.clearAll() // 清除本地的 token 与用户信息
         // 跳转到登录页面
         uni.reLaunch({
           url: '/pages/login/index',

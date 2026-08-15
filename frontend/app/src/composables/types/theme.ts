@@ -53,14 +53,6 @@ export interface ThemeState {
 }
 
 /**
- * 系统主题状态接口（简化版）
- */
-export interface SystemThemeState {
-  theme: ThemeMode
-  themeVars: ConfigProviderThemeVars
-}
-
-/**
  * 预定义的主题色选项
  */
 export const themeColorOptions: ThemeColorOption[] = [

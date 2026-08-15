@@ -1,4 +1,5 @@
 /// <reference types="@uni-helper/vite-plugin-uni-pages/client" />
+import { createRouter } from '@wot-ui/router'
 import { pages, subPackages } from 'virtual:uni-pages'
 import { useUserStore } from '@/store/userStore'
 
@@ -43,6 +44,13 @@ router.beforeEach((to, from, next) => {
     return
   }
   next()
+})
+
+// 导航完成钩子：预留页面切换记录 / 埋点上报 / 动态标题等能力，按需启用
+router.afterEach((to, from) => {
+  if (to.path && from.path && to.path !== from.path) {
+    console.log(`📍 页面切换: ${from.path} → ${to.path}`)
+  }
 })
 
 export default router

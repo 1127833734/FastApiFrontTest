@@ -11,7 +11,7 @@ import { Storage } from '@/utils/storage'
  */
 export function useWatermark() {
   const userStore = useUserStore()
-  const themeStore = useManualThemeStore()
+  const themeStore = useThemeStore()
   // 兼容历史脏对象 { value }，统一兜底为布尔（wd-switch change 事件参数为对象）
   const stored = Storage.get<boolean | { value: boolean }>(WATERMARK_KEY)
   const localSwitch = ref(typeof stored === 'object' && stored ? Boolean(stored.value) : (stored ?? true))

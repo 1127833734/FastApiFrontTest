@@ -7,6 +7,7 @@
  * @FilePath: /wot-starter/pages.config.ts
  * 记得注释
  */
+import process from 'node:process'
 import { defineUniPages } from '@uni-helper/vite-plugin-uni-pages'
 
 // 按构建平台动态裁剪配置（vite-plugin-uni-pages 不处理条件编译注释，用 JS 逻辑）

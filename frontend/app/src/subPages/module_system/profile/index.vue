@@ -163,14 +163,14 @@ onLoad(() => {
             />
             <!-- 相机角标：示意可更换头像 -->
             <view
-              class="absolute h-6 w-6 flex items-center justify-center rounded-full -bottom-0.5 -right-0.5"
-              style="background-color: var(--primary-color, #4F8CFF); border: 3rpx solid var(--wot-filled-content, #FFFFFF);"
+              class="wot-bg-primary-6 absolute h-6 w-6 flex items-center justify-center rounded-full -bottom-0.5 -right-0.5"
+              style="border: 3rpx solid var(--wot-filled-content, #FFFFFF);"
             >
               <wd-icon name="camera" size="12px" color="#FFFFFF" />
             </view>
           </view>
         </wd-upload>
-        <wd-text class="text-4 wot-text-text-main" :text="userProfile?.name || userProfile?.username || '-'" bold />
+        <wd-text class="wot-text-text-main text-4" :text="userProfile?.name || userProfile?.username || '-'" bold />
       </view>
 
       <!-- 资料列表 -->
@@ -201,7 +201,7 @@ onLoad(() => {
         round
         custom-style="padding-bottom: env(safe-area-inset-bottom);"
       >
-        <view class="px-4 pb-4 pt-4 text-center text-4 font-bold wot-text-text-main">
+        <view class="wot-text-text-main px-4 pb-4 pt-4 text-center text-4 font-bold">
           {{ editTitle }}
         </view>
         <view class="px-4 pb-4">

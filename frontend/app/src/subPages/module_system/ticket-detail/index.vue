@@ -19,7 +19,7 @@ useShare(() => ({
 
 definePage({
   name: 'work-ticket-detail',
-  style: { navigationBarTitleText: '工单详情' },
+  style: { navigationBarTitleText: '工单详情', enablePullDownRefresh: true },
 })
 useI18nNavTitle('ticketDetail.title')
 
@@ -88,16 +88,24 @@ function getTypeLabel(type?: string) {
   return t(map[type || ''] || 'common.type.other')
 }
 function getTypeColor(type?: string) {
-  const map: Record<string, string> = { suggestion: 'var(--brand-blue)', bug: 'var(--error-color)', optimize: 'var(--brand-orange)', other: 'var(--text-color-3)' }
-  return map[type || ''] || 'var(--text-color-3)'
+  const map: Record<string, string> = { suggestion: 'var(--wot-blue-6)', bug: 'var(--wot-danger-main)', optimize: 'var(--wot-orange-6)', other: 'var(--wot-text-auxiliary)' }
+  return map[type || ''] || 'var(--wot-text-auxiliary)'
+}
+function getTypeBg(type?: string) {
+  const map: Record<string, string> = { suggestion: 'var(--wot-blue-2)', bug: 'var(--wot-danger-2)', optimize: 'var(--wot-orange-2)', other: 'var(--wot-coolgrey-2)' }
+  return map[type || ''] || 'var(--wot-coolgrey-2)'
 }
 function getStatusLabel(status?: string | number) {
   const map: Record<string, string> = { 0: 'pending', 1: 'processing', 2: 'completed', 3: 'closed' }
   return t(`common.status.${map[String(status ?? '')] || 'unknown'}`)
 }
 function getStatusColor(status?: string | number) {
-  const map: Record<string, string> = { 0: 'var(--brand-orange)', 1: 'var(--brand-blue)', 2: 'var(--success-color)', 3: 'var(--text-color-3)' }
-  return map[String(status ?? '')] || 'var(--text-color-3)'
+  const map: Record<string, string> = { 0: 'var(--wot-orange-6)', 1: 'var(--wot-blue-6)', 2: 'var(--wot-success-main)', 3: 'var(--wot-text-auxiliary)' }
+  return map[String(status ?? '')] || 'var(--wot-text-auxiliary)'
+}
+function getStatusBg(status?: string | number) {
+  const map: Record<string, string> = { 0: 'var(--wot-orange-2)', 1: 'var(--wot-blue-2)', 2: 'var(--wot-green-2)', 3: 'var(--wot-coolgrey-2)' }
+  return map[String(status ?? '')] || 'var(--wot-coolgrey-2)'
 }
 function parseImages(images?: string): string[] {
   if (!images)
@@ -138,21 +146,21 @@ onLoad((options) => {
 
     <template v-else-if="ticket">
       <!-- Ticket Header -->
-      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="block text-4 wot-text-text-main" :text="ticket.title || t('ticketDetail.unnamed')" bold />
+      <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main block text-4" :text="ticket.title || t('ticketDetail.unnamed')" bold />
         <view class="mt-3 flex gap-2">
-          <wd-tag size="small" round :bg-color="`${getTypeColor(ticket.ticket_type)}18`" :color="getTypeColor(ticket.ticket_type)">
+          <wd-tag size="small" round :bg-color="getTypeBg(ticket.ticket_type)" :color="getTypeColor(ticket.ticket_type)">
             {{ getTypeLabel(ticket.ticket_type) }}
           </wd-tag>
-          <wd-tag size="small" round :bg-color="`${getStatusColor(ticket.status)}18`" :color="getStatusColor(ticket.status)">
+          <wd-tag size="small" round :bg-color="getStatusBg(ticket.status)" :color="getStatusColor(ticket.status)">
             {{ getStatusLabel(ticket.status) }}
           </wd-tag>
         </view>
       </view>
 
       <!-- Ticket Status Steps -->
-      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="mb-3 block text-3.5 wot-text-text-main" :text="t('ticketDetail.progress')" bold />
+      <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main mb-3 block text-3.5" :text="t('ticketDetail.progress')" bold />
         <wd-steps :active="Number(ticket.status ?? 0)" align-center>
           <wd-step :title="t('common.status.pending')" />
           <wd-step :title="t('common.status.processing')" />
@@ -171,15 +179,15 @@ onLoad((options) => {
       </view>
 
       <!-- Ticket Content -->
-      <view v-if="ticket.ticket_content || ticket.summary" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.content')" bold />
+      <view v-if="ticket.ticket_content || ticket.summary" class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main block text-3.5" :text="t('ticketDetail.content')" bold />
         <wd-divider class="my-3!" />
         <mp-html :content="ticket.summary || ticket.ticket_content" markdown :tag-style="MARKDOWN_TAG_STYLE" />
       </view>
 
       <!-- Images -->
-      <view v-if="parseImages(ticket.images).length > 0" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.attachments')" bold />
+      <view v-if="parseImages(ticket.images).length > 0" class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main block text-3.5" :text="t('ticketDetail.attachments')" bold />
         <wd-divider class="my-3!" />
         <view class="flex flex-wrap gap-3">
           <wd-img
@@ -197,17 +205,17 @@ onLoad((options) => {
       </view>
 
       <!-- Reply -->
-      <view v-if="ticket.reply" class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.replies')" bold />
+      <view v-if="ticket.reply" class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main block text-3.5" :text="t('ticketDetail.replies')" bold />
         <wd-divider class="my-3!" />
-        <view class="rounded-lg p-3" style="background: var(--primary-color-light, rgba(1, 77, 178, 0.06));">
+        <view class="wot-bg-primary-1 rounded-lg p-3">
           <mp-html :content="ticket.reply" markdown :tag-style="MARKDOWN_TAG_STYLE" />
         </view>
       </view>
 
       <!-- Comments -->
-      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
-        <wd-text class="block text-3.5 wot-text-text-main" :text="t('ticketDetail.comments', { count: commentTotal })" bold />
+      <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
+        <wd-text class="wot-text-text-main block text-3.5" :text="t('ticketDetail.comments', { count: commentTotal })" bold />
         <wd-divider class="my-3!" />
         <wd-empty v-if="comments.length === 0" :tip="t('ticketDetail.emptyComments')" />
         <view v-else class="flex flex-col gap-4">
@@ -219,10 +227,10 @@ onLoad((options) => {
             />
             <view class="min-w-0 flex-1">
               <view class="flex items-center gap-3">
-                <wd-text class="text-3 font-semibold wot-text-text-main" :text="comment.username || t('ticketDetail.anonymous')" />
-                <wd-text class="text-2.5 wot-text-text-auxiliary" :text="comment.created_time || ''" />
+                <wd-text class="wot-text-text-main text-3 font-semibold" :text="comment.username || t('ticketDetail.anonymous')" />
+                <wd-text class="wot-text-text-auxiliary text-2.5" :text="comment.created_time || ''" />
               </view>
-              <wd-text class="mt-1 block text-3 leading-relaxed wot-text-text-secondary" :text="comment.content" />
+              <wd-text class="wot-text-text-secondary mt-1 block text-3 leading-relaxed" :text="comment.content" />
             </view>
           </view>
 
@@ -241,8 +249,8 @@ onLoad((options) => {
     <!-- Comment Input -->
     <view
       v-if="ticket"
-      class="fixed inset-x-0 bottom-0 flex items-center gap-3 px-4 py-3"
-      style="z-index: 100; background: var(--card-bg-color, #FFFFFF); border-top: 1rpx solid var(--border-color, #F0F0F0); padding-bottom: calc(12px + env(safe-area-inset-bottom));"
+      class="wot-bg-filled-oppo fixed inset-x-0 bottom-0 flex items-center gap-3 px-4 py-3"
+      style="z-index: 100; border-top: 1rpx solid var(--wot-border-main, #EAECF0); padding-bottom: calc(12px + env(safe-area-inset-bottom));"
     >
       <wd-input
         v-model="commentText"

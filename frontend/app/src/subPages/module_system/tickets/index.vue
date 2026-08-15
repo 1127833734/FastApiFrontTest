@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { TicketAPI } from '@/api/module_system/ticket'
 import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
 
-definePage({ name: 'work-tickets', style: { navigationBarTitleText: '工单管理' } })
+definePage({ name: 'work-tickets', style: { navigationBarTitleText: '工单管理', enablePullDownRefresh: true } })
 useI18nNavTitle('tickets.title')
 
 const { t } = useI18n()
@@ -66,10 +66,8 @@ function handleStatusConfirm(e: PickerConfirmEvent) {
   showPickerStatus.value = false
 }
 
+/** 工单状态：数字 → StatusBadge 内置 key，由 StatusBadge 的 map prop 一次性映射 */
 const TICKET_STATUS_MAP: Record<number, string> = { 0: 'pending', 1: 'processing', 2: 'completed', 3: 'closed' }
-function ticketStatus(status: number | string | undefined) {
-  return TICKET_STATUS_MAP[Number(status)] || String(status)
-}
 function typeLabel(type?: string) {
   const opt = TYPE_OPTIONS.find(o => o.value === type)
   return opt ? t(opt.labelKey) : (type || '')
@@ -97,24 +95,20 @@ const hasFilter = computed(() => !!searchTitle.value || !!typeFilter.value || ac
 function handleTypeFilter(e: { value: string | number }) {
   typeFilter.value = e.value
   toFirst()
-  loadData()
 }
 
 function handleTabChange(e: { index: number }) {
   activeStatus.value = TAB_OPTIONS[e.index]?.value
   toFirst()
-  loadData()
 }
 
 function onSearch() {
   toFirst()
-  loadData()
 }
 function onReset() {
   searchTitle.value = ''
   typeFilter.value = ''
   toFirst()
-  loadData()
 }
 function resetForm() {
   Object.assign(formData, { ...initForm })
@@ -224,7 +218,7 @@ onLoad(() => loadData())
             @click="onSwipeRight(item, $event)"
           >
             <template #right>
-              <view class="h-full flex items-center justify-center px-6" style="background-color: var(--danger-color); color: #fff;">
+              <view class="wot-bg-danger-main h-full flex items-center justify-center px-6" style="color: #fff;">
                 <wd-text class="text-3" :text="t('common.delete')" />
               </view>
             </template>
@@ -237,8 +231,8 @@ onLoad(() => loadData())
             >
               <template #value>
                 <view class="flex flex-col items-end gap-1">
-                  <wd-text class="text-2.5 wot-text-text-auxiliary" :text="(item.created_time || '').slice(0, 10)" />
-                  <StatusBadge :status="ticketStatus(item.status)" />
+                  <wd-text class="wot-text-text-auxiliary text-2.5" :text="(item.created_time || '').slice(0, 10)" />
+                  <StatusBadge :status="item.status" :map="TICKET_STATUS_MAP" />
                 </view>
               </template>
             </wd-cell>
@@ -247,7 +241,7 @@ onLoad(() => loadData())
       </view>
       <!-- 触底加载更多提示 -->
       <wd-loading v-if="loading && list.length > 0" size="20px" class="mx-auto my-2 block" />
-      <wd-text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary" :text="t('common.noMore')" />
+      <wd-text v-else-if="total > 0 && list.length >= total" class="wot-text-text-auxiliary my-2 block text-center text-2.5" :text="t('common.noMore')" />
       <!-- 底部安全区（全面屏 Home 条避让） -->
       <wd-gap height="100rpx" safe-area-bottom />
     </template>

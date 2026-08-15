@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { NoticeAPI } from '@/api/module_system/notice'
 import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
 
-definePage({ name: 'work-notices', style: { navigationBarTitleText: '通知公告' } })
+definePage({ name: 'work-notices', style: { navigationBarTitleText: '通知公告', enablePullDownRefresh: true } })
 useI18nNavTitle('notices.title')
 
 const { t } = useI18n()
@@ -27,14 +27,8 @@ const STATUS_OPTIONS = [
   { value: 2, labelKey: 'common.status.archived' },
 ]
 
-function statusLabel(s: number | string | undefined) {
-  const n = Number(s)
-  if (n === 1)
-    return 'published'
-  if (n === 2)
-    return 'archived'
-  return 'draft'
-}
+/** 公告状态：数字 → StatusBadge 内置 key，由 StatusBadge 的 map prop 一次性映射 */
+const NOTICE_STATUS_MAP: Record<string, string> = { 0: 'draft', 1: 'published', 2: 'archived' }
 
 const { list, total, loading, loadData, toFirst, loadNext } = useListPage<NoticeItem>({
   fetcher: p => NoticeAPI.getPage({ ...p, notice_title: searchTitle.value || undefined }),
@@ -43,12 +37,10 @@ const { list, total, loading, loadData, toFirst, loadNext } = useListPage<Notice
 
 function onSearch() {
   toFirst()
-  loadData()
 }
 function onReset() {
   searchTitle.value = ''
   toFirst()
-  loadData()
 }
 function resetForm() {
   Object.assign(formData, { notice_title: '', notice_content: '', notice_type: '1', status: 0, description: '' })
@@ -92,12 +84,13 @@ async function handleSubmit() {
   catch { toast.error(t('common.operationFailed')) }
   finally { loading.value = false }
 }
+const dialog = useGlobalDialog()
 function handleDelete(id: number) {
-  uni.showModal({
+  dialog.confirm({
     title: t('common.title'),
-    content: t('common.deleteConfirm'),
-    success: async (res) => {
-      if (res.confirm) {
+    msg: t('common.deleteConfirm'),
+    success: async ({ action }) => {
+      if (action === 'confirm') {
         try {
           await NoticeAPI.remove([id])
           toast.success(t('common.deleteSuccess'))
@@ -137,7 +130,7 @@ onLoad(() => loadData())
 
     <!-- 列表头部：总数 -->
     <view class="mx-3 mb-2 mt-3 flex items-center justify-between px-1">
-      <wd-text class="text-3 wot-text-text-secondary" :text="t('notices.count', { count: total })" />
+      <wd-text class="wot-text-text-secondary text-3" :text="t('notices.count', { count: total })" />
     </view>
 
     <SkeletonPage v-if="loading && list.length === 0" :rows="5" search />
@@ -149,14 +142,14 @@ onLoad(() => loadData())
             <template #title>
               <view class="min-w-0 flex-1">
                 <view class="flex items-center justify-between gap-2">
-                  <wd-text class="truncate text-3.5 font-medium wot-text-text-main" :text="item.notice_title" />
-                  <wd-text class="shrink-0 text-2.5 wot-text-text-auxiliary" :text="(item.created_time || '').slice(0, 10)" />
+                  <wd-text class="wot-text-text-main truncate text-3.5 font-medium" :text="item.notice_title" />
+                  <wd-text class="wot-text-text-auxiliary shrink-0 text-2.5" :text="(item.created_time || '').slice(0, 10)" />
                 </view>
                 <view class="mt-1 flex items-center justify-between gap-2">
-                  <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="item.description || ''" />
+                  <wd-text class="wot-text-text-auxiliary truncate text-2.5" :text="item.description || ''" />
                   <view class="flex shrink-0 items-center gap-2">
-                    <StatusBadge :status="statusLabel(item.status)" />
-                    <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(item.id!)" />
+                    <StatusBadge :status="item.status" :map="NOTICE_STATUS_MAP" />
+                    <wd-icon name="delete" size="18px" color="var(--wot-danger-main)" @click.stop="handleDelete(item.id!)" />
                   </view>
                 </view>
               </view>
@@ -166,7 +159,7 @@ onLoad(() => loadData())
       </view>
       <!-- 触底加载更多提示 -->
       <wd-loading v-if="loading && list.length > 0" size="20px" class="mx-auto my-2 block" />
-      <wd-text v-else-if="total > 0 && list.length >= total" class="my-2 block text-center text-2.5 wot-text-text-auxiliary" :text="t('common.noMore')" />
+      <wd-text v-else-if="total > 0 && list.length >= total" class="wot-text-text-auxiliary my-2 block text-center text-2.5" :text="t('common.noMore')" />
       <!-- 底部安全区（全面屏 Home 条避让） -->
       <wd-gap height="100rpx" safe-area-bottom />
     </template>

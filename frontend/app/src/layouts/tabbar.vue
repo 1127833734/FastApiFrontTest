@@ -6,6 +6,7 @@ const router = useRouter()
 const route = useRoute()
 
 const { t } = useI18n()
+
 const { activeTabbar, getTabbarItemValue, setTabbarItemActive, tabbarList } = useTabbar()
 
 const { enabled: watermarkEnabled, content: watermarkContent, color: watermarkColor } = useWatermark()
@@ -38,10 +39,12 @@ export default {
 </script>
 
 <template>
-  <view class="tabbar-page" style="--tabbar-h: calc(var(--wot-tabbar-height, 50px) + env(safe-area-inset-bottom));">
-    <slot />
-  </view>
-  <wd-gap safe-area-bottom height="var(--wot-tabbar-height, 50px)" />
+  <slot />
+  <wd-gap
+    safe-area-bottom
+    height="var(--wot-tabbar-height, 50px)"
+    custom-class="tabbar-gap"
+  />
   <wd-tabbar
     :model-value="activeTabbar.name" bordered safe-area-inset-bottom fixed
     @change="handleTabbarChange"

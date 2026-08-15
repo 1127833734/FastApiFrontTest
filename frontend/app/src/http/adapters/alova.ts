@@ -22,7 +22,6 @@ function getErrorMessage(statusCode: number, rawData: any): string {
 /** 登录态失效：清空凭据与用户信息后回登录页（不调用后端注销接口，避免 token 失效后再触发 401） */
 function handleAuthExpired(userStore: ReturnType<typeof useUserStore>) {
   userStore.clearAll()
-  userStore.userInfo = {}
   toLoginPage({ mode: 'reLaunch' })
 }
 

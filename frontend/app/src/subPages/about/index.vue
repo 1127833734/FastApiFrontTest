@@ -46,20 +46,20 @@ function handleNavigate(url: string) {
 </script>
 
 <template>
-  <view class="box-border py-3">
+  <view class="page-wraper box-border py-3">
     <!-- 头部介绍 -->
     <view class="mx-3 mb-3">
-      <view class="rounded-3 px-5 py-8 text-center wot-bg-filled-oppo">
+      <view class="wot-bg-filled-oppo rounded-3 px-5 py-8 text-center">
         <view class="mb-3 text-10">
           👋
         </view>
-        <view class="mb-2 text-6 font-bold wot-text-text-main">
+        <view class="wot-text-text-main mb-2 text-6 font-bold">
           {{ sysName }}
         </view>
-        <view v-if="version" class="mb-2 text-3.5 wot-text-text-secondary">
+        <view v-if="version" class="wot-text-text-secondary mb-2 text-3.5">
           {{ t('about.currentVersion', { version }) }}
         </view>
-        <view v-if="loginSubtitle" class="text-3 leading-relaxed wot-text-text-secondary">
+        <view v-if="loginSubtitle" class="wot-text-text-secondary text-3 leading-relaxed">
           {{ loginSubtitle }}
         </view>
       </view>
@@ -67,7 +67,7 @@ function handleNavigate(url: string) {
 
     <!-- 更多信息 -->
     <view class="mx-3">
-      <view class="mb-2 px-1 text-3.5 font-bold wot-text-text-main">
+      <view class="wot-text-text-main mb-2 px-1 text-3.5 font-bold">
         {{ t('about.moreInfo') }}
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
@@ -78,7 +78,7 @@ function handleNavigate(url: string) {
 
     <!-- 版权信息 -->
     <view v-if="copyright" class="mx-3 mt-8 text-center">
-      <wd-text class="text-2.5 wot-text-text-auxiliary" :text="copyright" />
+      <wd-text class="wot-text-text-auxiliary text-2.5" :text="copyright" />
     </view>
 
     <!-- 底部安全区（全面屏 Home 条避让） -->

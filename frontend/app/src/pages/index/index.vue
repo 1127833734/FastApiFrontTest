@@ -2,7 +2,7 @@
 import type { SwiperItem } from '@wot-ui/ui/components/wd-swiper/types'
 import type { DashboardStats, LoginTrendItem } from '@/api/module_monitor/dashboard'
 import type { NoticeItem } from '@/api/module_system/notice'
-import { onPullDownRefresh, onReady, onShow } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onReady } from '@dcloudio/uni-app'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import * as echarts from 'echarts/core'
@@ -15,10 +15,21 @@ import { NoticeAPI } from '@/api/module_system/notice'
 import { TicketAPI } from '@/api/module_system/ticket'
 import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
 import { useShare } from '@/composables/useShare'
+import { useTabbarActive } from '@/composables/useTabbarActive'
+import { useThemeStore } from '@/store/themeStore'
 import { useUserStore } from '@/store/userStore'
 
 const { t, locale } = useI18n()
 const userStore = useUserStore()
+const themeStore = useThemeStore()
+
+/** 主题主色（primary6）→ rgba，供 echarts 面积渐变使用（echarts 无法直接消费 CSS 变量） */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = Number.parseInt(hex.slice(1, 3), 16)
+  const g = Number.parseInt(hex.slice(3, 5), 16)
+  const b = Number.parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 useShare(() => ({
   title: t('index.shareTitle', { greeting: t(`index.${getGreeting()}`), name: userStore.userInfo?.name || t('common.admin') }),
@@ -60,6 +71,16 @@ const recentNotices = ref<NoticeItem[]>([])
 /** 最新公告标题（通知栏展示，无公告则隐藏通知栏） */
 const latestNotice = computed(() => recentNotices.value[0]?.notice_title || t('index.welcomeDefault'))
 
+/** 通知栏背景/文字跟随主题色（CSS 变量无法直接取主色透明值，用 JS 计算） */
+const noticeBarStyle = computed(() => {
+  const shades = themeStore.currentThemeColor.primaryShades
+  const main = themeStore.isDark ? shades.primary5 : shades.primary6
+  return {
+    '--wot-notice-bar-info-bg': hexToRgba(main, themeStore.isDark ? 0.16 : 0.1),
+    '--wot-notice-bar-info-color': main,
+  }
+})
+
 /** 页面滚动距离（供 wd-backtop 判断显示） */
 const scrollTop = ref(0)
 onPageScroll((e) => {
@@ -67,10 +88,10 @@ onPageScroll((e) => {
 })
 
 const NAV_LIST = [
-  { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices', color: 'var(--brand-green)', soft: 'var(--brand-green-soft)' },
-  { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets', color: 'var(--brand-orange)', soft: 'var(--brand-orange-soft)' },
-  { icon: 'interaction', titleKey: 'common.nav.aiChat', name: 'work-chat', color: 'var(--brand-cyan)', soft: 'var(--brand-cyan-soft)' },
-  { icon: 'robot', titleKey: 'common.nav.aiModels', name: 'work-ai-models', color: 'var(--brand-purple)', soft: 'var(--brand-purple-soft)' },
+  { icon: 'notification', titleKey: 'common.nav.notices', name: 'work-notices', color: 'var(--wot-green-6)', soft: 'wot-bg-green-1' },
+  { icon: 'message', titleKey: 'common.nav.tickets', name: 'work-tickets', color: 'var(--wot-orange-6)', soft: 'wot-bg-orange-1' },
+  { icon: 'interaction', titleKey: 'common.nav.aiChat', name: 'work-chat', color: 'var(--wot-cyan-6)', soft: 'wot-bg-cyan-1' },
+  { icon: 'robot', titleKey: 'common.nav.aiModels', name: 'work-ai-models', color: 'var(--wot-purple-6)', soft: 'wot-bg-purple-1' },
 ]
 
 /** 轮播 Banner 条目 */
@@ -145,6 +166,13 @@ const loginTrendOption = computed(() => {
   const logins = loginTrend.value.map(i => i.logins)
   const uniques = loginTrend.value.map(i => i.unique_users)
   const news = loginTrend.value.map(i => i.new_users)
+  /** 主题主色（跟随主题色切换），图表品牌感与全局换肤一致 */
+  const primaryColor = themeStore.currentThemeColor.primaryShades.primary6
+  /** 暗色模式下图表文字/网格线换亮色，保证深色卡片上可读 */
+  const isDark = themeStore.isDark
+  const axisTextColor = isDark ? '#8A94A6' : '#999'
+  const legendTextColor = isDark ? '#B0B8C4' : '#909399'
+  const splitLineColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(128, 128, 128, 0.12)'
   return {
     tooltip: {
       trigger: 'axis',
@@ -156,7 +184,7 @@ const loginTrendOption = computed(() => {
       itemWidth: 10,
       itemHeight: 10,
       itemGap: 8,
-      textStyle: { fontSize: 10, color: '#909399' },
+      textStyle: { fontSize: 10, color: legendTextColor },
       data: [t('index.loginCount'), t('index.visitor'), t('index.newUser')],
     },
     grid: { left: 8, right: 8, top: 34, bottom: 0, containLabel: true },
@@ -166,14 +194,14 @@ const loginTrendOption = computed(() => {
       data: days,
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { fontSize: 10, color: '#999' },
+      axisLabel: { fontSize: 10, color: axisTextColor },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { fontSize: 10, color: '#999' },
-      splitLine: { lineStyle: { color: 'rgba(128, 128, 128, 0.12)', type: 'dashed' } },
+      axisLabel: { fontSize: 10, color: axisTextColor },
+      splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } },
     },
     series: [
       {
@@ -183,8 +211,8 @@ const loginTrendOption = computed(() => {
         symbol: 'circle',
         symbolSize: 5,
         data: logins,
-        lineStyle: { width: 3, color: '#4F8CFF' },
-        itemStyle: { color: '#4F8CFF' },
+        lineStyle: { width: 3, color: primaryColor },
+        itemStyle: { color: primaryColor },
         areaStyle: {
           color: {
             type: 'linear',
@@ -193,8 +221,8 @@ const loginTrendOption = computed(() => {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(79, 140, 255, 0.28)' },
-              { offset: 1, color: 'rgba(79, 140, 255, 0.02)' },
+              { offset: 0, color: hexToRgba(primaryColor, 0.28) },
+              { offset: 1, color: hexToRgba(primaryColor, 0.02) },
             ],
           },
         },
@@ -274,21 +302,20 @@ onPullDownRefresh(() => {
   Promise.all([loadData(), loadNotices()])
 })
 
-onShow(() => {
-  const pages = getCurrentPages()
-  if (pages.length > 0 && pages[pages.length - 1].route === 'pages/index/index')
-    uni.$emit('updateTabbar', 'index')
-})
+useTabbarActive('pages/index/index', 'index')
+
+/** 星期名称常量：日期格式化是本地化逻辑而非模板文案，script 中不走 i18n */
+const WEEK_ZH = ['日', '一', '二', '三', '四', '五', '六']
+const WEEK_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function getDateString() {
   const now = new Date()
-  const weekDay = t(`index.weekDay.${now.getDay()}`)
   const y = now.getFullYear()
   const m = now.getMonth() + 1
   const d = now.getDate()
   return locale.value.startsWith('zh')
-    ? `${y}${t('index.year')}${m}${t('index.month')}${d}${t('index.day')} ${t('index.week')}${weekDay}`
-    : `${weekDay}, ${m}/${d}/${y}`
+    ? `${y}年${m}月${d}日 星期${WEEK_ZH[now.getDay()]}`
+    : `${WEEK_EN[now.getDay()]}, ${m}/${d}/${y}`
 }
 
 function getGreeting() {
@@ -308,7 +335,7 @@ function getGreeting() {
 </script>
 
 <template>
-  <view class="page-wraper">
+  <view class="tabbar-wraper">
     <!-- 顶部通知栏：接入最新一条公告（无公告自动隐藏），点击进入公告列表 -->
     <wd-notice-bar
       :text="latestNotice"
@@ -317,6 +344,7 @@ function getGreeting() {
       prefix="notification"
       custom-class="home-notice"
       class="mb-3"
+      :style="noticeBarStyle"
       @click="navigateTo('work-notices')"
     />
 
@@ -329,7 +357,7 @@ function getGreeting() {
         :interval="4500"
         :autoplay="true"
         :loop="true"
-        :adjust-height="false"
+        adjust-height="none"
       >
         <template #default="{ index }">
           <view class="banner-slide" :class="banners[index].cls" @click="banners[index].onClick">
@@ -373,7 +401,7 @@ function getGreeting() {
     </view>
 
     <!-- 快捷入口 -->
-    <view class="mx-3 mb-3 rounded-2 p-2 wot-bg-filled-oppo">
+    <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-2">
       <wd-grid :column="4" :border="false" clickable>
         <wd-grid-item
           v-for="item in NAV_LIST"
@@ -383,11 +411,11 @@ function getGreeting() {
           <view class="w-full flex flex-col items-center">
             <view
               class="h-11 w-11 flex items-center justify-center rounded-xl"
-              :style="{ backgroundColor: item.soft }"
+              :class="item.soft"
             >
               <wd-icon :name="item.icon" size="20px" :color="item.color" />
             </view>
-            <view class="mt-1 w-full text-center text-2.5 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 w-full text-center text-2.5">
               {{ t(item.titleKey) }}
             </view>
           </view>
@@ -397,59 +425,59 @@ function getGreeting() {
 
     <!-- 运营概览 -->
     <view class="mb-2 mt-4 flex items-center gap-2 px-3">
-      <view class="h-3.5 w-1 rounded-full" style="background-color: var(--primary-color, #4F8CFF);" />
-      <wd-text class="text-3.5 wot-text-text-main" :text="t('index.opsOverview')" bold />
+      <view class="wot-bg-primary-6 h-3.5 w-1 rounded-full" />
+      <wd-text class="wot-text-text-main text-3.5" :text="t('index.opsOverview')" bold />
     </view>
     <SkeletonPage v-if="loading && !dashboardStats" :rows="3" />
     <view v-else class="mx-3">
       <wd-row :gutter="12">
         <wd-col :span="8">
           <view class="stat-card wot-bg-filled-oppo">
-            <view class="stat-card__icon" style="background: var(--primary-color, #4F8CFF);">
+            <view class="stat-card__icon wot-bg-primary-6">
               <wd-icon name="user-group" size="18px" color="#FFFFFF" />
             </view>
             <wd-count-to v-if="dashboardStats?.total_users != null" :end-val="dashboardStats.total_users" type="primary" custom-class="stat-count" />
-            <view v-else class="text-5 font-bold wot-text-text-main">
+            <view v-else class="wot-text-text-main text-5 font-bold">
               -
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('index.registered') }}
             </view>
-            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+            <view class="wot-text-text-auxiliary mt-0.5 text-2.5">
               {{ t('index.weekNew', { count: dashboardStats?.week_user_created ?? 0 }) }}
             </view>
           </view>
         </wd-col>
         <wd-col :span="8">
           <view class="stat-card wot-bg-filled-oppo">
-            <view class="stat-card__icon" style="background: var(--success-color, #10B981);">
+            <view class="stat-card__icon wot-bg-success-main">
               <wd-icon name="eye" size="18px" color="#FFFFFF" />
             </view>
             <wd-count-to v-if="dashboardStats?.online_users != null" :end-val="dashboardStats.online_users" type="success" custom-class="stat-count" />
-            <view v-else class="text-5 font-bold wot-text-text-main">
+            <view v-else class="wot-text-text-main text-5 font-bold">
               -
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('index.online') }}
             </view>
-            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+            <view class="wot-text-text-auxiliary mt-0.5 text-2.5">
               {{ t('index.currentOnline') }}
             </view>
           </view>
         </wd-col>
         <wd-col :span="8">
           <view class="stat-card wot-bg-filled-oppo">
-            <view class="stat-card__icon" style="background: var(--warning-color, #F59E0B);">
+            <view class="stat-card__icon wot-bg-warning-main">
               <wd-icon name="clock-circle" size="18px" color="#FFFFFF" />
             </view>
             <wd-count-to v-if="dashboardStats?.today_login_count != null" :end-val="dashboardStats.today_login_count" type="warning" custom-class="stat-count" />
-            <view v-else class="text-5 font-bold wot-text-text-main">
+            <view v-else class="wot-text-text-main text-5 font-bold">
               -
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('index.todayLogin') }}
             </view>
-            <view class="mt-0.5 text-2.5 wot-text-text-auxiliary">
+            <view class="wot-text-text-auxiliary mt-0.5 text-2.5">
               {{ t('index.independentUser', { count: dashboardStats?.today_unique_users ?? 0 }) }}
             </view>
           </view>
@@ -460,14 +488,14 @@ function getGreeting() {
     <!-- 系统监控（原数据概览 dashboard 合并，Banner 点击可滚动到此区块） -->
     <view id="monitor-section" class="mt-4">
       <view class="mb-2 flex items-center gap-2 px-3">
-        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--danger-color, #EF4444);" />
-        <wd-text class="text-3.5 wot-text-text-main" :text="t('index.sysMonitor')" bold />
+        <view class="wot-bg-danger-main h-3.5 w-1 rounded-full" />
+        <wd-text class="wot-text-text-main text-3.5" :text="t('index.sysMonitor')" bold />
       </view>
 
       <!-- 登录趋势折线图 -->
-      <view class="mx-3 mb-3 rounded-2 p-4 wot-bg-filled-oppo">
+      <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-4">
         <view class="mb-4 flex items-center gap-2">
-          <wd-text class="text-3.5 wot-text-text-main" :text="t('index.loginTrend')" bold />
+          <wd-text class="wot-text-text-main text-3.5" :text="t('index.loginTrend')" bold />
         </view>
         <uni-echarts custom-class="h-52 w-full" :option="loginTrendOption" />
       </view>
@@ -476,8 +504,8 @@ function getGreeting() {
     <!-- 最新公告 -->
     <view v-if="recentNotices.length > 0" class="mb-2 mt-4 flex items-center justify-between px-3">
       <view class="flex items-center gap-2">
-        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--success-color, #10B981);" />
-        <wd-text class="text-3.5 wot-text-text-main" :text="t('index.latestNotice')" bold />
+        <view class="wot-bg-success-main h-3.5 w-1 rounded-full" />
+        <wd-text class="wot-text-text-main text-3.5" :text="t('index.latestNotice')" bold />
       </view>
       <wd-text class="text-3" :text="t('common.all')" type="primary" @click="navigateTo('work-notices')" />
     </view>
@@ -491,7 +519,7 @@ function getGreeting() {
           @click="navigateTo('work-notices')"
         >
           <template #label>
-            <wd-text class="text-2.5 wot-text-text-auxiliary" :text="item.created_time || ''" />
+            <wd-text class="wot-text-text-auxiliary text-2.5" :text="item.created_time || ''" />
           </template>
         </wd-cell>
       </wd-cell-group>
@@ -540,7 +568,7 @@ function getGreeting() {
     width: 120rpx;
     height: 120rpx;
     border-radius: 50%;
-    background: var(--primary-color, #4F8CFF);
+    @apply wot-bg-primary-6;
     opacity: 0.06;
   }
 }
@@ -590,10 +618,11 @@ function getGreeting() {
     50% { transform: translateY(-14rpx) scale(1.06); }
   }
 
-  &--greet { background: var(--brand-gradient-blue); }
-  &--ticket { background: var(--brand-gradient-orange); }
-  &--ticket-empty { background: var(--brand-gradient-green); }
-  &--stats { background: var(--brand-gradient-purple); }
+  /* 问候 Banner：品牌卡，跟随主题色（primary），与用户卡/图表主色换肤一致；下方 ticket/stats 为语义色保留 */
+  &--greet { background: linear-gradient(135deg, var(--wot-primary-6), var(--wot-primary-4)); }
+  &--ticket { background: linear-gradient(135deg, var(--wot-orange-6), var(--wot-orange-4)); }
+  &--ticket-empty { background: linear-gradient(135deg, var(--wot-green-6), var(--wot-green-4)); }
+  &--stats { background: linear-gradient(135deg, var(--wot-purple-6), var(--wot-purple-4)); }
 
   &__body {
     position: relative;
@@ -683,19 +712,5 @@ function getGreeting() {
       background: #FFFFFF;
     }
   }
-}
-
-/* wd-count-to 数字统一字号 */
-:deep(.stat-count) {
-  font-size: 40rpx;
-  font-weight: 700;
-}
-</style>
-
-<style lang="scss">
-/* 暗黑模式下首页通知栏底色改为半透明主色，避免默认深蓝色块 (#0A235C) 在暗色页面上过重；
-   需要全局选择器，因为 .wot-theme-dark 挂在外层 wd-config-provider 根上 */
-.wot-theme-dark .home-notice {
-  --wot-notice-bar-info-bg: rgba(68, 128, 255, 0.12);
 }
 </style>

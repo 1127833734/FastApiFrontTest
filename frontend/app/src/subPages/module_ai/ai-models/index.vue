@@ -8,7 +8,7 @@ import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
 
 definePage({
   name: 'work-ai-models',
-  style: { navigationBarTitleText: 'AI 模型配置' },
+  style: { navigationBarTitleText: 'AI 模型配置', enablePullDownRefresh: true },
 })
 useI18nNavTitle('aiModels.title')
 
@@ -155,12 +155,12 @@ onLoad(() => {
           <wd-cell :title="t('aiModels.groupTitle')" :value="t('aiModels.count', { count: models.length })" border />
           <wd-cell v-for="model in models" :key="model.config_id" center>
             <template #title>
-              <wd-text class="truncate text-3.5 font-medium wot-text-text-main" :text="model.name || t('aiModels.unnamed')" />
+              <wd-text class="wot-text-text-main truncate text-3.5 font-medium" :text="model.name || t('aiModels.unnamed')" />
             </template>
             <template #label>
               <view class="flex flex-col">
-                <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="`${model.model_id} · ${t('aiModels.temperature')} ${model.temperature ?? '—'}`" />
-                <wd-text class="truncate text-2.5 wot-text-text-auxiliary" :text="model.base_url" />
+                <wd-text class="wot-text-text-auxiliary truncate text-2.5" :text="`${model.model_id} · ${t('aiModels.temperature')} ${model.temperature ?? '—'}`" />
+                <wd-text class="wot-text-text-auxiliary truncate text-2.5" :text="model.base_url" />
               </view>
             </template>
             <template #default>
@@ -177,8 +177,8 @@ onLoad(() => {
                 >
                   {{ t('aiModels.activate') }}
                 </wd-button>
-                <wd-icon name="edit" size="18px" color="var(--text-color-3, #6B7280)" @click.stop="openEdit(model)" />
-                <wd-icon name="delete" size="18px" color="var(--danger-color)" @click.stop="handleDelete(model.config_id)" />
+                <wd-icon name="edit" size="18px" color="var(--wot-text-auxiliary)" @click.stop="openEdit(model)" />
+                <wd-icon name="delete" size="18px" color="var(--wot-danger-main)" @click.stop="handleDelete(model.config_id)" />
               </view>
             </template>
           </wd-cell>
@@ -212,8 +212,8 @@ onLoad(() => {
               </wd-form-item>
               <wd-form-item :label="t('aiModels.temperatureLabel')" border>
                 <view class="w-full flex items-center gap-3">
-                  <wd-slider v-model="temperature" class="flex-1" :min="0" :max="2" :step="0.1" show-extreme-value active-color="var(--primary-color)" />
-                  <wd-text class="w-16 text-right text-3 font-semibold wot-text-text-main" :text="temperature.toFixed(1)" />
+                  <wd-slider v-model="temperature" class="flex-1" :min="0" :max="2" :step="0.1" show-extreme-value active-color="var(--wot-primary-6)" />
+                  <wd-text class="wot-text-text-main w-16 text-right text-3 font-semibold" :text="temperature.toFixed(1)" />
                 </view>
               </wd-form-item>
             </wd-collapse-item>

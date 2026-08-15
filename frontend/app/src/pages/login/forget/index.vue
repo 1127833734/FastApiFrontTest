@@ -141,27 +141,30 @@ function goLogin() {
   /* #endif */
   padding: 0 64rpx;
   padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg-color, #F9F9F9);
+  /* 接入全局水滴渐变（--drop-bg 由 App.vue 按主题色定义，暗色回退纯色由下方规则接管） */
+  background: var(--drop-bg, #F9F9F9);
   overflow: hidden;
   box-sizing: border-box;
 }
 
 /* 暗黑模式下整页背景变深，消除白色断层（wot 根类为 wot-theme-dark） */
 .wot-theme-dark .forget-page {
-  background: var(--bg-color-1, #0F0F11);
+  @apply wot-bg-filled-bottom;
 }
 
 .forget-card {
   width: 100%;
   margin-top: 120rpx;
-  background: var(--card-bg-color, #FFFFFF);
+  /* 亮色下默认带主题色最浅阶，避免一片纯白；--card-bg-color 可被外部覆盖 */
+  background: var(--card-bg-color, var(--wot-primary-1, #FFFFFF));
   border-radius: var(--radius-xl, 32rpx);
   padding: 40rpx 36rpx;
-  border: 2rpx solid var(--border-color, #EAECF0);
+  /* 边框跟随主题色浅阶，替代中性灰，让卡片更有主题感 */
+  border: 2rpx solid var(--border-color, var(--wot-primary-2, #EAECF0));
   box-shadow: var(--shadow-md, 0 8rpx 32rpx rgba(15, 23, 42, 0.04));
 
   .wot-theme-dark & {
-    background: var(--bg-color-3, #1A1A1A);
+    @apply wot-bg-filled-content;
     border-color: var(--border-color, #2C2C2E);
     box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
   }
@@ -170,7 +173,7 @@ function goLogin() {
     display: block;
     font-size: var(--font-xl, 36rpx);
     font-weight: 600;
-    color: var(--text-color, #0A1628);
+    @apply wot-text-text-main;
     margin-bottom: 28rpx;
 
     /* 暗黑模式下使用纯白，提升卡片标题醒目度 */
@@ -182,8 +185,19 @@ function goLogin() {
 
 .forget-form {
   :deep(.wd-input) {
-    border-radius: 16rpx;
+    border-radius: 24rpx;
+    /* 亮色下主题色浅阶边框与卡片边框呼应，白色底在淡色卡片上形成浮层 */
+    border: 2rpx solid var(--wot-primary-2, var(--wot-border-main, #EAECF0));
+    box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.05);
   }
+
+  /* H5 聚焦态：主题色描边 + 淡色光晕（MP 端不支持 :focus-within，跳过） */
+  /* #ifdef H5 */
+  :deep(.wd-input:focus-within) {
+    border-color: var(--wot-primary-6, #1C64FD);
+    box-shadow: 0 0 0 4rpx var(--wot-primary-1, #F5F8FF);
+  }
+  /* #endif */
 
   /* 去掉 wd-cell 自带左右内边距，使输入框与登录按钮同宽（与登录页一致） */
   :deep(.wd-form-item) {
@@ -193,14 +207,17 @@ function goLogin() {
   }
 }
 
-/* 暗黑下 wot 的 filled-oppo 回退纯黑，与卡片/页面层级脱节：
-   cell 容器回归透明，输入框回落深灰圆角块 */
-.wot-theme-dark .forget-page :deep(.wd-cell) {
+/* cell 容器回归透明：亮色下消除输入框外围的白色方形区域，暗色下消除纯黑块，
+   让自带圆角+边框的输入框直接显示在卡片上 */
+:deep(.wd-cell) {
   --wot-cell-bg: transparent;
 }
 
 .wot-theme-dark .forget-page :deep(.wd-input) {
-  --wot-input-bg: var(--bg-color-3, #2C2C2E);
+  /* 比卡片背景（filled-content）亮一档，输入框在暗色卡片上凸起有层次 */
+  --wot-input-bg: var(--wot-coolgrey-8, var(--wot-filled-content));
+  border-color: var(--wot-border-main, #2C2C2E);
+  box-shadow: none;
 }
 
 .forget-footer {
@@ -212,9 +229,7 @@ function goLogin() {
     font-size: var(--font-md, 28rpx);
   }
 }
-</style>
 
-<style lang="scss">
 /* MP 端兼容：wd-form-item 内部 wd-cell 因 uni-app 插槽静态声明（u-s）误判 label/title 插槽被使用，
    showLeft=true 渲染空 left 区域（flex:1 占半宽），H5 端运行时插槽判定无此问题。
    本页 form-item 无 title/label/prefix 内容，隐藏 left 安全，保证输入框与登录按钮同宽 */

@@ -2,6 +2,7 @@ import process from 'node:process'
 import Uni from '@uni-helper/plugin-uni'
 import { isMpWeixin } from '@uni-helper/uni-env'
 import UniHelperComponents from '@uni-helper/vite-plugin-uni-components'
+import { WotV2Resolver } from '@uni-helper/vite-plugin-uni-components/resolvers'
 import UniHelperLayouts from '@uni-helper/vite-plugin-uni-layouts'
 import UniHelperManifest from '@uni-helper/vite-plugin-uni-manifest'
 import UniHelperPages from '@uni-helper/vite-plugin-uni-pages'
@@ -12,7 +13,6 @@ import { UniEcharts } from 'uni-echarts/vite'
 import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { defineConfig, loadEnv } from 'vite'
-import { WotResolver } from './src/resolver'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => {
       UniHelperLayouts(),
       // https://github.com/uni-helper/vite-plugin-uni-components
       UniHelperComponents({
-        resolvers: [WotResolver(), UniEchartsResolver()],
+        resolvers: [WotV2Resolver(), UniEchartsResolver()],
         dts: 'src/components.d.ts',
         dirs: ['src/components'],
         directoryAsNamespace: true,
@@ -70,13 +70,14 @@ export default defineConfig(({ mode }) => {
           imports: ['createRouter', 'useRouter', 'useRoute'],
         }, {
           from: '@wot-ui/ui',
-          imports: ['useToast', 'useDialog', 'useNotify', 'CommonUtil'],
+          imports: ['useToast', 'useDialog', 'useNotify'],
         }, {
           from: 'alova/client',
           imports: ['usePagination', 'useRequest'],
         }],
         dts: 'src/auto-imports.d.ts',
-        dirs: ['src/composables', 'src/store', 'src/utils', 'src/api'],
+        // api 模块不自动导入：全部显式 import（`@/api/xxx`），避免全局命名空间过宽
+        dirs: ['src/composables', 'src/store', 'src/utils'],
         // useShare 与 @vueuse/core 重名，项目内均为显式 import，禁用自动导入避免重复警告
         ignore: ['useShare'],
         vueTemplate: true,

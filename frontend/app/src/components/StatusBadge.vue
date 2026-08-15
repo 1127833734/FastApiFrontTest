@@ -5,7 +5,7 @@
  */
 import { useI18n } from 'vue-i18n'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   status?: string | boolean | number
   /** 自定义映射: { '0': 'enabled', '1': 'disabled', true: 'enabled', false: 'disabled' } */
   map?: Record<string, string>
@@ -39,16 +39,20 @@ const statusMap: Record<string, { labelKey: string, cls: string }> = {
 }
 
 function resolve(input: string | boolean | number): { label: string, cls: string } {
+  // 1. 自定义 map 优先（业务状态：如 notices 0=草稿/1=已发布、tickets 0=待处理/1=处理中）
+  const mappedKey = props.map?.[String(input)]
+  if (mappedKey && statusMap[mappedKey])
+    return { label: t(statusMap[mappedKey].labelKey), cls: statusMap[mappedKey].cls }
+  // 2. 后端通用规范: 0=启用, 1=禁用
   if (input === true || input === 'true' || input === '1' || input === 1 || input === '0' || input === 0 || input === false || input === 'false') {
-    // 后端规范: 0=启用, 1=禁用
     const isEnabled = input === 0 || input === '0' || input === true || input === 'true'
     return isEnabled
       ? { label: t('common.status.enabled'), cls: 'status-badge--enabled' }
       : { label: t('common.status.disabled'), cls: 'status-badge--disabled' }
   }
-  return statusMap[String(input)]
-    ? { label: t(statusMap[String(input)].labelKey), cls: statusMap[String(input)].cls }
-    : { label: String(input), cls: 'status-badge--disabled' }
+  // 3. 内置状态映射兜底
+  const entry = statusMap[String(input)]
+  return entry ? { label: t(entry.labelKey), cls: entry.cls } : { label: String(input), cls: 'status-badge--disabled' }
 }
 </script>
 
@@ -85,45 +89,45 @@ function resolve(input: string | boolean | number): { label: string, cls: string
 /* 各状态仅定义文字色，背景色由带外层 .status-badge 的组合规则提供，
  * 使纯圆点模式只显示纯色圆点 */
 .status-badge--enabled {
-  color: var(--wot-success-main);
+  @apply wot-text-success-main;
 }
 .status-badge.status-badge--enabled {
-  background: var(--wot-success-surface);
+  @apply wot-bg-success-surface;
 }
 
 .status-badge--disabled {
-  color: var(--wot-text-auxiliary);
+  @apply wot-text-text-auxiliary;
 }
 .status-badge.status-badge--disabled {
-  background: var(--wot-filled-content);
+  @apply wot-bg-filled-content;
 }
 
 .status-badge--primary {
-  color: var(--wot-primary-6);
+  @apply wot-text-primary-6;
 }
 .status-badge.status-badge--primary {
-  background: var(--wot-primary-1);
+  @apply wot-bg-primary-1;
 }
 
 .status-badge--danger {
-  color: var(--wot-danger-main);
+  @apply wot-text-danger-main;
 }
 .status-badge.status-badge--danger {
-  background: var(--wot-danger-surface);
+  @apply wot-bg-danger-surface;
 }
 
 /* failed 为 danger 的别名（menus 页菜单类型使用） */
 .status-badge--failed {
-  color: var(--wot-danger-main);
+  @apply wot-text-danger-main;
 }
 .status-badge.status-badge--failed {
-  background: var(--wot-danger-surface);
+  @apply wot-bg-danger-surface;
 }
 
 .status-badge--draft {
-  color: var(--wot-text-secondary);
+  @apply wot-text-text-secondary;
 }
 .status-badge.status-badge--draft {
-  background: var(--wot-filled-content);
+  @apply wot-bg-filled-content;
 }
 </style>

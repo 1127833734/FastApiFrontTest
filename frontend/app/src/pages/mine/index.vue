@@ -2,10 +2,11 @@
 import type { PasswordChangeForm } from '@/api/module_system/user'
 import { useI18n } from 'vue-i18n'
 import UserAPI from '@/api/module_system/user'
-import { getTicketStats } from '@/composables/useCachedRequest'
 import { useGlobalDialog } from '@/composables/useGlobalDialog'
 import { useI18nNavTitle } from '@/composables/useI18nNavTitle'
 import { useShare } from '@/composables/useShare'
+import { useTabbarActive } from '@/composables/useTabbarActive'
+import { useTicketStats } from '@/composables/useTicketStats'
 import { useUserStore } from '@/store/userStore'
 
 const { t } = useI18n()
@@ -46,27 +47,9 @@ function handleLogout() {
 }
 
 /** 工单统计（共享缓存，与 work 页面复用，30秒内不重复请求） */
-const pendingTickets = ref<number | null>(null)
-const processingTickets = ref<number | null>(null)
-const doneTickets = ref<number | null>(null)
+const { pendingTickets, processingTickets, doneTickets, loadTicketStats } = useTicketStats()
 
-async function loadTicketStats() {
-  try {
-    const stats = await getTicketStats()
-    pendingTickets.value = stats.pending
-    processingTickets.value = stats.processing
-    doneTickets.value = stats.done
-  }
-  catch { /* silent */ }
-}
-
-onShow(() => {
-  const pages = getCurrentPages()
-  if (pages.length > 0 && pages[pages.length - 1].route === 'pages/mine/index') {
-    uni.$emit('updateTabbar', 'mine')
-    loadTicketStats()
-  }
-})
+useTabbarActive('pages/mine/index', 'mine', loadTicketStats)
 
 const settingsList = [
   { titleKey: 'common.profile', name: 'profile' },
@@ -75,10 +58,10 @@ const settingsList = [
 ]
 
 const quickLinks = [
-  { titleKey: 'common.nav.notices', name: 'work-notices', icon: 'notification', color: 'var(--brand-green)', soft: 'var(--brand-green-soft)' },
-  { titleKey: 'common.nav.tickets', name: 'work-tickets', icon: 'message', color: 'var(--brand-orange)', soft: 'var(--brand-orange-soft)' },
-  { titleKey: 'common.nav.aiChat', name: 'work-chat', icon: 'interaction', color: 'var(--brand-cyan)', soft: 'var(--brand-cyan-soft)' },
-  { titleKey: 'common.nav.aiModels', name: 'work-ai-models', icon: 'robot', color: 'var(--brand-purple)', soft: 'var(--brand-purple-soft)' },
+  { titleKey: 'common.nav.notices', name: 'work-notices', icon: 'notification', color: 'var(--wot-green-6)', soft: 'wot-bg-green-1' },
+  { titleKey: 'common.nav.tickets', name: 'work-tickets', icon: 'message', color: 'var(--wot-orange-6)', soft: 'wot-bg-orange-1' },
+  { titleKey: 'common.nav.aiChat', name: 'work-chat', icon: 'interaction', color: 'var(--wot-cyan-6)', soft: 'wot-bg-cyan-1' },
+  { titleKey: 'common.nav.aiModels', name: 'work-ai-models', icon: 'robot', color: 'var(--wot-purple-6)', soft: 'wot-bg-purple-1' },
 ]
 
 /** 修改密码弹窗（内嵌于「我的」页，免跳转） */
@@ -141,9 +124,9 @@ async function handleSubmitPassword() {
 </script>
 
 <template>
-  <view class="page-wraper py-3">
+  <view class="tabbar-wraper py-3">
     <!-- 用户信息卡（品牌渐变 + 极光装饰圆环，与工作台一致） -->
-    <view class="mine-user-card mx-3 mb-3 flex items-center gap-4 rounded-3 px-5 py-6">
+    <view class="user-info-card mx-3 mb-3 flex items-center gap-4 rounded-3 px-5 py-6">
       <wd-badge is-dot>
         <wd-avatar
           size="64px"
@@ -174,31 +157,31 @@ async function handleSubmitPassword() {
     <view class="mx-3 mb-3">
       <wd-row :gutter="12">
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo active:opacity-70" @click="navigateTo('work-tickets')">
-            <view class="text-5 font-bold" style="color: var(--warning-color, #F59E0B);">
+          <view class="wot-bg-filled-oppo rounded-2 p-4 text-center active:opacity-70" @click="navigateTo('work-tickets')">
+            <view class="wot-text-warning-main text-5 font-bold">
               {{ pendingTickets ?? '-' }}
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('mine.pendingTickets') }}
             </view>
           </view>
         </wd-col>
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo active:opacity-70" @click="navigateTo('work-tickets')">
-            <view class="text-5 font-bold" style="color: var(--primary-color, #4F8CFF);">
+          <view class="wot-bg-filled-oppo rounded-2 p-4 text-center active:opacity-70" @click="navigateTo('work-tickets')">
+            <view class="wot-text-primary-6 text-5 font-bold">
               {{ processingTickets ?? '-' }}
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('mine.processingTickets') }}
             </view>
           </view>
         </wd-col>
         <wd-col :span="8">
-          <view class="rounded-2 p-4 text-center wot-bg-filled-oppo active:opacity-70" @click="navigateTo('work-tickets')">
-            <view class="text-5 font-bold" style="color: var(--success-color, #10B981);">
+          <view class="wot-bg-filled-oppo rounded-2 p-4 text-center active:opacity-70" @click="navigateTo('work-tickets')">
+            <view class="wot-text-success-main text-5 font-bold">
               {{ doneTickets ?? '-' }}
             </view>
-            <view class="mt-1 text-3 wot-text-text-secondary">
+            <view class="wot-text-text-secondary mt-1 text-3">
               {{ t('mine.doneTickets') }}
             </view>
           </view>
@@ -207,20 +190,20 @@ async function handleSubmitPassword() {
     </view>
 
     <!-- 快捷入口 -->
-    <view class="mx-3 mb-3 rounded-2 p-2 wot-bg-filled-oppo">
+    <view class="wot-bg-filled-oppo mx-3 mb-3 rounded-2 p-2">
       <wd-grid :column="4" :border="false" clickable>
         <wd-grid-item
-          v-for="item in quickLinks.slice(0, 4)"
+          v-for="item in quickLinks"
           :key="item.name"
           @click="navigateTo(item.name)"
         >
           <view
             class="h-11 w-11 flex items-center justify-center rounded-xl"
-            :style="{ backgroundColor: item.soft }"
+            :class="item.soft"
           >
             <wd-icon :name="item.icon" size="20px" :color="item.color" />
           </view>
-          <view class="mt-1 text-2.5 wot-text-text-secondary">
+          <view class="wot-text-text-secondary mt-1 text-2.5">
             {{ t(item.titleKey) }}
           </view>
         </wd-grid-item>
@@ -230,8 +213,8 @@ async function handleSubmitPassword() {
     <!-- 设置列表 -->
     <view class="mx-3 mb-3">
       <view class="mb-2 mt-1 flex items-center gap-2 px-3">
-        <view class="h-3.5 w-1 rounded-full" style="background-color: var(--primary-color, #4F8CFF);" />
-        <wd-text class="text-3.5 wot-text-text-main" :text="t('common.settings')" bold />
+        <view class="wot-bg-primary-6 h-3.5 w-1 rounded-full" />
+        <wd-text class="wot-text-text-main text-3.5" :text="t('common.settings')" bold />
       </view>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
         <wd-cell
@@ -260,7 +243,7 @@ async function handleSubmitPassword() {
       custom-style="padding-bottom: env(safe-area-inset-bottom);"
     >
       <view class="px-4 pb-4 pt-4">
-        <view class="mb-4 text-center text-4 font-bold wot-text-text-main">
+        <view class="wot-text-text-main mb-4 text-center text-4 font-bold">
           {{ t('account.password') }}
         </view>
         <wd-input
@@ -296,39 +279,3 @@ async function handleSubmitPassword() {
     </wd-popup>
   </view>
 </template>
-
-<style lang="scss" scoped>
-/* 用户信息卡：品牌渐变 + 极光装饰圆环（与工作台一致） */
-.mine-user-card {
-  position: relative;
-  overflow: hidden;
-  background: var(--brand-gradient-blue);
-  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.25);
-
-  &::before {
-    content: '';
-    position: absolute;
-    right: -60rpx;
-    top: -70rpx;
-    width: 220rpx;
-    height: 220rpx;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: 60rpx;
-    bottom: -90rpx;
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-  }
-}
-</style>
-
-
-<style lang="scss">
-</style>

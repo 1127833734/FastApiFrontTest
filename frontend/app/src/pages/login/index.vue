@@ -330,12 +330,12 @@ async function handleOAuth(provider: OAuthProvider) {
           <wd-text class="oauth-btn__label" :text="t('login.wechat')" />
         </wd-grid-item>
 
-        <!-- GitHub -->
-        <wd-grid-item @click="handleOAuth('github')">
-          <view class="oauth-btn__icon" style="background: #24292F">
-            <image class="oauth-btn__iconify" src="/static/icons/github.svg" />
+        <!-- QQ -->
+        <wd-grid-item @click="handleOAuth('qq')">
+          <view class="oauth-btn__icon" style="background: #12B7F5">
+            <image class="oauth-btn__iconify" src="/static/icons/qq.svg" />
           </view>
-          <wd-text class="oauth-btn__label" :text="t('login.github')" />
+          <wd-text class="oauth-btn__label" :text="t('login.qq')" />
         </wd-grid-item>
 
         <!-- Gitee -->
@@ -346,12 +346,12 @@ async function handleOAuth(provider: OAuthProvider) {
           <wd-text class="oauth-btn__label" :text="t('login.gitee')" />
         </wd-grid-item>
 
-        <!-- QQ -->
-        <wd-grid-item @click="handleOAuth('qq')">
-          <view class="oauth-btn__icon" style="background: #12B7F5">
-            <image class="oauth-btn__iconify" src="/static/icons/qq.svg" />
+        <!-- GitHub -->
+        <wd-grid-item @click="handleOAuth('github')">
+          <view class="oauth-btn__icon" style="background: #24292F">
+            <image class="oauth-btn__iconify" src="/static/icons/github.svg" />
           </view>
-          <wd-text class="oauth-btn__label" :text="t('login.qq')" />
+          <wd-text class="oauth-btn__label" :text="t('login.github')" />
         </wd-grid-item>
       </wd-grid>
     </view>
@@ -378,14 +378,15 @@ async function handleOAuth(provider: OAuthProvider) {
   /* #endif */
   padding: 40rpx 64rpx 0;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
-  background-color: var(--page-bg-color, #F9F9F9);
+  /* 接入全局水滴渐变（--drop-bg 由 App.vue 按主题色定义，暗色回退纯色由下方规则接管） */
+  background: var(--drop-bg, #F9F9F9);
   overflow: hidden;
   box-sizing: border-box;
 }
 
 /* 暗黑模式下整页背景变深，消除白色断层（wot 根类为 wot-theme-dark） */
 .wot-theme-dark .login-page {
-  background-color: var(--bg-color-1, #0F0F11);
+  @apply wot-bg-filled-bottom;
 }
 
 /* ===== Brand ===== */
@@ -406,21 +407,30 @@ async function handleOAuth(provider: OAuthProvider) {
   .brand-title {
     font-size: var(--font-3xl, 48rpx);
     font-weight: 700;
-    color: var(--text-color, #0A1628);
+    /* 亮色下使用主题色渐变文字，品牌识别度更高（background-clip 不生效时回退主题主色） */
+    background: linear-gradient(135deg, var(--wot-primary-5, #4480FF) 0%, var(--wot-primary-7, #164ED1) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--wot-primary-6, #1C64FD);
 
     /* 暗黑模式下使用纯白，提升品牌标题醒目度 */
     .wot-theme-dark & {
+      background: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      -webkit-text-fill-color: initial;
       color: #FFFFFF;
     }
   }
 
   .brand-subtitle {
     font-size: var(--font-md, 28rpx);
-    color: var(--text-color-3, #6B7280);
+    @apply wot-text-text-auxiliary;
 
     /* 暗黑下提亮到 --text-color-2，避免 #9CA3AF 在深底上偏暗 */
     .wot-theme-dark & {
-      color: var(--text-color-2, #D1D5DB);
+      @apply wot-text-text-secondary;
     }
   }
 }
@@ -428,17 +438,19 @@ async function handleOAuth(provider: OAuthProvider) {
 /* ===== Card（不再是毛玻璃，使用纯色背景 + 与页面背景形成层级差） ===== */
 .login-card {
   width: 100%;
-  background: var(--card-bg-color, #FFFFFF);
+  /* 亮色下默认带主题色最浅阶，避免一片纯白；--card-bg-color 可被外部覆盖 */
+  background: var(--card-bg-color, var(--wot-primary-1, #FFFFFF));
   border-radius: var(--radius-xl, 32rpx);
   padding: 28rpx 36rpx;
-  border: 2rpx solid var(--border-color, #EAECF0);
+  /* 边框跟随主题色浅阶，替代中性灰，让卡片更有主题感 */
+  border: 2rpx solid var(--border-color, var(--wot-primary-2, #EAECF0));
   box-shadow: var(--shadow-md, 0 8rpx 32rpx rgba(15, 23, 42, 0.04));
   margin-bottom: 12rpx;
   flex-shrink: 0;
 
   /* 暗黑模式：卡片用深色 2 级，页面背景用深色 1 级，形成细微层级差 */
   .wot-theme-dark & {
-    background: var(--bg-color-3, #1A1A1A);
+    @apply wot-bg-filled-content;
     border-color: var(--border-color, #2C2C2E);
     box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
   }
@@ -447,7 +459,7 @@ async function handleOAuth(provider: OAuthProvider) {
     display: block;
     font-size: var(--font-xl, 36rpx);
     font-weight: 600;
-    color: var(--text-color, #0A1628);
+    @apply wot-text-text-main;
     margin-bottom: 18rpx;
 
     /* 暗黑模式下使用纯白，提升卡片标题醒目度 */
@@ -457,19 +469,61 @@ async function handleOAuth(provider: OAuthProvider) {
   }
 }
 
-/* 输入框原生微调 — wot 自带底色/内边距/图标，仅补圆角 */
+/* 输入框微调 — 圆角加大 + 主题色边框 + 轻阴影，从"方方正正"变"圆润悬浮" */
 :deep(.wd-input) {
-  border-radius: 16rpx;
+  border-radius: 24rpx;
+  /* 亮色下主题色浅阶边框与卡片边框呼应，白色底在淡色卡片上形成浮层 */
+  border: 2rpx solid var(--wot-primary-2, var(--wot-border-main, #EAECF0));
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.05);
 }
 
-/* 暗黑下 wot 的 filled-oppo 回退纯黑，与卡片/页面层级脱节：
-   cell 容器回归透明，输入框回落深灰圆角块 */
-.wot-theme-dark .login-page :deep(.wd-cell) {
+/* H5 聚焦态：主题色描边 + 淡色光晕（MP 端不支持 :focus-within，跳过） */
+/* #ifdef H5 */
+:deep(.wd-input:focus-within) {
+  border-color: var(--wot-primary-6, #1C64FD);
+  box-shadow: 0 0 0 4rpx var(--wot-primary-1, #F5F8FF);
+}
+/* #endif */
+
+/* cell 容器回归透明：亮色下消除输入框外围的白色方形区域，暗色下消除纯黑块，
+   让自带圆角+边框的输入框直接显示在卡片上 */
+:deep(.wd-cell) {
   --wot-cell-bg: transparent;
 }
 
+/* 滑块验证 — 滑块按钮默认纯白（filled-oppo）在浅灰轨道上不明显；同时整个滑块行
+   默认浅灰底在淡主题色卡片上也几乎隐形，只有拖动时才变色。
+   统一改为与输入框一致的"白底 + 主题色边框 + 轻阴影"浮层语言，静态即可见 */
+:deep(.wd-slide-verify) {
+  /* 整行容器：白底替代浅灰轨道，静态可见 */
+  --wot-slide-verify-bg: #FFFFFF;
+  /* 滑块按钮：主题色描边 + 图标，白底保留 */
+  --wot-slide-verify-button-bg: #FFFFFF;
+  --wot-slide-verify-button-border-color: var(--wot-primary-6, #1C64FD);
+  --wot-slide-verify-button-color: var(--wot-primary-6, #1C64FD);
+  --wot-slide-verify-button-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.12);
+  /* 与输入框呼应的边框 + 浮层阴影 */
+  border: 2rpx solid var(--wot-primary-2, var(--wot-border-main, #EAECF0));
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.05);
+}
+
 .wot-theme-dark .login-page :deep(.wd-input) {
-  --wot-input-bg: var(--bg-color-3, #2C2C2E);
+  /* 比卡片背景（filled-content）亮一档，输入框在暗色卡片上凸起有层次 */
+  --wot-input-bg: var(--wot-coolgrey-8, var(--wot-filled-content));
+  border-color: var(--wot-border-main, #2C2C2E);
+  box-shadow: none;
+}
+
+.wot-theme-dark .login-page :deep(.wd-slide-verify) {
+  /* 滑块行与按钮：默认纯黑（filled-oppo）/纯黑轨道在暗色下均不可见，
+     统一改亮一档底色 + 主题色描边/图标，与输入框的暗色浮层语言一致 */
+  --wot-slide-verify-bg: var(--wot-coolgrey-8, var(--wot-filled-content));
+  --wot-slide-verify-button-bg: var(--wot-coolgrey-8, var(--wot-filled-content));
+  --wot-slide-verify-button-border-color: var(--wot-primary-5, #4480FF);
+  --wot-slide-verify-button-color: var(--wot-primary-5, #4480FF);
+  --wot-slide-verify-button-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+  border-color: var(--wot-border-main, #2C2C2E);
+  box-shadow: none;
 }
 
 :deep(.wd-form-item) {
@@ -529,7 +583,7 @@ async function handleOAuth(provider: OAuthProvider) {
 
 .oauth-btn__label {
   font-size: var(--font-xs, 20rpx);
-  color: var(--text-color-3, #6B7280);
+  @apply wot-text-text-auxiliary;
 }
 
 /* ===== Footer ===== */
@@ -544,16 +598,14 @@ async function handleOAuth(provider: OAuthProvider) {
 
   &__text {
     font-size: var(--font-md, 28rpx);
-    color: var(--text-color-3, #6B7280);
+    @apply wot-text-text-auxiliary;
   }
 
   &__link {
     font-size: var(--font-md, 28rpx);
   }
 }
-</style>
 
-<style lang="scss">
 /* MP 端兼容：wd-form-item 内部 wd-cell 因 uni-app 插槽静态声明（u-s）误判 label/title 插槽被使用，
    showLeft=true 渲染空 left 区域（flex:1 占半宽），H5 端运行时插槽判定无此问题。
    本页 form-item 无 title/label/prefix 内容，隐藏 left 安全，保证输入框与登录按钮同宽 */
