@@ -1,102 +1,203 @@
 <!--
   备件知识库 · 业务场景 / 备件合规比对
-  复刻原型 compliance 页：比对输入区 / 比对结果表格
+  结构：页面标题 + 居中查询组件 +（检查后）结果汇总 + 检查项列表 + 导出栏
 -->
 <template>
-  <div class="kb-compliance">
-    <ElCard shadow="never">
-      <template #header>
-        <span class="kb-card-title">备件合规比对</span>
-      </template>
-      <ElForm inline>
-        <ElFormItem label="备件编号">
-          <ElInput v-model="spareNo" placeholder="例如：SP-001" clearable style="width: 180px" />
+  <div class="kb-cc page-container">
+    <!-- 页面标题 -->
+    <el-text class="page-title">备件合规比对</el-text>
+
+    <!-- 居中查询组件 -->
+    <div class="search-box-wrapper">
+      <ElForm inline class="centered-search-form">
+        <ElFormItem>
+          <ElInput
+            v-model="searchQuery"
+            placeholder="输入零件编号/型号"
+            clearable
+            style="width: 260px"
+            @keyup.enter="handleComplianceCheck"
+          />
         </ElFormItem>
-        <ElFormItem label="比对规则">
-          <ElSelect v-model="rule" placeholder="全部标准" clearable style="width: 180px">
-            <ElOption v-for="r in rules" :key="r" :label="r" :value="r" />
+        <ElFormItem>
+          <ElSelect v-model="standardFilter" style="width: 140px">
+            <ElOption v-for="opt in standards" :key="opt.value" :label="opt.label" :value="opt.value" />
           </ElSelect>
         </ElFormItem>
         <ElFormItem>
-          <ElButton type="primary" :icon="ScaleToOriginal" @click="doCompare">开始比对</ElButton>
+          <ElButton type="success" :icon="Search" @click="handleComplianceCheck">合规检查</ElButton>
         </ElFormItem>
       </ElForm>
-    </ElCard>
+    </div>
 
-    <ElCard shadow="never" v-if="compared">
-      <template #header>
-        <div class="kb-card-header">
-          <span class="kb-card-title">比对结果</span>
-          <ElTag :type="resultPass ? 'success' : 'danger'">{{ resultPass ? "全部合规" : "存在冲突" }}</ElTag>
+    <!-- 检查结果（成功后方显示） -->
+    <template v-if="checked">
+      <!-- 总体结果汇总 -->
+      <div class="result-summary">
+        <ElIcon color="#67C23A" :size="24"><CircleCheck /></ElIcon>
+        <div class="result-summary-text">
+          <ElText size="large" class="result-title">合规检查结果：通过</ElText>
+          <ElText type="info">零件编号 P101-001 · 供货型号 6208-2RS-SKF · 供应商 SKF</ElText>
         </div>
-      </template>
-      <ElTable :data="compareItems" stripe>
-        <ElTableColumn prop="item" label="检查项" min-width="160" />
-        <ElTableColumn prop="actual" label="当前值" min-width="150" show-overflow-tooltip />
-        <ElTableColumn prop="required" label="标准要求" min-width="150" show-overflow-tooltip />
-        <ElTableColumn label="结果" width="110">
-          <template #default="{ row }">
-            <ElTag :type="row.pass ? 'success' : 'danger'" size="small">
-              {{ row.pass ? "合规" : "冲突" }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="note" label="说明" min-width="180" show-overflow-tooltip />
-      </ElTable>
-    </ElCard>
+      </div>
+
+      <!-- 合规检查项列表 -->
+      <el-space direction="vertical" fill style="width: 100%">
+        <el-card v-for="item in checkItems" :key="item.title" shadow="never" class="check-item-card" :class="{ 'warning-bg': item.level === 'warning' }">
+          <div class="check-item-head">
+            <div class="check-item-title">
+              <ElIcon :size="18" :color="item.level === 'pass' ? '#67C23A' : '#E6A23C'">
+                <CircleCheck v-if="item.level === 'pass'" />
+                <WarningFilled v-else />
+              </ElIcon>
+              <span>{{ item.title }}</span>
+            </div>
+            <ElTag :type="item.level === 'pass' ? 'success' : 'warning'">{{ item.level === 'pass' ? '符合' : '警告' }}</ElTag>
+          </div>
+          <div class="check-item-content">
+            <div>{{ item.content }}</div>
+            <div v-if="item.source" class="check-item-source">{{ item.source }}</div>
+          </div>
+        </el-card>
+      </el-space>
+
+      <!-- 底部操作栏 -->
+      <div class="bottom-action-bar">
+        <ElButton :icon="Document" @click="handleExportReport">导出合规报告</ElButton>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ScaleToOriginal } from "@element-plus/icons-vue";
+import { Search, CircleCheck, WarningFilled, Document } from "@element-plus/icons-vue";
 
 defineOptions({ name: "KbCompliance" });
 
-const rules = ["核电备件采购规范 Q/HD-001", "密封件通用技术条件", "轴承安装与维护规程"];
-const spareNo = ref("");
-const rule = ref("");
-const compared = ref(false);
+const searchQuery = ref("");
+const standardFilter = ref("all");
+const checked = ref(false);
 
-interface CompareItem {
-  item: string;
-  actual: string;
-  required: string;
-  pass: boolean;
-  note: string;
-}
+const standards = [{ label: "全部标准", value: "all" }];
 
-const compareItems = ref<CompareItem[]>([]);
-const resultPass = computed(() => compareItems.value.every((i) => i.pass));
+const checkItems = [
+  {
+    level: "pass" as const,
+    title: "GB/T 297 滚动轴承",
+    content: "检查项：尺寸公差、游隙、材质",
+    source: "依据文件：《轴承技术规格书》V1.3",
+  },
+  {
+    level: "pass" as const,
+    title: "NB/T 20037 核电厂备件管理",
+    content: "检查项：质量等级、可追溯性",
+    source: "依据文件：《轴承技术规格书》V1.3",
+  },
+  {
+    level: "pass" as const,
+    title: "ASME B16.20 垫片标准",
+    content: "检查项：密封性能、耐辐射",
+    source: "依据文件：《轴承技术规格书》V1.3",
+  },
+  {
+    level: "warning" as const,
+    title: "采购周期检查",
+    content: "该备件采购周期为 30 天，当前库存 5 件，低于安全库存 2 件，建议提前发起采购。",
+    source: "",
+  },
+];
 
-function doCompare() {
-  if (!spareNo.value.trim()) {
-    ElMessage.warning("请输入备件编号");
+function handleComplianceCheck() {
+  const q = searchQuery.value.trim();
+  if (!q) {
+    ElMessage.warning("请输入零件编号/型号");
     return;
   }
-  compared.value = true;
-  compareItems.value = [
-    { item: "供应型号与图纸一致性", actual: "6208-2RS-SKF", required: "6208-2RS（GB/T 276）", pass: true, note: "型号匹配，供应商在合格名录内" },
-    { item: "材质要求", actual: "GCr15 轴承钢", required: "GCr15 轴承钢", pass: true, note: "材质符合标准" },
-    { item: "采购周期检查", actual: "30 天", required: "≤ 45 天", pass: true, note: "满足大修工期要求" },
-    { item: "供应商资质", actual: "SKF 授权经销商", required: "需提供核电业绩证明", pass: false, note: "缺少核电行业供货业绩证明" },
-  ];
+  checked.value = true;
+}
+
+function handleExportReport() {
+  ElMessage.success("合规报告已导出（原型演示）");
 }
 </script>
 
 <style scoped>
-.kb-compliance {
+.kb-cc {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.kb-card-header {
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+/* 居中查询组件 */
+.search-box-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+.centered-search-form {
+  display: flex;
+  align-items: center;
+  padding: 20px 28px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+/* 结果汇总 */
+.result-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+.result-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.result-title {
+  font-weight: 700;
+  color: #111827;
+}
+/* 检查项卡片 */
+.check-item-card {
+  width: 100%;
+}
+.check-item-card.warning-bg {
+  background: #fef7ec;
+  border-color: #f5dab1;
+}
+.check-item-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 10px;
 }
-.kb-card-title {
+.check-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
   color: #111827;
+}
+.check-item-content {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.8;
+}
+.check-item-source {
+  color: #6b7280;
+}
+/* 底部操作栏 */
+.bottom-action-bar {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
