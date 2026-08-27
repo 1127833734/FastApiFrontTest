@@ -1,68 +1,108 @@
 <!--
-  备件知识库 · 零件库 / 备件管理
-  复刻原型 spares 页：备件表格 / 低库存标记 / 库存操作
+  备件知识库 · 零件库 / 备件管理（数据项维护）
+  完全复刻原型 DataMaintenancePage：分类选择(增删) + 数据项展示/必填/字段名编辑
 -->
 <template>
-  <div class="kb-spares">
-    <ElCard shadow="never" class="kb-filter">
-      <ElForm inline>
-        <ElFormItem label="关键词">
-          <ElInput v-model="query.keyword" placeholder="备件编码 / 供应型号" clearable style="width: 220px" />
-        </ElFormItem>
-        <ElFormItem label="供应商">
-          <ElSelect v-model="query.supplier" placeholder="全部供应商" clearable style="width: 140px">
-            <ElOption v-for="s in suppliers" :key="s" :label="s" :value="s" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="库存状态">
-          <ElSelect v-model="query.stockStatus" placeholder="全部" clearable style="width: 130px">
-            <ElOption label="低库存" value="low" />
-            <ElOption label="正常" value="ok" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem>
-          <ElButton type="primary" :icon="Search" @click="search">查询</ElButton>
-          <ElButton :icon="RefreshLeft" @click="reset">重置</ElButton>
-        </ElFormItem>
-      </ElForm>
+  <div class="kb-dm page-container">
+    <!-- 页头 -->
+    <div class="kb-dm-title">数据项维护</div>
+
+    <!-- 分类选择卡 -->
+    <ElCard shadow="never" class="kb-dm-category">
+      <div class="kb-dm-category-head">
+        <div class="kb-dm-category-label">选择分类</div>
+        <span class="kb-dm-category-hint">点击切换，编辑该分类下的数据项规则</span>
+      </div>
+      <div class="kb-dm-category-row">
+        <div v-for="cat in categoryKeys" :key="cat" class="kb-dm-cat-item">
+          <button
+            class="kb-dm-cat-btn"
+            :class="{ 'kb-dm-cat-btn--active': activeCategory === cat }"
+            @click="activeCategory = cat"
+          >
+            {{ cat }}
+          </button>
+          <button
+            v-if="!builtinCategories.includes(cat)"
+            class="kb-dm-cat-del"
+            title="删除分类"
+            @click="deleteCategory(cat)"
+          >
+            <ElIcon :size="14"><Delete /></ElIcon>
+          </button>
+        </div>
+        <div class="kb-dm-cat-add">
+          <ElInput
+            v-model="newCategoryName"
+            placeholder="新增分类"
+            style="width: 120px"
+            @keyup.enter="addCategory"
+          />
+          <ElButton size="small" :icon="Plus" @click="addCategory">新增</ElButton>
+        </div>
+      </div>
     </ElCard>
 
+    <!-- 数据项配置卡 -->
     <ElCard shadow="never">
-      <template #header>
-        <div class="kb-card-header">
-          <span class="kb-card-title">备件清单</span>
-          <div>
-            <ElButton :icon="Bell" @click="checkLowStock">低库存提醒</ElButton>
-            <ElButton type="primary" :icon="Plus" @click="addSpare">新增备件</ElButton>
-          </div>
-        </div>
-      </template>
-      <ElTable :data="filteredSpares" stripe>
-        <ElTableColumn type="index" label="序号" width="60" />
-        <ElTableColumn prop="spareNo" label="备件编码" width="100" />
-        <ElTableColumn prop="partNo" label="关联零件" width="100" />
-        <ElTableColumn prop="partName" label="零件名称" min-width="120" show-overflow-tooltip />
-        <ElTableColumn prop="supplyModel" label="供应型号" min-width="150" show-overflow-tooltip />
-        <ElTableColumn prop="supplier" label="供应商" width="110" />
-        <ElTableColumn prop="procurementCycle" label="采购周期(天)" width="110" align="center" />
-        <ElTableColumn prop="minStock" label="最低库存" width="90" align="center" />
-        <ElTableColumn label="当前库存" width="100" align="center">
-          <template #default="{ row }">
-            <span :style="{ color: row.currentStock < row.minStock ? '#ef4444' : '#111827', fontWeight: 600 }">
-              {{ row.currentStock }}
-            </span>
+      <div class="kb-dm-config-head">
+        <span class="kb-dm-dot" />
+        <div class="kb-dm-config-title">{{ activeCategory }} · 数据项</div>
+        <span class="kb-dm-config-hint">
+          共 {{ currentCategory.fields.length }} 项 · 展示 {{ visibleCount }} 项 · 必填 {{ requiredCount }} 项
+        </span>
+      </div>
+
+      <ElTable :data="currentCategory.fields" style="width: 100%" table-layout="fixed">
+        <ElTableColumn label="序号" width="90" align="center">
+          <template #default="{ $index }">
+            <span style="color: #9ca3af">{{ $index + 1 }}</span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="库存状态" width="100">
+        <ElTableColumn label="数据项（字段名）" min-width="240">
           <template #default="{ row }">
-            <ElTag v-if="row.currentStock < row.minStock" type="danger" size="small">低库存</ElTag>
-            <ElTag v-else type="success" size="small">正常</ElTag>
+            <ElInput
+              v-if="editingField === row.field"
+              :model-value="draft?.field"
+              size="small"
+              @update:model-value="(v) => (draft = { ...draft, field: v })"
+            />
+            <span v-else>{{ row.field }}</span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="140" fixed="right">
-          <template #default>
-            <ElButton link type="primary">入库</ElButton>
-            <ElButton link type="warning">出库</ElButton>
+        <ElTableColumn label="是否展示" width="130" align="center">
+          <template #default="{ row }">
+            <button
+              class="kb-dm-pill"
+              :class="row.visible ? 'kb-dm-pill--show' : ''"
+              @click="toggleVisible(row.field)"
+            >
+              {{ row.visible ? "展示" : "隐藏" }}
+            </button>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="是否必填" width="130" align="center">
+          <template #default="{ row }">
+            <button
+              class="kb-dm-pill"
+              :class="row.required ? 'kb-dm-pill--required' : ''"
+              @click="toggleRequired(row.field)"
+            >
+              {{ row.required ? "必填" : "选填" }}
+            </button>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="110" align="center">
+          <template #default="{ row }">
+            <div class="kb-dm-ops">
+              <template v-if="editingField === row.field">
+                <ElButton link type="success" :icon="Select" @click="commitEdit" />
+                <ElButton link :icon="Close" @click="cancelEdit" />
+              </template>
+              <ElTooltip v-else content="编辑字段名">
+                <ElButton link type="primary" :icon="EditPen" @click="startEdit(row)" />
+              </ElTooltip>
+            </div>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -71,76 +111,225 @@
 </template>
 
 <script setup lang="ts">
-import { Search, RefreshLeft, Plus, Bell } from "@element-plus/icons-vue";
+import { Plus, Delete, Select, Close, EditPen } from "@element-plus/icons-vue";
+import { reactive, computed } from "vue";
 
 defineOptions({ name: "KbSpares" });
 
-const suppliers = ["SKF", "NSK", "哈尔滨轴承", "南方密封"];
-const query = ref({ keyword: "", supplier: "", stockStatus: "" });
-
-interface Spare {
-  spareNo: string;
-  partNo: string;
-  partName: string;
-  supplyModel: string;
-  supplier: string;
-  procurementCycle: number;
-  minStock: number;
-  currentStock: number;
-}
-
-const allSpares: Spare[] = [
-  { spareNo: "SP-001", partNo: "P101-001", partName: "轴承", supplyModel: "6208-2RS-SKF", supplier: "SKF", procurementCycle: 30, minStock: 2, currentStock: 5 },
-  { spareNo: "SP-002", partNo: "P101-001", partName: "轴承", supplyModel: "6208-2RS-NSK", supplier: "NSK", procurementCycle: 25, minStock: 2, currentStock: 1 },
-  { spareNo: "SP-003", partNo: "V201-005", partName: "密封垫", supplyModel: "DN50-PN16-G", supplier: "南方密封", procurementCycle: 20, minStock: 4, currentStock: 6 },
-  { spareNo: "SP-004", partNo: "M105-012", partName: "碳刷", supplyModel: "D374N-25×32×60", supplier: "哈尔滨轴承", procurementCycle: 15, minStock: 5, currentStock: 12 },
-  { spareNo: "SP-005", partNo: "V201-006", partName: "L型密封圈", supplyModel: "Φ140×Φ160-F", supplier: "南方密封", procurementCycle: 20, minStock: 3, currentStock: 2 },
-  { spareNo: "SP-006", partNo: "C001-020", partName: "滤芯", supplyModel: "5μm-25×600", supplier: "哈尔滨轴承", procurementCycle: 35, minStock: 2, currentStock: 4 },
+/** 复刻原型 BOM_HEADERS */
+const BOM_HEADERS = [
+  "序号", "物料名称", "名称", "公称直径(公制)", "螺距(公制)", "长度", "螺纹长度", "材质", "强度等级", "标准(公制)",
+  "公称直径(英制)", "螺距(英制)", "强度", "标准(英制)", "内径", "丝径", "其他参数", "型号规格/图号",
+  "名称(国标)", "类别(国标)", "连接方式(国标)", "结构形式(国标)", "密封面(国标)", "压力(国标)", "材质(国标)", "口径(国标)",
+  "阀门形式(公制)", "进口压力等级(公制)", "进口连接形式(公制)", "出口压力等级(公制)", "出口连接形式(公制)",
+  "进口口径(公制)", "喉径(公制)", "出口口径(公制)", "密封面(公制)", "型号", "电压等级", "外形", "颜色", "颈部尺寸",
+  "额定电压", "额定容量", "结构类型", "表盘直径", "测量范围", "插入深度", "外保护套管形式", "外保护套管材质",
+  "外保护套管外径", "过程连接", "测量精度",
 ];
 
-const filteredSpares = computed(() =>
-  allSpares.filter((s) => {
-    if (query.value.keyword) {
-      const kw = query.value.keyword;
-      if (!s.spareNo.includes(kw) && !s.supplyModel.includes(kw)) return false;
-    }
-    if (query.value.supplier && s.supplier !== query.value.supplier) return false;
-    if (query.value.stockStatus === "low" && s.currentStock >= s.minStock) return false;
-    if (query.value.stockStatus === "ok" && s.currentStock < s.minStock) return false;
-    return true;
-  })
-);
+const builtinCategories = ["紧固件", "密封件", "阀门", "传动件", "电气仪表"];
 
-function search() {}
-function reset() {
-  query.value = { keyword: "", supplier: "", stockStatus: "" };
+interface FieldItem {
+  field: string;
+  visible: boolean;
+  required: boolean;
 }
-function addSpare() {
-  ElMessage.info("新增备件（原型演示）");
+interface CategoryConfig {
+  name: string;
+  fields: FieldItem[];
 }
-function checkLowStock() {
-  const low = allSpares.filter((s) => s.currentStock < s.minStock);
-  ElMessage.warning(`当前有 ${low.length} 项低库存备件需要补货`);
+
+const DEFAULT_REQUIRED = new Set(["物料名称", "型号规格/图号"]);
+
+function buildConfig(): Record<string, CategoryConfig> {
+  const config: Record<string, CategoryConfig> = {};
+  builtinCategories.forEach((cat) => {
+    config[cat] = {
+      name: cat,
+      fields: BOM_HEADERS.map((field) => ({
+        field,
+        visible: true,
+        required: DEFAULT_REQUIRED.has(field),
+      })),
+    };
+  });
+  return config;
+}
+
+const config = reactive(buildConfig());
+const activeCategory = ref(builtinCategories[0]);
+const editingField = ref<string | null>(null);
+const draft = ref<FieldItem | null>(null);
+const newCategoryName = ref("");
+
+const categoryKeys = computed(() => Object.keys(config));
+const currentCategory = computed(() => config[activeCategory.value]);
+const visibleCount = computed(() => currentCategory.value.fields.filter((f) => f.visible).length);
+const requiredCount = computed(() => currentCategory.value.fields.filter((f) => f.required).length);
+
+function startEdit(item: FieldItem) {
+  editingField.value = item.field;
+  draft.value = { ...item };
+}
+function cancelEdit() {
+  editingField.value = null;
+  draft.value = null;
+}
+function commitEdit() {
+  if (!draft.value) return;
+  const cat = config[activeCategory.value];
+  const idx = cat.fields.findIndex((it) => it.field === editingField.value);
+  if (idx >= 0) {
+    cat.fields[idx] = { ...draft.value };
+    // 若字段名变更，移除旧字段名避免残留（保持与原型一致：替换整项）
+  }
+  editingField.value = null;
+  draft.value = null;
+}
+function toggleVisible(field: string) {
+  const item = currentCategory.value.fields.find((it) => it.field === field);
+  if (item) item.visible = !item.visible;
+}
+function toggleRequired(field: string) {
+  const item = currentCategory.value.fields.find((it) => it.field === field);
+  if (item) item.required = !item.required;
+}
+function addCategory() {
+  const name = newCategoryName.value.trim();
+  if (!name || config[name]) return;
+  config[name] = {
+    name,
+    fields: BOM_HEADERS.map((field) => ({
+      field,
+      visible: true,
+      required: DEFAULT_REQUIRED.has(field),
+    })),
+  };
+  newCategoryName.value = "";
+  activeCategory.value = name;
+}
+function deleteCategory(cat: string) {
+  if (builtinCategories.includes(cat)) {
+    ElMessage.warning("系统内置分类不允许删除");
+    return;
+  }
+  delete config[cat];
+  activeCategory.value = builtinCategories[0];
 }
 </script>
 
 <style scoped>
-.kb-spares {
+.kb-dm {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.kb-filter {
-  padding: 16px;
-}
-.kb-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.kb-card-title {
-  font-size: 15px;
+.kb-dm-title {
+  font-size: 18px;
   font-weight: 600;
   color: #111827;
+}
+/* 分类选择卡 */
+.kb-dm-category-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.kb-dm-category-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.kb-dm-category-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+.kb-dm-category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.kb-dm-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kb-dm-cat-btn {
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 0.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+.kb-dm-cat-btn--active {
+  border-color: #4338ca;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.kb-dm-cat-del {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #ef4444;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.kb-dm-cat-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+/* 数据项配置 */
+.kb-dm-config-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.kb-dm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex: 0 0 auto;
+}
+.kb-dm-config-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.kb-dm-config-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+/* 展示/必填 胶囊 */
+.kb-dm-pill {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+.kb-dm-pill--show {
+  border-color: #18a058;
+  background: #f0fdf4;
+  color: #166534;
+}
+.kb-dm-pill--required {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+}
+.kb-dm-ops {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
 </style>
