@@ -230,11 +230,16 @@ function deleteCategory(cat: string) {
   color: #111827;
 }
 /* 分类选择卡 */
+.kb-dm-category {
+  flex-shrink: 0;
+  min-height: 110px;
+}
 .kb-dm-category-head {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .kb-dm-category-label {
   font-size: 13px;
@@ -250,6 +255,7 @@ function deleteCategory(cat: string) {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  min-height: 32px;
 }
 .kb-dm-cat-item {
   display: flex;
