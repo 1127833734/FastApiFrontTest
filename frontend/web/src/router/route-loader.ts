@@ -192,14 +192,16 @@ export class RouteTransformer {
     return true;
   }
 
-  /** iframe 路由：一级 → 包 Layout + redirect 到 iframe 子路由；子级 → 直接 IframeView */
+  /** iframe 路由：一级 → 包 NestedRouterParent + redirect 到 iframe 子路由；子级 → 直接 IframeView */
   private handleIframeRoute(route: AppRouteRecord, depth: number): Record<string, any> | null {
     if (depth === 0) {
       const firstSegment = this.pathFirstSegment(route.path);
       return {
         path: `/${firstSegment}`,
         name: route.name || firstSegment,
-        component: this.loader.loadLayout(),
+        // 动态路由已挂载在静态 RootLayout（layouts/index.vue）之下，
+        // 此处用纯 RouterView 占位而非再包一层 Layout，避免双层布局壳
+        component: NestedRouterParent,
         meta: { title: route.meta?.title, icon: route.meta?.icon },
         redirect: route.path.startsWith("/") ? route.path : `/${route.path}`,
         children: [
@@ -222,14 +224,16 @@ export class RouteTransformer {
     };
   }
 
-  /** 一级叶子 → 包 Layout，其下挂实际组件 */
+  /** 一级叶子 → 包 NestedRouterParent 占位，其下挂实际组件 */
   private handleFirstLevelLeaf(route: AppRouteRecord): Record<string, any> {
     const firstSegment = this.pathFirstSegment(route.path);
     const fullMenuPath = route.path.startsWith("/") ? route.path : `/${route.path}`;
     return {
       path: `/${firstSegment}`,
       name: route.name || firstSegment,
-      component: this.loader.loadLayout(),
+      // 动态路由已挂载在静态 RootLayout（layouts/index.vue）之下，
+      // 此处用纯 RouterView 占位而非再包一层 Layout，避免双层布局壳
+      component: NestedRouterParent,
       meta: { title: route.meta?.title, icon: route.meta?.icon },
       redirect: fullMenuPath,
       children: [
