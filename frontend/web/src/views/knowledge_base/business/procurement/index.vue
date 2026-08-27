@@ -1,110 +1,204 @@
 <!--
   备件知识库 · 业务场景 / 采购辅助生成
-  复刻原型 procurement 页：AI 采购建议 / 采购申请单草稿
+  结构：页面标题 + 居中生成表单 +（生成后）采购申请单草稿 + AI 推荐说明 + 操作栏
 -->
 <template>
-  <div class="kb-procurement">
-    <ElCard shadow="never">
-      <template #header>
-        <div class="kb-card-header">
-          <span class="kb-card-title">AI 采购建议</span>
-          <ElButton type="primary" :icon="MagicStick" @click="generate">智能生成建议</ElButton>
-        </div>
-      </template>
-      <ElTable :data="suggestions" stripe>
-        <ElTableColumn type="index" label="序号" width="60" />
-        <ElTableColumn prop="partNo" label="零件编号" width="110" />
-        <ElTableColumn prop="name" label="名称" width="100" />
-        <ElTableColumn prop="spec" label="规格" min-width="140" show-overflow-tooltip />
-        <ElTableColumn prop="supplier" label="推荐供应商" width="120" />
-        <ElTableColumn prop="procurementCycle" label="采购周期(天)" width="110" align="center" />
-        <ElTableColumn label="建议类型" width="100">
-          <template #default="{ row }">
-            <ElTag :type="row.type === '紧急采购' ? 'danger' : row.type === '常规采购' ? 'primary' : 'info'" size="small">
-              {{ row.type }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="reason" label="建议理由" min-width="200" show-overflow-tooltip />
-      </ElTable>
-      <ElEmpty v-if="suggestions.length === 0" description="点击「智能生成建议」，AI 将根据库存与维修计划生成采购建议" />
-    </ElCard>
+  <div class="kb-pa page-container">
+    <!-- 页面标题（靠左） -->
+    <el-text class="page-title">采购辅助生成</el-text>
 
-    <ElCard shadow="never" v-if="suggestions.length">
-      <template #header>
-        <span class="kb-card-title">采购申请单草稿</span>
-      </template>
-      <div class="kb-draft">
-        <ElDescriptions :column="3" border size="small">
-          <ElDescriptionsItem label="申请单号">PR-2026-0812</ElDescriptionsItem>
-          <ElDescriptionsItem label="申请人">备件部 · 刘工</ElDescriptionsItem>
-          <ElDescriptionsItem label="申请日期">2026-08-12</ElDescriptionsItem>
-          <ElDescriptionsItem label="关联维修工单">WO-2026-0715（泵 P-101 大修）</ElDescriptionsItem>
-          <ElDescriptionsItem label="到货要求">2026-09-30 前</ElDescriptionsItem>
-          <ElDescriptionsItem label="总金额（预估）">¥ 18,600</ElDescriptionsItem>
+    <!-- 居中表单生成组件 -->
+    <div class="search-box-wrapper">
+      <ElForm inline class="centered-generate-form">
+        <ElFormItem label="零件编号">
+          <ElInput v-model="form.partCode" placeholder="如 P101-001" clearable style="width: 160px" />
+        </ElFormItem>
+        <ElFormItem label="需求数量">
+          <ElInputNumber v-model="form.quantity" :min="1" :max="999" style="width: 120px" />
+        </ElFormItem>
+        <ElFormItem label="采购类型">
+          <ElSelect v-model="form.purchaseType" style="width: 140px">
+            <ElOption v-for="t in purchaseTypes" :key="t" :label="t" :value="t" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem>
+          <ElButton type="success" :icon="MagicStick" @click="handleGenerate">生成采购单</ElButton>
+        </ElFormItem>
+      </ElForm>
+    </div>
+
+    <!-- 生成成功后显示 -->
+    <template v-if="generated">
+      <!-- 采购申请单草稿 -->
+      <ElCard shadow="never" class="draft-card">
+        <template #header>
+          <div class="card-header">
+            <el-space>
+              <ElIcon><Document /></ElIcon>
+              <span class="draft-title">采购申请单草稿</span>
+            </el-space>
+            <ElText type="info" size="small">AI 辅助生成，请核对后提交</ElText>
+          </div>
+        </template>
+
+        <!-- 申请基础元信息 -->
+        <ElDescriptions :column="3" border>
+          <ElDescriptionsItem label="申请部门">{{ draft.dept }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="申请人">{{ draft.applicant }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="申请日期">{{ draft.date }}</ElDescriptionsItem>
         </ElDescriptions>
-        <div class="kb-draft-actions">
-          <ElButton type="primary" :icon="DocumentAdd" @click="submitDraft">提交采购申请</ElButton>
-          <ElButton :icon="EditPen" @click="editDraft">编辑草稿</ElButton>
-        </div>
+
+        <!-- 明细表格 -->
+        <ElTable :data="draftItems" stripe style="margin-top: 16px">
+          <ElTableColumn prop="seq" label="序号" width="70" align="center" />
+          <ElTableColumn prop="partCode" label="零件编号" width="120" />
+          <ElTableColumn prop="partName" label="零件名称" width="100" />
+          <ElTableColumn prop="spec" label="型号规格" min-width="130" show-overflow-tooltip />
+          <ElTableColumn prop="supplier" label="推荐供应商" width="120" />
+          <ElTableColumn prop="leadTime" label="采购周期" width="110" align="center" />
+          <ElTableColumn prop="quantity" label="数量" width="90" align="center" />
+          <ElTableColumn prop="unit" label="单位" width="80" align="center" />
+        </ElTable>
+      </ElCard>
+
+      <!-- AI 推荐说明 -->
+      <ElAlert type="success" :closable="false" class="ai-alert">
+        <template #title>AI 推荐说明</template>
+        <ul class="ai-alert-list">
+          <li>根据历史采购记录，SKF 为该型号主流供应商，质量评级 A。</li>
+          <li>建议采购数量 2 件，可满足 1#机组泵 P-101 下次大修需求。</li>
+          <li>该备件采购周期约 30 天，请提前 45 天发起流程。</li>
+        </ul>
+      </ElAlert>
+
+      <!-- 底部操作栏 -->
+      <div class="bottom-action-bar">
+        <ElButton :icon="CopyDocument" @click="handleCopy">复制内容</ElButton>
+        <ElButton :icon="Download" @click="handleExportWord">导出 Word</ElButton>
+        <ElButton type="success" @click="handleSubmit">提交审批</ElButton>
       </div>
-    </ElCard>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { MagicStick, DocumentAdd, EditPen } from "@element-plus/icons-vue";
+import { MagicStick, Document, CopyDocument, Download } from "@element-plus/icons-vue";
 
 defineOptions({ name: "KbProcurement" });
 
-interface Suggestion {
-  partNo: string;
-  name: string;
+const purchaseTypes = ["常规采购", "紧急采购", "框架合同"];
+
+const form = ref({
+  partCode: "",
+  quantity: 2,
+  purchaseType: "常规采购",
+});
+
+const generated = ref(false);
+
+const draft = {
+  dept: "维修部",
+  applicant: "张三",
+  date: "2026-08-04",
+};
+
+interface DraftItem {
+  seq: number;
+  partCode: string;
+  partName: string;
   spec: string;
   supplier: string;
-  procurementCycle: number;
-  type: string;
-  reason: string;
+  leadTime: string;
+  quantity: number;
+  unit: string;
 }
 
-const suggestions = ref<Suggestion[]>([]);
+const draftItems: DraftItem[] = [
+  {
+    seq: 1,
+    partCode: "P101-001",
+    partName: "轴承",
+    spec: "6208-2RS",
+    supplier: "SKF",
+    leadTime: "30 天",
+    quantity: 2,
+    unit: "件",
+  },
+];
 
-function generate() {
-  suggestions.value = [
-    { partNo: "P101-001", name: "轴承", spec: "6208-2RS", supplier: "SKF", procurementCycle: 30, type: "紧急采购", reason: "库存 1 件低于安全库存 2 件，大修计划 9 月开工" },
-    { partNo: "V201-006", name: "L型密封圈", spec: "Φ140×Φ160", supplier: "南方密封", procurementCycle: 20, type: "常规采购", reason: "库存 2 件接近最低库存，周期性消耗" },
-    { partNo: "M105-012", name: "碳刷", spec: "D374N 25×32×60", supplier: "哈尔滨轴承", procurementCycle: 15, type: "常规采购", reason: "库存充足但易耗，建议按年度框架合同补货" },
-  ];
-  ElMessage.success("已生成采购建议");
+function handleGenerate() {
+  if (!form.value.partCode.trim()) {
+    ElMessage.warning("请输入零件编号");
+    return;
+  }
+  generated.value = true;
 }
 
-function submitDraft() {
-  ElMessage.success("采购申请单已提交（原型演示）");
+function handleCopy() {
+  ElMessage.success("内容已复制（原型演示）");
 }
-function editDraft() {
-  ElMessage.info("编辑采购申请单草稿");
+
+function handleExportWord() {
+  ElMessage.success("Word 文档已导出（原型演示）");
+}
+
+function handleSubmit() {
+  ElMessage.success("采购申请已提交审批（原型演示）");
 }
 </script>
 
 <style scoped>
-.kb-procurement {
+.kb-pa {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.kb-card-header {
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+/* 居中生成表单 */
+.search-box-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+.centered-generate-form {
+  display: flex;
+  align-items: center;
+  padding: 20px 28px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+/* 草稿卡 */
+.card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.kb-card-title {
+.draft-title {
   font-size: 15px;
   font-weight: 600;
   color: #111827;
 }
-.kb-draft-actions {
-  margin-top: 16px;
+/* AI 推荐说明 */
+.ai-alert {
+  width: 100%;
+}
+.ai-alert-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.9;
+}
+/* 底部操作栏 */
+.bottom-action-bar {
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
 }
 </style>
