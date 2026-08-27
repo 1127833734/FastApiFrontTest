@@ -76,7 +76,7 @@ export const knowledgeBaseRoutes: AppRouteRecord[] = [
         path: "/kb-parts/spares",
         name: "KbSpares",
         component: "knowledge_base/parts/spares/index",
-        meta: { title: "备件管理", icon: "ri:archive-drawer-line", keepAlive: true },
+        meta: { title: "数据维护配置", icon: "ri:settings-4-line", keepAlive: true },
       },
     ],
   },
