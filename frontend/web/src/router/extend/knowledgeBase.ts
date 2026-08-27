@@ -142,25 +142,11 @@ export const knowledgeBaseRoutes: AppRouteRecord[] = [
       },
     ],
   },
-  // ── 系统管理 ──
-  {
-    path: "/kb-admin",
-    name: "KbAdmin",
-    meta: { title: "系统管理", icon: "ri:settings-3-line", alwaysShow: true },
-    children: [
-      {
-        path: "/kb-admin/config",
-        name: "KbSystemConfig",
-        component: "knowledge_base/admin/config/index",
-        meta: { title: "系统参数", icon: "ri:settings-4-line", keepAlive: true },
-      },
-    ],
-  },
   // ── 运维监控 ──
   {
     path: "/kb-ops",
     name: "KbOps",
-    meta: { title: "运维监控", icon: "ri:monitor-line", alwaysShow: true },
+    meta: { title: "运维监控", icon: "ri:settings-3-line", alwaysShow: true },
     children: [
       {
         path: "/kb-ops/tasks",
