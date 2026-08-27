@@ -13,6 +13,7 @@ import {
   ROUTE_COMPONENT_NESTED_PARENT,
 } from "./routes";
 import { MenuTypeEnum } from "@/enums/system/menu.enum";
+import { knowledgeBaseRoutes } from "./extend/knowledgeBase";
 
 /**
  * 菜单 → `AppRouteRecord`：后端 `MenuTable`、前端内置路由、混合模式合并；供守卫注册动态路由。
@@ -20,7 +21,7 @@ import { MenuTypeEnum } from "@/enums/system/menu.enum";
  */
 
 /** 前端模式并入菜单的内置路由（扩展点，默认空） */
-export const builtinFrontendRoutes: AppRouteRecord[] = [];
+export const builtinFrontendRoutes: AppRouteRecord[] = [...knowledgeBaseRoutes];
 
 function joinAbsolutePath(parentAbs: string, segmentPath: string): string {
   const seg = segmentPath.replace(/^\/+/, "");
