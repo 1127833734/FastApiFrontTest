@@ -92,10 +92,10 @@
 
         <div class="kb-preview-actions">
           <ElButton size="small" :icon="CircleCheck" @click="confirmPage">本页全部确认</ElButton>
-          <ElButton size="small" :icon="SkipForward" @click="skipPage">本页全部跳过</ElButton>
+          <ElButton size="small" :icon="DArrowRight" @click="skipPage">本页全部跳过</ElButton>
           <div class="kb-preview-actions-spacer" />
           <div class="kb-shortcut-tip">
-            <ElIcon><Lightbulb /></ElIcon>
+            <ElIcon><InfoFilled /></ElIcon>
             快捷键：Enter 确认 · Esc 跳过 · ←/→ 翻页
           </div>
         </div>
@@ -120,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, CircleCheck, SkipForward, Lightbulb, Document } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight, CircleCheck, DArrowRight, InfoFilled, Document } from "@element-plus/icons-vue";
 import ReviewPanel from "./ReviewPanel.vue";
 import type { ReviewCandidate, ReviewTask } from "./types";
 

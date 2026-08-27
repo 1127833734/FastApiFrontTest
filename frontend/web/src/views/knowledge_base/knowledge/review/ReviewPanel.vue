@@ -40,14 +40,14 @@
     <!-- 操作 -->
     <div class="kb-panel-actions">
       <ElButton type="primary" :icon="CircleCheck" @click="confirmNext">确认并下一个</ElButton>
-      <ElButton :icon="SkipForward" @click="skip">跳过</ElButton>
+      <ElButton :icon="DArrowRight" @click="skip">跳过</ElButton>
       <ElButton type="danger" plain :icon="CircleClose" @click="reject">驳回</ElButton>
     </div>
   </ElCard>
 </template>
 
 <script setup lang="ts">
-import { CircleCheck, SkipForward, CircleClose } from "@element-plus/icons-vue";
+import { CircleCheck, DArrowRight, CircleClose } from "@element-plus/icons-vue";
 import type { ReviewCandidate, PartAttributes } from "./types";
 
 defineOptions({ name: "KbReviewPanel" });
