@@ -44,7 +44,7 @@ export const knowledgeBaseRoutes: AppRouteRecord[] = [
         path: "/kb-knowledge/upload",
         name: "KbUpload",
         component: "knowledge_base/knowledge/upload/index",
-        meta: { title: "上传文档", icon: "ri:upload-2-line", keepAlive: false },
+        meta: { title: "上传文档", icon: "ri:upload-2-line", keepAlive: false, isHide: true },
       },
       {
         path: "/kb-knowledge/review",
