@@ -74,3 +74,7 @@ AGENTS.md
 .codebuddy
 .agent
 .workbuddy
+# ---- 本地环境/工具/临时文件 ----
+backend/env/.env
+.reasonix/
+frontend/web/_remote_probe/
