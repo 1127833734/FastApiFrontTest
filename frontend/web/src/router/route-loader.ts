@@ -204,7 +204,9 @@ export class RouteTransformer {
         redirect: route.path.startsWith("/") ? route.path : `/${route.path}`,
         children: [
           {
-            path: route.path.replace(/^\//, ""),
+            // path 为空字符串（默认子路由）：子路由与父路由同路径，
+            // 避免访问 /xxx 时父路由 redirect 指向自身导致 pushWithRedirect 无限递归
+            path: "",
             name: route.name,
             component: this.loader.loadIframe(),
             meta: route.meta,
@@ -232,7 +234,9 @@ export class RouteTransformer {
       redirect: fullMenuPath,
       children: [
         {
-          path: fullMenuPath.replace(/^\//, ""),
+          // path 为空字符串（默认子路由）：子路由与父路由同路径（/xxx），
+          // 避免访问 /xxx 时父路由 redirect 指向自身导致 pushWithRedirect 无限递归
+          path: "",
           name: `${String(route.name) || firstSegment}Child`,
           component: this.loader.load(route.component ? String(route.component) : ""),
           meta: route.meta,
