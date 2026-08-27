@@ -513,12 +513,15 @@ const sourceRows = [
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex-shrink: 0;
+  min-height: 96px;
 }
 .kb-pm-filter-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  min-height: 30px;
 }
 .kb-pm-clear {
   font-size: 12px;
@@ -530,6 +533,7 @@ const sourceRows = [
 }
 .kb-pm-search {
   width: 100%;
+  flex-shrink: 0;
 }
 /* 主体双栏 */
 .kb-pm-main {
