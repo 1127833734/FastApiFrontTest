@@ -1,136 +1,237 @@
 <!--
-  备件知识库 · 知识库 / 复核任务
-  复刻原型 review 页：工作流状态统计 / 筛选 / 候选复核表格
+  备件知识库 · 知识库 / 复核任务（列表视图）
+  按原型 ReviewTasksPage 复刻：统计卡 / tab 筛选 / 6 列表格 / 分页
 -->
 <template>
   <div class="kb-review">
-    <!-- 工作流状态统计 -->
-    <div class="kb-review-stats">
-      <ElCard v-for="s in workflowStats" :key="s.label" shadow="never" class="kb-review-stat">
-        <div class="kb-review-stat-value" :style="{ color: s.color }">{{ s.count }}</div>
-        <div class="kb-review-stat-label">{{ s.label }}</div>
+    <div class="kb-page-header">
+      <div class="kb-page-title">复核任务</div>
+    </div>
+
+    <!-- 统计卡 -->
+    <div class="kb-stat-grid">
+      <ElCard v-for="s in statsList" :key="s.label" shadow="never" class="kb-stat-card">
+        <div class="kb-stat-label">{{ s.label }}</div>
+        <div class="kb-stat-value" :style="{ color: s.color }">{{ s.value }}</div>
       </ElCard>
     </div>
 
-    <ElCard shadow="never" class="kb-filter">
-      <ElForm inline>
-        <ElFormItem label="复核状态">
-          <ElSelect v-model="query.status" placeholder="全部复核状态" clearable style="width: 150px">
-            <ElOption v-for="s in statusOptions" :key="s.value" :label="s.label" :value="s.value" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="文档">
-          <ElInput v-model="query.keyword" placeholder="文档名称 / 编号" clearable style="width: 220px" />
-        </ElFormItem>
-        <ElFormItem>
-          <ElButton type="primary" :icon="Search" @click="search">查询</ElButton>
-          <ElButton :icon="RefreshLeft" @click="reset">重置</ElButton>
-        </ElFormItem>
-      </ElForm>
-    </ElCard>
-
     <ElCard shadow="never">
-      <template #header>
-        <div class="kb-card-header">
-          <span class="kb-card-title">候选复核列表</span>
-          <ElButton :icon="Checked" @click="confirmAll">本页全部确认</ElButton>
-          <ElButton :icon="Close" @click="skipAll">本页全部跳过</ElButton>
+      <!-- 标题 + 搜索 -->
+      <div class="kb-list-head">
+        <div class="kb-list-title">复核任务列表</div>
+        <div class="kb-list-search">
+          <ElIcon color="#9ca3af"><Search /></ElIcon>
+          <ElInput v-model="search" placeholder="搜索文档名称 / 编号" clearable style="width: 300px" />
         </div>
-      </template>
-      <ElTable :data="filteredTasks" stripe>
-        <ElTableColumn type="index" label="序号" width="60" />
-        <ElTableColumn prop="label" label="复核项" min-width="180" show-overflow-tooltip />
-        <ElTableColumn prop="documentName" label="来源文档" min-width="200" show-overflow-tooltip />
-        <ElTableColumn prop="pageNo" label="页码" width="80" align="center" />
-        <ElTableColumn label="状态" width="110">
+      </div>
+
+      <!-- tab 筛选 -->
+      <div class="kb-tab-btns">
+        <button
+          v-for="t in tabOptions"
+          :key="t.value"
+          class="kb-tab-btn"
+          :class="{ 'kb-tab-btn--active': activeTab === t.value }"
+          @click="setTab(t.value)"
+        >
+          {{ t.label }}
+        </button>
+      </div>
+
+      <div class="kb-count-tip">共 {{ filteredTasks.length }} 条任务，当前第 {{ currentPage }} / {{ totalPages }} 页</div>
+
+      <!-- 表格 -->
+      <ElTable :data="pageTasks" style="width: 100%" table-layout="fixed" stripe>
+        <ElTableColumn label="来源文档" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
-            <ElTag :type="workflowColor[row.status]">{{ row.status }}</ElTag>
+            <div class="kb-cell-filename">
+              <ElIcon color="#6b7280"><Document /></ElIcon>
+              <div class="kb-cell-filename-text">
+                <div class="kb-cell-name">{{ row.documentName }}</div>
+                <div class="kb-cell-sub">{{ row.fileType }} · {{ row.totalPages }} 页</div>
+              </div>
+            </div>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="180" fixed="right">
+        <ElTableColumn prop="documentNo" label="文档编号" min-width="130" show-overflow-tooltip />
+        <ElTableColumn prop="fileType" label="文件类型" width="100" />
+        <ElTableColumn label="复核进度" width="160">
           <template #default="{ row }">
-            <ElButton link type="primary" @click="openReview(row)">查看复核</ElButton>
-            <ElButton link type="success" @click="confirmOne(row)">通过</ElButton>
-            <ElButton link type="danger" @click="rejectOne(row)">驳回</ElButton>
+            <div class="kb-progress">
+              <div class="kb-progress-bar">
+                <div class="kb-progress-fill" :style="{ width: `${progressOf(row)}%` }" />
+              </div>
+              <span>{{ progressOf(row) }}%</span>
+            </div>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="待复核/总数" width="120">
+          <template #default="{ row }">
+            <span :style="{ color: pendingOf(row) > 0 ? '#f59e0b' : '#18a058', fontWeight: 600 }">{{ pendingOf(row) }}</span>
+            <span style="color: #6b7280"> / {{ row.candidates.length }}</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="110" fixed="right">
+          <template #default="{ row }">
+            <div class="kb-row-actions">
+              <ElTooltip v-if="pendingOf(row) > 0" content="快速确认">
+                <ElButton link type="success" :icon="Checked" circle @click="quickConfirm(row)" />
+              </ElTooltip>
+              <ElTooltip :content="pendingOf(row) > 0 ? '继续复核' : '查看复核'">
+                <ElButton link type="primary" :icon="View" circle @click="openDetail(row)" />
+              </ElTooltip>
+            </div>
           </template>
         </ElTableColumn>
       </ElTable>
+
+      <!-- 分页 -->
+      <div class="kb-pagination">
+        <div class="kb-count-tip">显示 {{ pageTasks.length }} 条，共 {{ filteredTasks.length }} 条</div>
+        <div class="kb-pager">
+          <ElButton size="small" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
+            <ElIcon><ArrowLeft /></ElIcon>上一页
+          </ElButton>
+          <button
+            v-for="p in pageNumbers"
+            :key="p"
+            class="kb-page-btn"
+            :class="{ 'kb-page-btn--active': p === currentPage }"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </button>
+          <ElButton size="small" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">
+            下一页<ElIcon><ArrowRight /></ElIcon>
+          </ElButton>
+        </div>
+      </div>
     </ElCard>
+
+    <!-- 详情视图 -->
+    <ReviewDetail
+      v-if="activeTask"
+      :task="activeTask"
+      @back="activeTaskId = null"
+      @update-task="updateTask"
+      @update-candidate="updateCandidate"
+      @update-page="updateTaskPage"
+      @update-page-candidates="updatePageCandidates"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Search, RefreshLeft, Checked, Close } from "@element-plus/icons-vue";
+import { Search, View, Checked, Document, ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
+import ReviewDetail from "./ReviewDetail.vue";
+import { mockReviewTasks } from "./mock";
+import type { ReviewTask } from "./types";
 
 defineOptions({ name: "KbReview" });
 
-const workflowStats = [
-  { label: "待初审", count: 12, color: "#f59e0b" },
-  { label: "初审通过", count: 28, color: "#18a058" },
-  { label: "初审驳回", count: 3, color: "#ef4444" },
-  { label: "待复审", count: 6, color: "#3b82f6" },
-  { label: "复审通过", count: 41, color: "#18a058" },
-  { label: "复审驳回", count: 2, color: "#ef4444" },
+const PAGE_SIZE = 8;
+const tabOptions = [
+  { value: "all", label: "全部" },
+  { value: "pending", label: "待复核" },
+  { value: "confirmed", label: "已确认" },
+  { value: "rejected", label: "已驳回" },
+  { value: "skipped", label: "已跳过" },
 ];
 
-const statusOptions = [
-  { label: "待初审", value: "待初审" },
-  { label: "初审通过", value: "初审通过" },
-  { label: "初审驳回", value: "初审驳回" },
-  { label: "待复审", value: "待复审" },
-  { label: "复审通过", value: "复审通过" },
-  { label: "复审驳回", value: "复审驳回" },
-];
+const tasks = ref<ReviewTask[]>([]);
+const activeTaskId = ref<string | null>(null);
+const activeTab = ref("all");
+const search = ref("");
+const currentPage = ref(1);
 
-const workflowColor: Record<string, "warning" | "success" | "danger" | "primary" | "info"> = {
-  待初审: "warning",
-  初审通过: "success",
-  初审驳回: "danger",
-  待复审: "primary",
-  复审通过: "success",
-  复审驳回: "danger",
-};
+// 初始化 mock 数据
+tasks.value = mockReviewTasks;
 
-const query = ref({ status: "", keyword: "" });
+const activeTask = computed(() => tasks.value.find((t) => t.id === activeTaskId.value) || null);
 
-const allTasks = [
-  { id: "c-001", label: "零件/非零件判定确认", documentName: "泵 P-101 维修手册（DOC-2026-0087）", pageNo: 15, status: "待初审" },
-  { id: "c-002", label: "零件属性补充", documentName: "泵 P-101 维修手册（DOC-2026-0087）", pageNo: 16, status: "待初审" },
-  { id: "c-003", label: "零件/非零件判定确认", documentName: "主汽阀 MV-201 总装图（DOC-2026-0091）", pageNo: 3, status: "初审通过" },
-  { id: "c-004", label: "OCR 文本核对", documentName: "密封垫 DN50 采购技术协议（DOC-2026-0095）", pageNo: 2, status: "待复审" },
-  { id: "c-005", label: "BOM 父件/子件关系校验", documentName: "泵 P-101 维修手册（DOC-2026-0087）", pageNo: 18, status: "复审通过" },
-  { id: "c-006", label: "零件属性完整且无冲突", documentName: "电机 M-105 碳刷更换工艺（DOC-2026-0102）", pageNo: 9, status: "初审驳回" },
-  { id: "c-007", label: "零件/非零件判定确认", documentName: "给水系统 PID 图（DOC-2026-0104）", pageNo: 5, status: "待初审" },
-];
+const allCandidates = computed(() => tasks.value.flatMap((t) => t.candidates));
+const statsList = computed(() => {
+  const c = allCandidates.value;
+  return [
+    { label: "任务总数", value: tasks.value.length, color: "#3b82f6" },
+    { label: "待复核", value: c.filter((x) => x.status === "pending").length, color: "#f59e0b" },
+    { label: "已确认", value: c.filter((x) => x.status === "confirmed").length, color: "#18a058" },
+    { label: "已驳回", value: c.filter((x) => x.status === "rejected").length, color: "#ef4444" },
+    { label: "已跳过", value: c.filter((x) => x.status === "skipped").length, color: "#6b7280" },
+  ];
+});
 
-const filteredTasks = computed(() =>
-  allTasks.filter((t) => {
-    if (query.value.status && t.status !== query.value.status) return false;
-    if (query.value.keyword && !t.documentName.includes(query.value.keyword)) return false;
-    return true;
-  })
+const filteredTasks = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  return tasks.value.filter((t) => {
+    const matchesStatus = activeTab.value === "all" || t.candidates.some((c) => c.status === activeTab.value);
+    const matchesSearch = !q || t.documentName.toLowerCase().includes(q) || t.documentNo.toLowerCase().includes(q);
+    return matchesStatus && matchesSearch;
+  });
+});
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredTasks.value.length / PAGE_SIZE)));
+const pageTasks = computed(() =>
+  filteredTasks.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE)
 );
+const pageNumbers = computed(() => {
+  const total = totalPages.value;
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (currentPage.value <= 4) return [1, 2, 3, 4, 5, 6, 7];
+  if (currentPage.value >= total - 3) return Array.from({ length: 7 }, (_, i) => total - 6 + i);
+  return Array.from({ length: 7 }, (_, i) => currentPage.value - 3 + i);
+});
 
-function search() {}
-function reset() {
-  query.value = { status: "", keyword: "" };
+function pendingOf(task: ReviewTask) {
+  return task.candidates.filter((c) => c.status === "pending").length;
 }
-function openReview(row: (typeof allTasks)[number]) {
-  ElMessage.info(`打开复核：${row.label}（第 ${row.pageNo} 页）`);
+function progressOf(task: ReviewTask) {
+  if (task.candidates.length === 0) return 100;
+  return Math.round(
+    (task.candidates.filter((c) => c.status !== "pending").length / task.candidates.length) * 100
+  );
 }
-function confirmOne(row: (typeof allTasks)[number]) {
-  row.status = "初审通过";
-  ElMessage.success(`已通过「${row.label}」`);
+
+function setTab(v: string) {
+  activeTab.value = v;
+  currentPage.value = 1;
 }
-function rejectOne(row: (typeof allTasks)[number]) {
-  row.status = "初审驳回";
-  ElMessage.warning(`已驳回「${row.label}」`);
+function changePage(p: number) {
+  if (p < 1 || p > totalPages.value) return;
+  currentPage.value = p;
 }
-function confirmAll() {
-  ElMessage.success("本页候选已全部确认");
+function openDetail(task: ReviewTask) {
+  activeTaskId.value = task.id;
 }
-function skipAll() {
-  ElMessage.info("本页候选已全部跳过");
+function quickConfirm(task: ReviewTask) {
+  task.candidates.forEach((c) => {
+    if (c.status === "pending") c.status = "confirmed";
+  });
+  ElMessage.success(`已快速确认「${task.documentName}」全部待复核项`);
+}
+
+// ---- 详情视图回写 ----
+function updateTask(id: string, patch: Partial<ReviewTask>) {
+  const t = tasks.value.find((x) => x.id === id);
+  if (t) Object.assign(t, patch);
+}
+function updateCandidate(taskId: string, candidateId: string, patch: Record<string, unknown>) {
+  const t = tasks.value.find((x) => x.id === taskId);
+  if (!t) return;
+  const c = t.candidates.find((x) => x.id === candidateId);
+  if (c) Object.assign(c, patch);
+}
+function updateTaskPage(taskId: string, pageNo: number) {
+  const t = tasks.value.find((x) => x.id === taskId);
+  if (t) t.currentPage = pageNo;
+}
+function updatePageCandidates(taskId: string, pageNo: number, patch: Record<string, unknown>) {
+  const t = tasks.value.find((x) => x.id === taskId);
+  if (!t) return;
+  t.candidates.forEach((c) => {
+    if (c.pageNo === pageNo && c.status === "pending") Object.assign(c, patch);
+  });
 }
 </script>
 
@@ -140,40 +241,157 @@ function skipAll() {
   flex-direction: column;
   gap: 12px;
 }
-.kb-review-stats {
+.kb-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kb-page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+.kb-stat-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
 }
-.kb-review-stat {
+.kb-stat-card {
   text-align: center;
+  padding: 12px 8px;
 }
-.kb-review-stat-value {
-  font-size: 24px;
+.kb-stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+.kb-stat-value {
+  font-size: 20px;
   font-weight: 700;
 }
-.kb-review-stat-label {
+.kb-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.kb-list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+.kb-list-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 240px;
+}
+.kb-tab-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.kb-tab-btn {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kb-tab-btn--active {
+  background: #18a058;
+  color: #fff;
+  border-color: #18a058;
+}
+.kb-count-tip {
   font-size: 13px;
   color: #6b7280;
-  margin-top: 4px;
+  margin-bottom: 12px;
 }
-.kb-filter {
-  padding: 16px;
+.kb-cell-filename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
-.kb-card-header {
+.kb-cell-filename-text {
+  min-width: 0;
+  overflow: hidden;
+}
+.kb-cell-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-cell-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+.kb-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.kb-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.kb-progress-fill {
+  height: 100%;
+  background: #18a058;
+  border-radius: 3px;
+}
+.kb-progress span {
+  font-size: 13px;
+  color: #6b7280;
+  min-width: 40px;
+}
+.kb-row-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.kb-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+.kb-pagination .kb-count-tip {
+  margin-bottom: 0;
+}
+.kb-pager {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.kb-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin-right: auto;
+.kb-page-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 36px;
 }
-@media (max-width: 1400px) {
-  .kb-review-stats {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.kb-page-btn--active {
+  background: #18a058;
+  color: #fff;
+  border-color: #18a058;
 }
 </style>
