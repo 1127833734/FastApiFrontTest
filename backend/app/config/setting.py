@@ -5,10 +5,14 @@ from typing import Any, Literal
 from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from dotenv import load_dotenv
 from app.common.enums import EnvironmentEnum
 from app.config.path_conf import ENV_DIR
 
+load_dotenv()
+
+# 默认使用 dev 环境，确保 env_file 路径始终有效（如未通过命令行/环境变量指定 ENVIRONMENT）
+os.environ.setdefault("ENVIRONMENT", "dev")
 
 class Settings(BaseSettings):
     """系统配置类"""
