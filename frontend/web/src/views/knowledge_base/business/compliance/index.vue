@@ -131,6 +131,9 @@ function handleExportReport() {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 /* 居中查询组件 */
 .search-box-wrapper {

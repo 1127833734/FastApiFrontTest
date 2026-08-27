@@ -1,16 +1,16 @@
 <!--
   备件知识库 · 业务场景 / 备件精准查询
-  结构：页面标题 + 查询表单 + 零件档案（查询成功后）+ 可用备件清单（查询成功后）
+  结构：页面标题（靠左）+ 居中查询组件 + 零件档案（查询成功后）+ 可用备件清单（查询成功后）
 -->
 <template>
   <div class="kb-spq page-container">
-    <!-- 页面标题 -->
-    <div class="kb-spq-title">备件精准查询</div>
+    <!-- 页面标题（靠左） -->
+    <el-text class="page-title">备件精准查询</el-text>
 
-    <!-- 查询组件 -->
-    <ElCard shadow="never" class="kb-spq-search">
-      <ElForm inline>
-        <ElFormItem label="零件编号 / 名称">
+    <!-- 居中查询组件 -->
+    <div class="search-box-wrapper">
+      <ElForm inline class="centered-search-form">
+        <ElFormItem>
           <ElInput
             v-model="searchQuery"
             placeholder="输入零件编号或名称，例如：P101-001"
@@ -23,7 +23,7 @@
           <ElButton type="success" :icon="Search" @click="handleSearch">查询</ElButton>
         </ElFormItem>
       </ElForm>
-    </ElCard>
+    </div>
 
     <!-- 零件档案（查询成功后显示） -->
     <ElCard v-if="searched" shadow="never" class="kb-spq-archive">
@@ -116,12 +116,15 @@ function handleExport() {
 .kb-spq {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.kb-spq-title {
+.page-title {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 .kb-spq-card-title {
   font-size: 15px;
@@ -132,5 +135,19 @@ function handleExport() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+/* 居中查询组件（与备件合规比对一致） */
+.search-box-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+.centered-search-form {
+  display: flex;
+  align-items: center;
+  padding: 20px 28px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 </style>
