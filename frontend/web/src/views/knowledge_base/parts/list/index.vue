@@ -204,8 +204,8 @@ const bomTreeData: BomNode[] = [
 ];
 
 const defaultExpandedKeys = ["node-plant", "node-fw", "node-pump", "node-pump-shell"];
-const currentNodeKey = "node-pump-shell";
-const breadcrumb = ref(["核电站", "给水系统", "给水泵 P-101", "泵壳组件"]);
+const currentNodeKey = ref("node-plant");
+const breadcrumb = ref(["核电站"]);
 
 /** 树节点完整路径（供面包屑） */
 function collectPath(id: string): string[] {
@@ -231,35 +231,52 @@ interface Material {
   material: string;
   stock: number;
   category: string;
+  system: string;
 }
 
 const materials: Material[] = [
-  { materialCode: "M-001", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 5783-M16×60-8.8", manufacturer: "上海电气", material: "35CrMo", stock: 12, category: "紧固件" },
-  { materialCode: "M-002", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 5783-M20×80-10.9", manufacturer: "东方电气", material: "45钢", stock: 8, category: "紧固件" },
-  { materialCode: "M-003", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 6170-M16", manufacturer: "哈电集团", material: "35CrMo", stock: 16, category: "紧固件" },
-  { materialCode: "M-004", location: "给水泵 P-101 · 泵壳组件", specification: "DN100 PN16 缠绕垫", manufacturer: "南方密封", material: "柔性石墨+不锈钢", stock: 9, category: "密封件" },
-  { materialCode: "M-005", location: "给水泵 P-101 · 泵壳组件", specification: "Φ85×3.1 NBR", manufacturer: "Gore 中国", material: "NBR 丁腈橡胶", stock: 6, category: "密封件" },
-  { materialCode: "M-006", location: "给水泵 P-101 · 泵壳组件", specification: "Φ120×3.5 FKM", manufacturer: "Gore 中国", material: "氟橡胶 FKM", stock: 4, category: "密封件" },
-  { materialCode: "M-007", location: "给水泵 P-101 · 泵壳组件", specification: "MG1-45 机械密封", manufacturer: "沈阳鼓风机", material: "碳化硅/石墨", stock: 2, category: "其他" },
-  { materialCode: "M-008", location: "给水泵 P-101 · 联轴器组件", specification: "LZG-00 十字滑块联轴器", manufacturer: "沈阳鼓风机", material: "ZG310-570/45", stock: 1, category: "传动件" },
-  { materialCode: "M-009", location: "给水泵 P-101 · 联轴器组件", specification: "WXLZQ-01 万向联轴器", manufacturer: "瓦房店轴承", material: "20Cr/40Cr", stock: 1, category: "传动件" },
-  { materialCode: "M-010", location: "给水泵 P-101 · 轴封组件", specification: "Φ60×Φ80 密封圈", manufacturer: "南方密封", material: "氟橡胶", stock: 7, category: "密封件" },
-  { materialCode: "M-011", location: "给水调节阀 FCV-201 · 阀体组件", specification: "A48Y-16C DN50", manufacturer: "哈电集团", material: "WCB", stock: 8, category: "阀门" },
-  { materialCode: "M-012", location: "给水调节阀 FCV-201 · 阀芯组件", specification: "JZF-0 DN50", manufacturer: "重庆川仪", material: "HT150/ZCuZn38", stock: 5, category: "阀门" },
-  { materialCode: "M-013", location: "给水调节阀 FCV-201 · 阀芯组件", specification: "Φ32 阀瓣密封面", manufacturer: "重庆川仪", material: "堆焊硬质合金", stock: 3, category: "阀门" },
-  { materialCode: "M-014", location: "主汽阀 MV-201 · 阀体组件", specification: "Φ140×Φ160 密封圈", manufacturer: "南方密封", material: "氟橡胶 FKM", stock: 4, category: "密封件" },
-  { materialCode: "M-015", location: "主汽阀 MV-201 · 执行机构", specification: "Φ100×5.3 O型圈", manufacturer: "Gore 中国", material: "NBR", stock: 10, category: "密封件" },
-  { materialCode: "M-016", location: "主汽阀 MV-201 · 阀盖", specification: "M16×70 8.8级", manufacturer: "东方电气", material: "合金钢", stock: 14, category: "紧固件" },
-  { materialCode: "M-017", location: "送风机 F-201 · 转子组件", specification: "6208-2RS", manufacturer: "SKF 中国", material: "GCr15", stock: 5, category: "传动件" },
-  { materialCode: "M-018", location: "送风机 F-201 · 转子组件", specification: "6207-2RS", manufacturer: "SKF 中国", material: "GCr15", stock: 3, category: "传动件" },
-  { materialCode: "M-019", location: "应急照明盘 LP-301 · 电气柜组件", specification: "D374N 25×32×60 碳刷", manufacturer: "哈尔滨轴承", material: "电化石墨", stock: 12, category: "电气仪表" },
-  { materialCode: "M-020", location: "控制柜 CP-401 · 仪表组件", specification: "双金属温度计 WSS-411", manufacturer: "重庆川仪", material: "不锈钢", stock: 6, category: "电气仪表" },
-  { materialCode: "M-021", location: "控制柜 CP-401 · 仪表组件", specification: "压力计 Y-100", manufacturer: "艾默生过程控制", material: "黄铜", stock: 9, category: "电气仪表" },
+  { materialCode: "M-001", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 5783-M16×60-8.8", manufacturer: "上海电气", material: "35CrMo", stock: 12, category: "紧固件", system: "给水系统" },
+  { materialCode: "M-002", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 5783-M20×80-10.9", manufacturer: "东方电气", material: "45钢", stock: 8, category: "紧固件", system: "给水系统" },
+  { materialCode: "M-003", location: "给水泵 P-101 · 泵壳组件", specification: "GB/T 6170-M16", manufacturer: "哈电集团", material: "35CrMo", stock: 16, category: "紧固件", system: "给水系统" },
+  { materialCode: "M-004", location: "给水泵 P-101 · 泵壳组件", specification: "DN100 PN16 缠绕垫", manufacturer: "南方密封", material: "柔性石墨+不锈钢", stock: 9, category: "密封件", system: "给水系统" },
+  { materialCode: "M-005", location: "给水泵 P-101 · 泵壳组件", specification: "Φ85×3.1 NBR", manufacturer: "Gore 中国", material: "NBR 丁腈橡胶", stock: 6, category: "密封件", system: "给水系统" },
+  { materialCode: "M-006", location: "给水泵 P-101 · 泵壳组件", specification: "Φ120×3.5 FKM", manufacturer: "Gore 中国", material: "氟橡胶 FKM", stock: 4, category: "密封件", system: "给水系统" },
+  { materialCode: "M-007", location: "给水泵 P-101 · 泵壳组件", specification: "MG1-45 机械密封", manufacturer: "沈阳鼓风机", material: "碳化硅/石墨", stock: 2, category: "其他", system: "给水系统" },
+  { materialCode: "M-008", location: "给水泵 P-101 · 联轴器组件", specification: "LZG-00 十字滑块联轴器", manufacturer: "沈阳鼓风机", material: "ZG310-570/45", stock: 1, category: "传动件", system: "给水系统" },
+  { materialCode: "M-009", location: "给水泵 P-101 · 联轴器组件", specification: "WXLZQ-01 万向联轴器", manufacturer: "瓦房店轴承", material: "20Cr/40Cr", stock: 1, category: "传动件", system: "给水系统" },
+  { materialCode: "M-010", location: "给水泵 P-101 · 轴封组件", specification: "Φ60×Φ80 密封圈", manufacturer: "南方密封", material: "氟橡胶", stock: 7, category: "密封件", system: "给水系统" },
+  { materialCode: "M-011", location: "给水调节阀 FCV-201 · 阀体组件", specification: "A48Y-16C DN50", manufacturer: "哈电集团", material: "WCB", stock: 8, category: "阀门", system: "给水系统" },
+  { materialCode: "M-012", location: "给水调节阀 FCV-201 · 阀芯组件", specification: "JZF-0 DN50", manufacturer: "重庆川仪", material: "HT150/ZCuZn38", stock: 5, category: "阀门", system: "给水系统" },
+  { materialCode: "M-013", location: "给水调节阀 FCV-201 · 阀芯组件", specification: "Φ32 阀瓣密封面", manufacturer: "重庆川仪", material: "堆焊硬质合金", stock: 3, category: "阀门", system: "给水系统" },
+  { materialCode: "M-014", location: "主汽阀 MV-201 · 阀体组件", specification: "Φ140×Φ160 密封圈", manufacturer: "南方密封", material: "氟橡胶 FKM", stock: 4, category: "密封件", system: "蒸汽系统" },
+  { materialCode: "M-015", location: "主汽阀 MV-201 · 执行机构", specification: "Φ100×5.3 O型圈", manufacturer: "Gore 中国", material: "NBR", stock: 10, category: "密封件", system: "蒸汽系统" },
+  { materialCode: "M-016", location: "主汽阀 MV-201 · 阀盖", specification: "M16×70 8.8级", manufacturer: "东方电气", material: "合金钢", stock: 14, category: "紧固件", system: "蒸汽系统" },
+  { materialCode: "M-017", location: "送风机 F-201 · 转子组件", specification: "6208-2RS", manufacturer: "SKF 中国", material: "GCr15", stock: 5, category: "传动件", system: "通风系统" },
+  { materialCode: "M-018", location: "送风机 F-201 · 转子组件", specification: "6207-2RS", manufacturer: "SKF 中国", material: "GCr15", stock: 3, category: "传动件", system: "通风系统" },
+  { materialCode: "M-019", location: "应急照明盘 LP-301 · 电气柜组件", specification: "D374N 25×32×60 碳刷", manufacturer: "哈尔滨轴承", material: "电化石墨", stock: 12, category: "电气仪表", system: "电气系统" },
+  { materialCode: "M-020", location: "控制柜 CP-401 · 仪表组件", specification: "双金属温度计 WSS-411", manufacturer: "重庆川仪", material: "不锈钢", stock: 6, category: "电气仪表", system: "仪控系统" },
+  { materialCode: "M-021", location: "控制柜 CP-401 · 仪表组件", specification: "压力计 Y-100", manufacturer: "艾默生过程控制", material: "黄铜", stock: 9, category: "电气仪表", system: "仪控系统" },
+  { materialCode: "M-022", location: "给水泵 P-101 · 联轴器组件", specification: "弹性块 MB-75", manufacturer: "沈阳鼓风机", material: "聚氨酯", stock: 6, category: "传动件", system: "给水系统" },
 ];
+
+/** 树节点 → 物料筛选规则（节点与分类/搜索叠加生效） */
+const nodeFilter: Record<string, (m: Material) => boolean> = {
+  "node-plant": () => true,
+  "node-fw": (m) => m.system === "给水系统",
+  "node-steam": (m) => m.system === "蒸汽系统",
+  "node-pump": (m) => m.location.includes("给水泵 P-101"),
+  "node-pump-shell": (m) => m.location.includes("泵壳组件"),
+  "node-pump-seal": (m) => m.location.includes("轴封组件"),
+  "node-pump-coup": (m) => m.location.includes("联轴器组件"),
+  "node-fcv": (m) => m.location.includes("FCV-201"),
+  "node-mv": (m) => m.location.includes("主汽阀 MV-201"),
+};
 
 const filteredMaterialList = computed(() => {
   const q = search.value.trim().toLowerCase();
+  const nodeMatch = nodeFilter[currentNodeKey.value] || (() => true);
   return materials.filter((m) => {
+    if (!nodeMatch(m)) return false;
     if (activeCategory.value && m.category !== activeCategory.value) return false;
     if (q) {
       return (
@@ -284,6 +301,7 @@ function clearFilter() {
 }
 
 function handleNodeClick(data: BomNode) {
+  currentNodeKey.value = data.id;
   breadcrumb.value = collectPath(data.id);
 }
 
